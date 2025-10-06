@@ -1,0 +1,1219 @@
+import streamlit as st
+import fitz  # PyMuPDF
+from PIL import Image, ImageEnhance
+from typing import List, Dict, Any
+from datetime import datetime
+from supabase import create_client, Client
+import io
+from pydantic import BaseModel, Field
+from ultralytics import YOLO
+from .ocr_no_flash import OCR
+from pathlib import Path
+from paddleocr import PPStructureV3
+
+import time
+import json, re
+import pandas as pd
+import numpy as np
+from core.pdf2md.pdf2md import convert_to_markdown_stream
+import uuid
+
+
+def process_tags(content: str) -> str:
+    content = content.replace("<img>", "&lt;img&gt;")
+    content = content.replace("</img>", "&lt;/img&gt;")
+    content = content.replace("<watermark>", "&lt;watermark&gt;")
+    content = content.replace("</watermark>", "&lt;/watermark&gt;")
+    content = content.replace("<page_number>", "&lt;page_number&gt;")
+    content = content.replace("</page_number>", "&lt;/page_number&gt;")
+    content = content.replace("<signature>", "&lt;signature&gt;")
+    content = content.replace("</signature>", "&lt;/signature&gt;")
+
+    return content
+
+
+class Properties(BaseModel):
+    parameters: str = Field(None, description="Substance or Matter that used in the analysis")
+    result: str = Field(None, description="Result from the parameters")
+    unit: str = Field(None, description="The unit of the parameters")
+    limit: str = Field(None, description="Limit of the parameters")
+    method: str = Field(None, description="Test Method or Method")
+
+
+class ItemInvoice(BaseModel):
+    item_description: str = Field("", description="description ของสินค้า หรือ รายการสินค้า หรือ รายการ หรือ รายละเอียด")
+    quantity: float = Field(0, description="จำนวน หรือ Quantity หรือ ปริมาณ")
+    unit: str = Field("", description="ข้อความที่บ่งบอกถึงรูปแบบการขายสินค้า มักจะอยู่คู่กับปริมาณหรือ quantity หรือข้อความที่อยู่ใน column unit หรือ column หน่วย")
+    unit_price: float = Field(0, description="ราคาต่อหน่วย หรือ หน่วยละ หรือ Unit Price")
+    price: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ ราคาของสินค้า")
+
+
+
+class PoItem(BaseModel):
+    description: str = Field("", description="Description หรือ รายละเอียด หรือ รหัสสินค้า หรือ รายการ หรือ Description of goods")
+    quantity: float = Field(0, description="จำนวน หรือ Quantity หรือ Qty หรือ Order Quantity")
+    uom: str = Field("", description="UOM หรือ Unit of Measure")
+    unit_price: float = Field(0, description="ราคาต่อหน่วย หรือ ราคา/หน่วย หรือ หน่วยละ หรือ Unit Price หรือ Unit")
+    amount: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ Total หรือ Total Amount หรือ Total Price")
+
+
+
+
+class InvoiceOutput(BaseModel):
+    company: str = Field(None, description="ชื่อบริษัทที่ออก Invoice หรือบริษัทที่ขายของ")
+    invoice_number: str = Field(None, description="เลขที่ใบส่งของ หรือเลขที่ใบกำกับ หรือเลขที่ใบกำกับภาษี หรือ INVOICE NO. หรือ INV NO. หรือ เลขที่เฉยๆ ก็ได้")
+    invoice_date: str = Field("0/0/0", description="วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
+    tax_id: str = Field(None, description="เป็นเลขประจำตัวผู้เสียภาษี ของบริษัทที่ออก Invoice เท่านั้น")
+    items_list: list[ItemInvoice] = Field(description="List ของรายการสินค้าที่อยู่ใน Invoice นี้เท่านั้น ไม่เอาจำนวนรวมของสินค้า หรือส่วนลดใดๆ ทั้งสิ้น")
+    purchase_order_number: str = Field(None, description="เลขที่ใบสั่งซื้อ หรือ PO NO. หรือ P/O NO. หรือ เลขที่ PO และต้องไม่ใช่เลขเดียวกับเลขที่ใบส่งของ(INVOICE NUMBER)")
+    payment_date: str = Field("0/0/0", description="คือ วันที่ครบกำหนดชำระเงิน หรือ Payment Due Date หรือ วันครบกำหนด หรือ กำหนดชำระเงิน หรือ ครบกำหนด หรือ Due Date (แต่ต้องไม่ใช่ เครดิต หรือ เงื่อนไขการชำระเงิน)")
+                              
+class PackckingList(BaseModel):
+    tabel: list[ItemInvoice] = Field(description="รายการสินค้าไม่ต้องเอาค่ารวมทั้งหมด")
+
+
+class PurchaseOrder(BaseModel):
+    purchase_order_number: str = Field(default="", description="Purchase Order Number หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ P/O No หรือ ใบสั่งซื้อเลขที่")
+    date: str = Field(default="", description="Purchase Order Date หรือ PO Date หรือ วันที่")
+    credit_term: str = Field(default="", description="เครดิต หรือ credit term หรือ payment term หรือ การชำระเงิน หรือ เงื่อนไข")
+    company_name: str = Field(default="", description="Company name at the top of the invoice. The company name must not be 'THAI KK INDUSTRY' or 'ไทย เคเค อุตสาหกรรม'")
+    tax_id: str = Field(default="", description="เลขประจำตัวผู้เสียภาษี หรือ เลขประจำตัวผู้เสียภาษีอากร หรือ TAX ID หรือ VAT Registration No")
+    items_list: list[PoItem] = Field(description="List of items in the Purchase Order. Each item should have description, quantity, unit price, and amount")
+    # email_address: str = Field(default="", description="Email Address of Contact Person in the Purchase Order.")
+
+class AnalysisReport(BaseModel):
+    sampling_date: str = Field(None, description="วันที่เริ่มการ sampling หรือ Sampling Date")
+    sampling_by: str = Field(None, description="ผู้ที่ทำการ sampling หรือ Sampling By")
+    report_number: str = Field(None, description="เลขที่ของ Analysis Report หรือ Report No.")
+    analysis_parameters: list[Properties] = Field(None, description="List of Substance or Matter that used in the analysis")
+    remark: str = Field(None, description="Remark of the Analysis Report")
+
+
+class Receipt(BaseModel):
+    store_name: str = Field(None, description="ชื่อร้านค้า หรือ ชื่อบริษัท ที่ออกใบเสร็จ")
+    receipt_number: str = Field(None, description="เลขที่ใบเสร็จ หรือ Receipt Number")
+    date: str = Field(None, description="วันที่ที่แสดงบนใบเสร็จ หรือ Date of purchase")
+    time: str = Field(None, description="เวลาที่แสดงบนใบเสร็จ หรือ Time of purchase")
+    items: list[ItemInvoice] = Field(description="รายการสินค้าที่ซื้อ พร้อมราคาและจำนวน")
+    total_amount: float = Field(None, description="จำนวนเงินรวมทั้งหมด หรือ Total amount")
+    payment_method: str = Field(None, description="วิธีการชำระเงิน เช่น เงินสด, บัตรเครดิต, บัตรเดบิต หรือ Payment method")
+    tax_id: str = Field(None, description="เลขประจำตัวผู้เสียภาษีของร้านค้า หรือ Tax ID")
+    address: str = Field(None, description="ที่อยู่ของร้านค้า หรือ Store address")
+
+
+class FixedLangExtractProcessor:
+    """Enhanced metadata extraction with better prompts and normalization"""
+    
+    def __init__(self):
+        try:
+            import langextract as lx
+            self.lx = lx
+            self.setup_complete = True
+            print("✅ LangExtract initialized")
+        except ImportError:
+            print("⚠️  LangExtract not installed - using enhanced regex extraction")
+            self.setup_complete = False
+    
+        
+    def extract_metadata(self, document: str) -> Dict:
+        """Extract and normalize metadata"""
+        
+        if not self.setup_complete:
+            return None # self._enhanced_regex_extraction(documents)
+
+        # Improved extraction prompt
+        prompt = """
+        Extract these specific fields from certificate documentation:
+        
+        1. name: ชื่อของคนที่ปรากฎในหนังสือรับรองนี้
+        2. certification_number: เลขทะเบียนใบอนุญาต
+        3. allowance_date: ได้รับใบอนุญาตครั้งแรกตั้งแต่วันที่เท่าไร 
+        4. work_type: ประเภทงาน
+        5. work_description: งานที่รับผิดชอบ
+        6. project_owner: เจ้าของ หรือ เจ้าของโครงการ
+        
+        Be very precise - extract the EXACT data contained in the certificate document."""
+
+        
+        # Better examples
+        examples = [
+            self.lx.data.ExampleData(
+                text=f"""ที่ D-COE๐๖๙๗๒๖/๒๕๖๗
+
+                ๑๖๑๖/๑ ถนนลาดพร้าว แขวงวังทองหลาง
+                เขตวังทองหลาง กรุงเทพมหานคร ๑๐๓๑๐ สายด่วน ๑๓๐๓
+                โทรสาร ๐-๒๙๓๕-๖๖๙๕, ๐-๒๙๓๕-๖๖๙๗
+                www.coe.or.th
+
+                หนังสือรับรอง
+
+                หนังสือรับรองฉบับนี้ให้ไว้เพื่อรับรองว่า นายภณ สุวรรณไกรษร เลขทะเบียนใบอนุญาต ภย.๗๖๕๙๒ เป็นผู้ได้รับใบอนุญาตประกอบวิชาชีพวิศวกรรมควบคุม ระดับภาคีวิศวกร สาขาวิศวกรรมโยธา ได้รับใบอนุญาตครั้งแรกตั้งแต่วันที่ ๘ มีนาคม ๒๕๖๔ ใบอนุญาตประกอบวิชาชีพวิศวกรรมควบคุมฉบับปัจจุบันออกให้ตั้งแต่วันที่ ๘ มีนาคม ๒๕๖๔ ถึง ๗ มีนาคม ๒๕๖๙ ขณะนี้ไม่ได้ถูกพักใช้หรือเพิกถอนใบอนุญาตประกอบวิชาชีพวิศวกรรมควบคุม
+
+                ให้ไว้ ณ วันที่ ๑๓ พฤษภาคม ๒๕๖๗
+
+                สภาวิศวกร
+
+                หมายเหตุ หนังสือฉบับนี้ให้ใช้ภายใน ๑๒๐ วัน นับแต่วันที่ออกหนังสือ
+
+                ข้อมูลสรุปตามที่ระบุไว้ในคำขอหนังสือรับรองนี้ เพื่อใช้ในการยื่นคำขออนุญาตตามแบบ ข.1 - ข.7
+                ประเภทงาน: งานควบคุมการสร้างหรือการผลิต
+                งานที่รับผิดชอบ: ก่อสร้าง
+                สิ่งปลูกสร้างชนิด: งานทาง โครงการซ่อมสร้างถนนแอสฟัลต์คอนกรีต ถนนสุขาภิบาล 1
+                เจ้าของ: เทศบาลตำบลเขื่อนอุบลรัตน์
+
+                รายละเอียดเพิ่มเติม โปรดตรวจสอบตาม QR CODE ท้ายหนังสือรับรองฉบับนี้
+
+                คำเตือน : หนังสือรับรองฉบับนี้พิมพ์จากต้นฉบับที่เป็นไฟล์อิเล็กทรอนิกส์ ภายใต้การรับรอง Digital Certificate
+
+                สภาวิศวกร
+                COUNCIL OF ENGINEERS
+
+                โดยสามารถตรวจสอบด้วยเลข Ref No. ผ่านเว็บไซต์
+                www.coe.or.th หรือตรวจสอบผ่าน QR CODE
+
+                ออกให้ ณ วันที่ 2024-05-13 14:16:49
+                Ref : 674071455
+                """,
+                extractions=[
+                    self.lx.data.Extraction(
+                        extraction_class="name",
+                        extraction_text="นายภณ สุวรรณไกรษร",
+                        attributes={}
+                    ),
+                    self.lx.data.Extraction(
+                        extraction_class="certification_number", 
+                        extraction_text="ภย.๗๖๕๙๒",
+                        attributes={}
+                    ),
+                    self.lx.data.Extraction(
+                        extraction_class="allowance_date",
+                        extraction_text="๘ มีนาคม ๒๕๖๔", 
+                        attributes={}
+                    ),
+                    self.lx.data.Extraction(
+                        extraction_class="work_type",
+                        extraction_text="งานควบคุมการสร้างหรือการผลิต",
+                        attributes={}
+                    ),
+                    self.lx.data.Extraction(
+                        extraction_class="work_description",
+                        extraction_text="ก่อสร้าง",
+                        attributes={}
+                    ),
+                    self.lx.data.Extraction(
+                        extraction_class="project_owner",
+                        extraction_text="เทศบาลตำบลเขื่อนอุบลรัตน์",
+                        attributes={}
+                    )
+                ]
+            )
+        ]
+
+        
+        extracted_docs = []
+        
+        # for doc in documents:
+            # print(f"📄 Processing: {doc['title']}")
+            
+        try:
+            result = self.lx.extract(
+                text_or_documents=document,
+                prompt_description=prompt,
+                examples=examples,
+                model_id="gemini-2.5-pro",
+                api_key="AIzaSyAaJcvCSi4s9FvVi5JGSzkEQ8uP_45tttw",  
+                extraction_passes=2
+            )
+                
+            # Process and normalize extractions
+            print(f"The result from extraction: {result.extractions}")
+
+            metadata = self._process_and_normalize(result.extractions, document)
+                
+        except Exception as e:
+            print(f"  ⚠️  LangExtract failed: {e}")
+                # metadata = self._enhanced_regex_extraction([doc])[0]['metadata']
+            
+            # extracted_docs.append({
+                # 'id': doc['id'],
+                # 'title': doc['title'],
+                # 'content': doc['content'],
+                # 'metadata': metadata
+            # })
+        
+        return metadata
+   
+    
+    def _process_and_normalize(self, extractions, document: str) -> Dict:
+        """Process LangExtract results and normalize them"""
+        
+        metadata = {
+            'name': 'unknown',
+            'certification_number': 'unknown', 
+            'allowance_date': 'unknown',
+            'work_type': 'unknown',
+            'work_description': 'unknown',
+            'project_owner': 'unknown'
+        }
+        
+        for extraction in extractions:
+            if extraction.extraction_class == "name":
+                metadata['name'] = extraction.extraction_text
+            elif extraction.extraction_class == "certification_number":
+                metadata['certification_number'] = extraction.extraction_text
+            elif extraction.extraction_class == "allowance_date":
+                metadata['allowance_date'] = extraction.extraction_text
+            elif extraction.extraction_class == "work_type":
+                metadata['work_type'] = extraction.extraction_text
+            elif extraction.extraction_class == "work_description":
+                metadata['work_description'] = extraction.extraction_text
+            elif extraction.extraction_class == "project_owner":
+                metadata['project_owner'] = extraction.extraction_text
+        
+        # Fallback to regex if LangExtract missed key fields
+        # if metadata['service'] == 'unknown' or metadata['version'] == 'unknown':
+        #     regex_metadata = self._enhanced_regex_extraction([doc])[0]['metadata']
+        #     if metadata['service'] == 'unknown':
+        #         metadata['service'] = regex_metadata['service']
+        #     if metadata['version'] == 'unknown':
+        #         metadata['version'] = regex_metadata['version']
+        #     if metadata['doc_type'] == 'reference':
+        #         metadata['doc_type'] = regex_metadata['doc_type']
+        
+        return metadata
+    
+    def _enhanced_regex_extraction(self, documents: List[Dict]) -> List[Dict]:
+        """Enhanced regex-based extraction with better patterns"""
+        
+        extracted_docs = []
+        
+        for doc in documents:
+            metadata = {
+                'service': 'unknown',
+                'version': 'unknown',
+                'doc_type': 'reference', 
+                'rate_limits': [],
+                'deprecated': False
+            }
+            
+            title = doc.get('title', '')
+            content = doc['content']
+            
+            # Extract service name from title
+            service_match = re.search(r'([\w\s]+(?:API|Service))', title)
+            if service_match:
+                metadata['service'] = service_match.group(1).strip()
+            
+            # Extract version number
+            version_match = re.search(r'v?([\d.]+)', title)
+            if version_match:
+                metadata['version'] = version_match.group(1)
+            
+            # Determine document type
+            if 'troubleshooting' in title.lower():
+                metadata['doc_type'] = 'troubleshooting'
+            elif 'guide' in title.lower():
+                metadata['doc_type'] = 'guide'
+            else:
+                metadata['doc_type'] = 'reference'
+            
+            # Extract rate limits
+            rate_matches = re.findall(r'(\d+)\s*(?:requests?|req)[/\s]*(?:per\s*)?min', content.lower())
+            metadata['rate_limits'] = [f"{r} req/min" for r in rate_matches]
+            
+            # Check for deprecation
+            if 'deprecated' in content.lower():
+                metadata['deprecated'] = True
+            
+            extracted_docs.append({
+                'id': doc['id'],
+                'title': doc['title'], 
+                'content': doc['content'],
+                'metadata': metadata
+            })
+        
+        return extracted_docs
+
+
+
+@st.cache_resource
+def load_model()->tuple[OCR,YOLO]:
+    # from .ocr import OCR
+    x = OCR(ocr_model="FILM6912/typhoon-ocr-7b",llm_model="qwen3:14b", load_in_4bit=False)
+    # signature=YOLO("C:\\Users\\User\\wb_project\\data\\yolo12l_27062568.pt")
+    signature=YOLO("/data/yolo12l_27062568.pt")
+    return x,signature
+
+
+# Load model
+model,signature = load_model()
+lang_extract_model = FixedLangExtractProcessor()
+
+pd_pipeline = PPStructureV3(lang="th", device="gpu")
+
+
+def criteria_check_for_report(parameters_value:list[float], check_method:str, threshold_value:float):
+    """
+    Check if the parameters meet the criteria for the report.
+    """
+    if check_method == "greater_than":
+        # check if the sum of all parameters value is greater than the threshold value or not
+        return sum(parameters_value) > threshold_value
+    elif check_method == "less_than":
+        return sum(parameters_value) < threshold_value
+    elif check_method == "equal_to":
+        return sum(parameters_value) == threshold_value
+    elif check_method == "not_equal_to":
+        return sum(parameters_value) != threshold_value
+    
+def count_signatures(content):
+    """
+    Count the number of signatures in the markdown content.
+    
+    Checks for both regular tags <signature> and HTML-encoded tags &lt;signature&gt;
+    
+    Args:
+        content (str): The markdown file content
+        
+    Returns:
+        int: Number of signatures found
+    """
+    # Pattern to match both regular and HTML-encoded signature tags
+    # This will match <signature>...</signature> or &lt;signature&gt;...&lt;/signature&gt;
+    pattern1 = r'<signature>.*?</signature>'
+    pattern2 = r'&lt;signature&gt;.*?&lt;/signature&gt;'
+    
+    # Find all matches for both patterns
+    matches1 = re.findall(pattern1, content, re.DOTALL | re.IGNORECASE)
+    matches2 = re.findall(pattern2, content, re.DOTALL | re.IGNORECASE)
+    
+    # Total count
+    total_signatures = len(matches1) + len(matches2)
+    
+    return total_signatures
+
+
+def count_imgs(content):
+    """
+    Count the number of images in the markdown content.
+    
+    Checks for both regular tags <img> and HTML-encoded tags &lt;img&gt;
+    
+    Args:
+        content (str): The markdown file content
+        
+    Returns:
+        int: Number of images found
+    """
+    # Pattern to match both regular and HTML-encoded signature tags
+    # This will match <signature>...</signature> or &lt;signature&gt;...&lt;/signature&gt;
+    pattern1 = r'<img>.*?</img>'
+    pattern2 = r'&lt;img&gt;.*?&lt;/img&gt;'
+    
+    # Find all matches for both patterns
+    matches1 = re.findall(pattern1, content, re.DOTALL | re.IGNORECASE)
+    matches2 = re.findall(pattern2, content, re.DOTALL | re.IGNORECASE)
+    
+    # Total count
+    total_imgs = len(matches1) + len(matches2)
+    
+    return total_imgs
+
+
+def convert_date_string(date_str, is_payment_term):
+    """
+    Convert date string to Python datetime object.
+    
+    Supports formats:
+    - day/month/year (e.g., "8/5/2025", "08/05/2025")
+    - Handles both CE and BE years
+    - 2-digit years: 00-42 = 2000-2042 (CE), 43-99 = 2543-2599 (BE)
+    - 4-digit years: >2500 = BE, <=2500 = CE
+    - BE years are converted to CE (subtract 543)
+    
+    Args:
+        date_str (str): Date string in format "day/month/year"
+        is_payment_term (bool): True if the date is for payment term, False if the date is for invoice date
+                
+    Returns:
+        datetime: Python datetime object with CE year
+        
+    Raises:
+        ValueError: If date string is invalid or represents a future date
+    """
+    try:
+        # Split the date string
+        parts = date_str.split('/')
+        if len(parts) != 3:
+            # raise ValueError(f"Invalid date format: {date_str}")
+            return None
+        
+        day, month, year = parts
+        
+        # Convert to integers
+        day = int(day)
+        month = int(month)
+        year = int(year)
+        
+        # Handle 2-digit years
+        if year < 100:
+            if year < 43:
+                # Years 00-42 are interpreted as CE years 2000-2042
+                year = year + 2000
+            else:
+                # Years 43-99 are interpreted as BE years 2543-2599
+                year = year + 2500
+        
+        # Determine if year is BE or CE
+        if year > 2500:
+            # Buddhist Era - convert to CE by subtracting 543
+            ce_year = year - 543
+        else:
+            # Common Era - use as is
+            ce_year = year
+        
+        # Create datetime object
+        date_obj = datetime(ce_year, month, day)
+        
+        # Check if date is in the future
+        if date_obj > datetime.now():
+            if is_payment_term == False:
+                return None
+                # raise ValueError(f"Date {date_str} represents a future date")
+        
+        return date_obj
+        
+    except ValueError as e:
+        # Re-raise ValueError with more context
+        # raise ValueError(f"Error converting date string '{date_str}': {str(e)}")
+        return None
+    
+def extract_observation_and_check_robust(text):
+    """
+    Robust version with better error handling and alternative extraction methods
+    
+    Args:
+        text (str): The input text containing observation
+    
+    Returns:
+        dict: Dictionary with extraction results and metadata
+    """
+    result = {
+        'observation_text': None,
+        'contains_target_words': False,
+        'word_counts': {'ภาพ': 0, 'โลโก้': 0},
+        'extraction_method': None,
+        'error': None
+    }
+    
+    try:
+        # Method 1: Regex with markdown bold markers
+        pattern1 = r'\*\*Observation:\*\*\s*(.*?)(?=\n|$)'
+        match = re.search(pattern1, text, re.DOTALL)
+        
+        if match:
+            observation_text = match.group(1).strip()
+            result['extraction_method'] = 'regex_markdown'
+        else:
+            # Method 2: Simple string search without markdown
+            pattern2 = r'Observation:\s*(.*?)(?=\n|$)'
+            match = re.search(pattern2, text, re.DOTALL)
+            
+            if match:
+                observation_text = match.group(1).strip()
+                result['extraction_method'] = 'regex_simple'
+            else:
+                # Method 3: Line-by-line search
+                lines = text.split('\n')
+                for i, line in enumerate(lines):
+                    if 'Observation:' in line:
+                        # Extract text after "Observation:" on the same line
+                        observation_text = line.split('Observation:', 1)[1].strip()
+                        # Remove any markdown markers
+                        observation_text = observation_text.replace('**', '').strip()
+                        result['extraction_method'] = 'line_search'
+                        break
+                else:
+                    result['error'] = 'Observation text not found'
+                    return result
+        
+        # Store the extracted text
+        result['observation_text'] = observation_text
+        
+        # Count target words
+        result['word_counts']['ภาพ'] = observation_text.count('ภาพ')
+        result['word_counts']['โลโก้'] = observation_text.count('โลโก้')
+        
+        # Check if total count > 0
+        total_count = sum(result['word_counts'].values())
+        result['contains_target_words'] = total_count > 0
+        
+    except Exception as e:
+        result['error'] = f"Error during extraction: {str(e)}"
+    
+    return result
+
+# print(f"Observation text: {result['observation_text']}")
+# print(f"Contains target words: {result['contains_target_words']}")
+# print(f"Word counts: {result['word_counts']}")
+# print(f"Extraction method used: {result['extraction_method']}")
+
+# Simple function that just returns the boolean as requested
+def check_image_or_logo_in_observation(text):
+    """Simple function that returns True/False based on requirements"""
+    result = extract_observation_and_check_robust(text)
+    return result['contains_target_words']
+
+# Test the simple function
+# print(f"\nFinal result: {check_image_or_logo_in_observation(example_text)}")
+
+def handle_check_for_oxides():
+    oxide_values = []
+    oxide_names = ["Si","Al","Fe","Ca"]
+    g_cv_v = -1.0
+
+    prop_list = st.session_state["json"]["analysis_parameters"]
+    for prop in prop_list:
+        for abbreviate_name in oxide_names:
+            if abbreviate_name in prop["parameters"]:
+                # Convert the result value to float before append to the list
+                if ("O" in prop["parameters"]) or ("0" in prop["parameters"]):
+                    r_text = prop["result"]
+                    r_text = r_text.replace(" ","")
+                    r_text = r_text.replace(">","")
+                    r_text = r_text.replace("<","")
+                    r_text = r_text.replace("≤","")
+                    r_text = r_text.replace("≥","")
+                    r_text = r_text.replace("=","")
+                    oxide_values.append(float(r_text))
+                    break
+    
+    for p in prop_list:
+        lower_parameter_name = p["parameters"].lower()
+        if "gross cv" in lower_parameter_name:
+            gross_cv_value = p["result"]
+            gross_cv_value = gross_cv_value.replace(" ","")
+            gross_cv_value = gross_cv_value.replace(">","")
+            gross_cv_value = gross_cv_value.replace("<","")
+            gross_cv_value = gross_cv_value.replace("≥","")
+            gross_cv_value = gross_cv_value.replace("≤","")
+            gross_cv_value = gross_cv_value.replace("=","")
+            g_cv_v = float(gross_cv_value)
+            break
+
+    if len(oxide_values) == len(oxide_names):
+        criteria_result = criteria_check_for_report(oxide_values, "greater_than", 20)
+        if criteria_result == True:
+            result_dialog("The total sum of Oxide is more than 20. Passed")
+        else:
+            result_dialog("The total sum of Oxide is less than 20. Failed")
+    else:
+        # There is no oxides in the parameters so we need to check for the gross cv instead
+        if g_cv_v >= 0:
+            _result = criteria_check_for_report([g_cv_v], "greater_than", 2000)
+            if _result == True:
+                result_dialog("The gross cv is more than 2000. Passed")
+            else:
+                result_dialog("The gross cv is less than 2000. Failed")
+        else:
+            result_dialog("Cannot find the oxides and gross cv in this Analysis Report")
+
+        
+
+
+def insert_invoice_to_supabase(invoice_data: Dict[str, Any]):
+    """
+    Insert invoice data into Supabase table
+    """
+    # Get Supabase credentials from environment variables
+    supabase_url = "https://ufffvetqzjuyfsxzlufj.supabase.co"
+    supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZmZ2ZXRxemp1eWZzeHpsdWZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1NDIwMTgsImV4cCI6MjA2MzExODAxOH0.amaDdf6kIoZgO-eiKxmB6qs4fEYIIcV-1U9gvyMDQuc"
+    
+    if not supabase_url or not supabase_key:
+        raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
+    
+    try:
+        # Create Supabase client
+        supabase: Client = create_client(supabase_url, supabase_key)
+        
+        # Insert data into invoice_data table
+        print("Inserting invoice data into Supabase...")
+        result = supabase.table('invoice_data').insert(invoice_data).execute()
+        
+        # Check if insert was successful
+        if result.data:
+            print(f"✅ Successfully inserted invoice data!")
+            print(f"Inserted record ID: {result.data[0]['id']}")
+            print(f"Invoice Number: {result.data[0]['invoice_number']}")
+            print(f"Company: {result.data[0]['company']}")
+            return result.data[0]
+        else:
+            print("❌ Failed to insert data")
+            return None
+            
+    except Exception as e:
+        print(f"❌ Error inserting data: {str(e)}")
+        raise
+
+def ui_js(session="json_str"):
+    with st.container(border=True):
+        json_data = json.loads(st.session_state["json_str"]) if session == "json_str" else st.session_state["json"]
+        js = {}
+        for k, v in json_data.items():
+            if isinstance(v, list):
+                df = pd.DataFrame(v)
+                st_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
+                js[k] = st_df.to_dict("records")
+            else:
+                text_value = st.text_input(k, value=v, key=k)
+                js[k] = text_value
+                
+        st.session_state["json"] = js
+
+        # st.session_state["payment_term"] = js["payment_term"]
+
+@st.dialog("Json")
+def dialog():
+    with st.container(border=True):
+        st.json(st.session_state["json"])
+
+@st.dialog("Result")
+def result_dialog(message):
+    st.write(message)
+
+def handle_invoice_check_click():
+    """Handle the Invoice Check button click - retrieve latest invoice data and check dates"""
+    try:
+        # Get Supabase credentials from environment variables
+        supabase_url = "https://ufffvetqzjuyfsxzlufj.supabase.co"
+        supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZmZ2ZXRxemp1eWZzeHpsdWZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1NDIwMTgsImV4cCI6MjA2MzExODAxOH0.amaDdf6kIoZgO-eiKxmB6qs4fEYIIcV-1U9gvyMDQuc"
+        
+        if not supabase_url or not supabase_key:
+            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
+
+        # Create Supabase client
+        supabase: Client = create_client(supabase_url, supabase_key)
+        
+        # Retrieve the latest row from invoice_data table
+        print("Retrieving latest invoice data from Supabase...")
+        result = supabase.table('invoice_data').select('invoice_date, payment_date').order('id', desc=True).limit(1).execute()
+        
+        if result.data:
+            latest_invoice = result.data[0]
+            invoice_date = latest_invoice.get('invoice_date')
+            payment_date = latest_invoice.get('payment_date')
+            
+            # Display original dates from database
+            with st.expander("Date Processing Details", expanded=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.write("**Original Invoice Date:**", invoice_date)
+                with col2:
+                    st.write("**Original Payment Date:**", payment_date)
+            
+            # First begin by calling the function convert_date_string to convert the date string to datetime object
+            temp_invoice_date = convert_date_string(invoice_date, False)
+
+            if (temp_invoice_date is None) and (invoice_date is not None):
+                invoice_txt_msg = f"""
+                    From this invoice, I found that the invoice issued date is on {invoice_date}.
+                    Please extract the day, month and year from the invoice issued date.
+                """
+                
+                # Suppose the minimal date to be 1/1/25
+                if len(invoice_date) > 5:
+                    llm_invoice_date = model.generate_invoice_term_date(invoice_txt_msg)
+                else:
+                    llm_invoice_date = None
+
+
+                # Display llm_invoice_date in the UI
+                # st.info(f"LLM Invoice Date Result: {llm_invoice_date}")
+
+                if llm_invoice_date is not None:
+                    temp_invoice_date = convert_date_string(llm_invoice_date, False)
+                
+
+            temp_payment_date = convert_date_string(payment_date, True)
+
+            if (temp_payment_date is None) and (payment_date is not None):
+                payment_txt_msg = f"""
+                    From this invoice, I found that the payment term date is on {payment_date}.
+                    Please extract the day, month and year from the payment term date.
+                """
+
+                # Suppose the minimal date to be 1/1/68
+                if len(payment_date) > 5:
+                    llm_payment_date = model.generate_payment_term_date(payment_txt_msg)
+                else:
+                    llm_payment_date = None
+
+                # Display llm_payment_date in the UI
+                # st.info(f"LLM Payment Date Result: {llm_payment_date}")
+
+                if llm_payment_date is not None:
+                    temp_payment_date = convert_date_string(llm_payment_date, True)
+                
+
+            # Get the current date
+            current_date = datetime.now()
+
+            # Check if dates can be compared
+            if temp_invoice_date and temp_payment_date:
+                # Check if the invoice is active
+                if temp_invoice_date < current_date < temp_payment_date:
+                    message = "This invoice is still ACTIVE"
+                else:
+                    message = "This invoice is INACTIVE and passed the deadline of payment"
+            else:
+                if (temp_payment_date is None) and (temp_invoice_date is None):
+                    message = "Cannot find the payment due date and invoice issued date in the invoice"
+                elif temp_payment_date is None:
+                    message = "Cannot find the payment due date in the invoice"
+                elif temp_invoice_date is None:
+                    message = "Cannot find the invoice issued date in the invoice"
+                else:
+                    message = "Cannot compare the date in invoice"
+            
+            number_logo = st.session_state["resultss"]
+            logos_msg = f"Number of signature detected in this invoice : {number_logo}"
+
+            number_of_img = st.session_state["total_images"]
+            
+            if number_of_img > 0:
+                imgs_msg = "Found company logo in this invoice"
+            else:
+                imgs_msg = "No company logo found in this invoice. Please check the invoice again."
+
+            st.info(message)
+            st.info(logos_msg)
+            st.info(imgs_msg)
+        else:
+            result_dialog("Could not retrieve invoice data")
+
+    except Exception as e:
+        print(f"Error in handle_invoice_check_click: {str(e)}")
+        result_dialog(f"Error: {str(e)}")
+
+def handle_json_button_click():
+    """Handle the Json button click - insert data to Supabase and show result"""
+    try:
+        # Convert JSON data to Python Dict (it should already be a dict)
+        invoice_data = dict(st.session_state["json"])
+        
+        # Call insert_invoice_to_supabase function
+        result = insert_invoice_to_supabase(invoice_data)
+        
+        # Check if insertion was successful
+        if result:
+            # result_dialog("SEND DATA TO DB SUCCESS")
+            st.text_input(label="Send Data Status",value="SEND DATA TO DB SUCCESS")
+            st.session_state["invoice_check_button_disabled"] = False
+        else:
+            # result_dialog("SEND DATA TO DB FAIL")
+            st.text_input(label="Send Data Status",value="SEND DATA TO DB FAIL")
+            
+    except Exception as e:
+        print(f"Error in handle_json_button_click: {str(e)}")
+        # result_dialog("FAIL")
+        st.text_input(label="Send Data Status",value="ERROR OCCURRED")
+    
+    # Disable the button after processing
+    # st.session_state["json_button_disabled"] = True
+
+async def ocr_processing_page():
+    """Main OCR processing page function"""
+    st.header("📄 OCR Processing")
+    
+    # Initialize session state variables
+    if "new_upload" not in st.session_state:
+        st.session_state["new_upload"] = True
+
+    if "markdown" not in st.session_state:
+        st.session_state["markdown"] = ""
+        
+    if "json_str" not in st.session_state:
+        st.session_state["json_str"] = ""
+        
+    if "payment_term" not in st.session_state:
+        st.session_state["payment_term"] = ""
+        
+    if "json" not in st.session_state:
+        st.session_state["json"] = {}
+
+    if "json_button_disabled" not in st.session_state:
+        st.session_state["json_button_disabled"] = False
+
+    if "invoice_check_button_disabled" not in st.session_state:
+        st.session_state["invoice_check_button_disabled"] = True
+
+    if "resultss" not in st.session_state:
+        st.session_state["resultss"] = 0
+
+    if "total_images" not in st.session_state:
+        st.session_state["total_images"] = 0
+
+    if "processing_time" not in st.session_state:
+        st.session_state["processing_time"] = 0
+
+
+
+    # === Upload PDF ===
+    with st.sidebar:
+        document_type = st.radio(
+            "Choose the document type",
+            options=["Invoice", "Purchase Order", "Receipt", "Certificate"],
+            index=0  # Default to "Invoice"
+        )
+
+        selected_ocr_model = st.radio(
+            "Select OCR Model",
+            options=["text_ocr", "high_performance_ocr"],
+            index=0,
+            horizontal=True
+        )
+        st.session_state["ocr_model"] = selected_ocr_model
+
+        uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
+        if uploaded_file:
+            # doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+            images = []
+            texts = []
+            is_invoice_or_quotation = False
+            image_inp_path = []
+            pdf_input_paths = []
+
+            # Check if uploaded file is PDF or image
+            file_extension = uploaded_file.name.split('.')[-1].lower()
+            
+            if file_extension == "pdf":
+                # Handle PDF file
+                doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+                
+                for i, page in enumerate(doc):
+                    # Page as image
+                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                    img_bytes = pix.tobytes("png")
+                    img = Image.open(io.BytesIO(img_bytes))
+                    img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+
+                    image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+                    images.append(img)
+
+                    # Save each page as a separate PDF and append to pdf_input_paths
+                    base_no_ext = uploaded_file.name.rsplit('.', 1)[0]
+                    page_pdf_path = f"{base_no_ext}_{i}.pdf"
+                    single_doc = fitz.open()  # create an empty PDF
+                    single_doc.insert_pdf(doc, from_page=i, to_page=i)
+                    single_doc.save(page_pdf_path)
+                    single_doc.close()
+                    pdf_input_paths.append(page_pdf_path)
+                    
+            elif file_extension in ["png", "jpg", "jpeg"]:
+                # Handle image file
+                img = Image.open(uploaded_file)
+                
+                # Convert to PNG format and save
+                base_name = uploaded_file.name.rsplit('.', 1)[0]
+                png_filename = f"{base_name}.png"
+                
+                # Convert to RGB if necessary (for JPEG compatibility)
+                if img.mode != 'RGB' and img.mode != 'RGBA':
+                    img = img.convert('RGB')
+                
+                img.save(png_filename, 'PNG')
+                image_inp_path.append(png_filename)
+                images.append(img)
+
+                # enhancer = ImageEnhance.Sharpness(img)
+                # img_sharp = enhancer.enhance(2)
+                # contrast = ImageEnhance.Contrast(img_sharp)
+                # img_final = contrast.enhance(2)
+                
+            st.markdown("### 📷 Preview")
+
+            if image_inp_path:
+                st.text_input(label="Filename :",value=image_inp_path[0])
+                        
+            for img in images:
+                results = signature.predict(np.array(img), conf=0.5)
+                print(results)
+                st.image(results[0].plot())
+
+                resultss=[]
+                for result in results:
+                    for box in result.boxes:
+                        cls_id = int(box.cls[0]) 
+                        class_name = signature.names[cls_id]
+                        conf = float(box.conf[0])
+                        resultss.append({"class_name":class_name,"score":conf,"class_id":cls_id})
+
+                st.session_state["resultss"]=len(resultss)
+                # st.image(img)
+
+    if uploaded_file and st.session_state["new_upload"]:
+        # OCR model selection (default model_a)
+        
+        with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
+            doc_category = model.check_if_it_invoice(image_inp_path[0])
+            doc_category_md = st.empty()
+            if doc_category == "Invoice":
+                doc_category_md.markdown("This document is an invoice")
+                # st.session_state["invoice_check_button_disabled"] = False
+            else:
+                doc_category_md.markdown(f"This document is not an invoice. It is {doc_category}")
+                # st.session_state["invoice_check_button_disabled"] = True
+
+            if doc_category == "Invoice" or doc_category == "Quotation":
+                is_invoice_or_quotation = True
+
+            
+            status_check_invoice.update(
+                label="Successfully checked the invoice", state="complete", expanded=False
+            )
+
+
+        with st.status("Extracting text", expanded=True) as status:
+            center_md = st.empty()
+            center_stream = ""
+            index = 0
+            sig_stream = ""
+
+            # total_sig = count_signatures(sig_stream)
+            # st.session_state["resultss"] = total_sig
+
+            # all_images_count = count_imgs(sig_stream)
+            # st.session_state["total_images"] = all_images_count
+
+            # for img in images:
+                # index += 1
+                # center_stream += "##### Page " + str(index) + "\n"
+                # for i in model.predict(img):
+                    # center_stream += i
+                    # center_md.markdown(center_stream[1:-1].replace('"', ''))
+                # center_stream += "\n***\n"
+            if len(image_inp_path) > 0:
+                start_time = time.time()
+                if True:
+                    if selected_ocr_model == "text_ocr":
+                        output_path = Path("./output_markdown")
+
+                        for img_nn in image_inp_path:
+                            print(f"Processing image name: {img_nn}")
+
+                            output = pd_pipeline.predict(input=img_nn)
+
+                            markdown_list = []
+                            # markdown_images = []
+
+                            for res in output:
+                                md_info = res.markdown
+                                markdown_list.append(md_info)
+                                # markdown_images.append(md_info.get("markdown_images", {}))
+
+                            markdown_texts = pd_pipeline.concatenate_markdown_pages(markdown_list)
+
+                            center_stream += markdown_texts
+                            center_stream += "\n"
+
+                    elif selected_ocr_model == "high_performance_ocr":
+                         for img_nn in image_inp_path:
+                            center_stream += await model.typhoon_runpod_predict(img_nn, "default", 1)
+                            center_stream += "\n"
+
+
+                    # if selected_ocr_model == "model_a":
+                    #     for img_nn in image_inp_path:
+                    #         center_stream += await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                    #         center_stream += "\n\n"
+                    # elif selected_ocr_model == "model_b":
+                    #     for img_nn in image_inp_path:
+                    #         center_stream += await model.dotsocr_runpod_predict(img_nn)
+                    #         center_stream += "\n\n"
+                    # elif selected_ocr_model == "model_c":
+                    #     for img_nn in image_inp_path:
+                    #         center_stream += await model.dotsocr_runpod_predict(img_nn)
+                    #         center_stream += "\n\n"
+                    # elif selected_ocr_model == "TheBest":
+                    #     for img_nn in image_inp_path:
+                    #         center_stream += await model.dotsocr_runpod_predict(img_nn)
+                    #         center_stream += "\n\n"
+                            
+                else:
+                    current_page = 1
+                    request_id = str(uuid.uuid4())[:8]
+                    num_pages = len(image_inp_path)
+
+                    try:
+                        for markdown_content in convert_to_markdown_stream(
+                            image_inp_path,
+                            model_name="nanonets/Nanonets-OCR-s",
+                            max_img_size=2048,
+                            concurrency_limit=1,
+                            max_gen_tokens=10000,
+                        ):
+                            # Add progress indicator at the top for multi-page documents
+                            if num_pages > 1:
+                                progress_header = f"(Page {min(current_page, num_pages)} of {num_pages})\n\n"
+                                center_stream = progress_header + process_tags(markdown_content)
+                            else:
+                                center_stream = process_tags(markdown_content)
+
+                            # Estimate current page based on content length (rough approximation)
+                            if "---" in markdown_content:
+                                current_page = markdown_content.count("---") + 1
+
+                            # Reduced delay for better concurrent performance
+                            # center_md.markdown(center_stream)
+
+                            time.sleep(0.01)
+
+                    except Exception as e:
+                        error_message = f"❌ **Error processing request {request_id}**: {str(e)}\n\nPlease try again or contact support if the issue persists."
+                        # yield error_message
+                        print(error_message)
+
+                    # pass
+                    # center_stream = model.typhoon_runpod_predict(image_inp_path[0], "structure", 1)
+                end_time = time.time()
+                processing_time = end_time - start_time
+                st.session_state["processing_time"] = processing_time
+            
+
+            center_md.markdown(center_stream)
+            st.session_state["markdown"] = center_stream
+            
+
+            # Example usage with the robust function
+            result_count = extract_observation_and_check_robust(center_stream)
+            if result_count["contains_target_words"] == True:
+                st.session_state["total_images"] = 1
+            else:
+                st.session_state["total_images"] = 0 
+
+
+            #[1:-1].replace('"', '')
+            
+            status.update(
+                label="Successfully extracted text", state="complete", expanded=False
+            )
+
+        
+                
+
+        er={"error_bool":False,"error":""}
+
+        with st.status("Extracting Invoice Data from OCR and Checking for LOGO and Signature", expanded=True) as status_json:
+            right_md = st.empty()
+            right_stream = ""
+
+            try:
+
+                start_time_2 = time.time()
+
+                meta_certificate = {}
+
+                # if is_invoice_or_quotation == True:
+                if document_type == "Invoice":
+                    right_stream = await model.structured_output(center_stream, InvoiceOutput)
+                    right_md.markdown(right_stream)
+                elif document_type == "Receipt":
+                    right_stream = await model.structured_output(center_stream, Receipt)
+                    right_md.markdown(right_stream)
+                elif document_type == "Certificate":
+                    print("Processing certificate")
+                    meta_certificate = lang_extract_model.extract_metadata(center_stream)
+                    right_md.markdown("###See the in result below tab")
+                else:
+                    right_stream = await model.structured_output(center_stream, PurchaseOrder)
+                    right_md.markdown(right_stream)
+
+
+                end_time_2 = time.time()
+                processing_time_2 = end_time_2 - start_time_2
+                st.session_state["json_extract_time"] = processing_time_2
+                # right_stream = model.structured_output(center_stream, InvoiceOutput)
+                # right_md.markdown(right_stream)
+                st.session_state["over_all_processing_time"] = st.session_state["processing_time"] + processing_time_2
+
+                if document_type != "Certificate":
+                    st.session_state["json_str"] = re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1)
+                else:
+                    # Convert meta_certificate from Dict into Json String
+                    st.session_state["json_str"] = json.dumps(meta_certificate)
+
+
+                # st.session_state["json_str"] = right_stream
+
+                er["error_bool"] = False
+
+            except Exception as e:
+                er["error_bool"] = True
+                er["error"] = e
+                right_md.error(f"{er['error']}", icon="❌")
+
+            if not er["error_bool"]:
+                status_json.update(
+                    label="Successfully extracted Json", state="complete", expanded=False
+                )
+            else:
+                status_json.update(
+                    label="Error occurred", state="error", expanded=True
+                )
+            
+        # st.text_input(label="signature",value=st.session_state["resultss"])
+
+        if "processing_time" in st.session_state and st.session_state["processing_time"] > 0:
+            st.metric(label="OCR Processing Time", value=f"{st.session_state['processing_time']:.2f} seconds")
+            st.metric(label="JSON Extract Time", value=f"{st.session_state['json_extract_time']:.2f} seconds")
+            st.metric(label="Over All Processing Time", value=f"{st.session_state['over_all_processing_time']:.2f} seconds")
+
+
+        # if is_invoice_or_quotation == True:
+        if not er["error_bool"]:
+            ui_js("json_str")
+
+            handle_json_button_click()
+            # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
+            st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=st.session_state["invoice_check_button_disabled"])
+        else:
+            st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=True)    
+        # else:
+            # if not er["error_bool"]:
+                # ui_js("json_str")
+                # st.button("Check for Oxide", use_container_width=True, on_click=handle_check_for_oxides)
+
+            
+        st.session_state["new_upload"] = False
+            
+    elif uploaded_file and not st.session_state["new_upload"]:
+        
+        with st.status("Extracting text", expanded=True) as status:
+            st.markdown(st.session_state["markdown"])
+            status.update(
+                label="Successfully extracted text", state="complete", expanded=False
+            )
+
+        if "processing_time" in st.session_state and st.session_state["processing_time"] > 0:
+            st.metric(label="OCR Processing Time", value=f"{st.session_state['processing_time']:.2f} seconds")
+
+        with st.status("Extracting Json", expanded=True) as status_json:
+            st.markdown(st.session_state["json_str"])
+            status_json.update(
+                label="Successfully extracted Json", state="complete", expanded=False
+            )
+            
+
+        # st.text_input(label="signature",value=st.session_state["resultss"])
+        ui_js("json")
+        
+        # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
+        st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=st.session_state["invoice_check_button_disabled"])
+
+    else:
+        st.session_state["new_upload"] = True
+        st.session_state["markdown"] = ""
+        st.session_state["json_str"] = ""
+        st.session_state["json"] = {}
+        st.session_state["payment_term"] = ""
+        st.session_state["processing_time"] = 0

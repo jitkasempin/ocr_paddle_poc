@@ -1,0 +1,33 @@
+name: demo-paddle
+services:
+  gradio3:
+    build:
+      context: .
+    image: docker.weaverbase.com/demo_paddle:latest
+    container_name: gradio3
+    restart: unless-stopped
+    expose:
+      - "8506"
+    env_file:
+      - .env
+    volumes:
+      - ./cache:/root/.cache
+      - ./data:/data
+      - ./paddlex:/root/.paddlex
+    command: ["streamlit", "run", "src/demo_ocr/main.py","--server.port","8506"]
+    runtime: nvidia
+    labels:
+      - "traefik.enable=true"
+    deploy:
+     resources:
+       reservations:
+         devices:
+           - driver: nvidia
+             count: all
+             capabilities: [gpu]
+
+
+networks:
+  default:
+    name: traefik
+    external: true
