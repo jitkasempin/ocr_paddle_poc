@@ -113,7 +113,7 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
+        addr = "https://o1jlz8aiaarcfl-8000.proxy.runpod.net/v1"
         dots_ocr_client = AsyncOpenAI(api_key="{}".format(os.environ.get("API_KEY", "0")), base_url=addr)
         messages = []
         messages.append(
@@ -236,12 +236,12 @@ class OCR:
                 json_data = json.loads(text_output)
                 markdown_out = json_data.get('natural_text', "").replace("<figure>", "").replace("</figure>", "")
             except Exception as e:
-                markdown_out = f"⚠️ Could not extract `natural_text` from output.\nError: {str(e)}"
+                markdown_out = f"Could not extract natural_text from output. Error: {str(e)}"
             
             return markdown_out
         
         except Exception as e:
-            return None, f"Error processing file: {str(e)}"
+            return f"Error processing file: {str(e)}"
 
             # pass
 

@@ -1,7 +1,7 @@
 import streamlit as st
 import fitz  # PyMuPDF
 from PIL import Image, ImageEnhance
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from datetime import datetime
 from supabase import create_client, Client
 import io
@@ -48,6 +48,13 @@ class ItemInvoice(BaseModel):
     price: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ ราคาของสินค้า")
 
 
+class PackingListItem(BaseModel):
+    item_description: str = Field("", description="description ของสินค้า หรือ รายการสินค้า หรือ รายการ หรือ รายละเอียด")
+    quantity: float = Field(0, description="จำนวน หรือ Quantity หรือ ปริมาณ")
+    unit: str = Field("", description="ข้อความที่บ่งบอกถึงรูปแบบการขายสินค้า มักจะอยู่คู่กับปริมาณหรือ quantity หรือข้อความที่อยู่ใน column unit หรือ column หน่วย")
+    # unit_price: float = Field(0, description="ราคาต่อหน่วย หรือ หน่วยละ หรือ Unit Price")
+    # price: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ ราคาของสินค้า")
+
 
 class PoItem(BaseModel):
     description: str = Field("", description="Description หรือ รายละเอียด หรือ รหัสสินค้า หรือ รายการ หรือ Description of goods")
@@ -57,7 +64,29 @@ class PoItem(BaseModel):
     amount: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ Total หรือ Total Amount หรือ Total Price")
 
 
-
+class PassPortData(BaseModel):
+    passport_number: str = Field(..., description="Unique passport identifier")
+    # document_type: PassportType = Field(default=PassportType.PASSPORT)
+    issuing_country: str = Field(..., description="ISO 3166-1 alpha-3 country code")
+    issuing_authority: Optional[str] = Field(None, max_length=100)
+    
+    # Personal Information
+    surname: str = Field(..., min_length=1, max_length=50, description="Last name/family name")
+    given_names: str = Field(..., min_length=1, max_length=100, description="First and middle names")
+    nationality: str = Field(..., description="Nationality as ISO 3166-1 alpha-3 code")
+    
+    # Birth Information
+    date_of_birth: str = Field(..., description="Date of birth")
+    place_of_birth: Optional[str] = Field(None, max_length=100)
+    country_of_birth: Optional[str] = None
+    
+    # Physical Characteristics
+    gender: str = Field(..., description="Gender marker")
+    
+    # Document Validity
+    date_of_issue: str = Field(..., description="Passport issue date")
+    date_of_expiry: str = Field(..., description="Passport expiry date")
+    
 
 class InvoiceOutput(BaseModel):
     company: str = Field(None, description="ชื่อบริษัทที่ออก Invoice หรือบริษัทที่ขายของ")
@@ -68,8 +97,8 @@ class InvoiceOutput(BaseModel):
     purchase_order_number: str = Field(None, description="เลขที่ใบสั่งซื้อ หรือ PO NO. หรือ P/O NO. หรือ เลขที่ PO และต้องไม่ใช่เลขเดียวกับเลขที่ใบส่งของ(INVOICE NUMBER)")
     payment_date: str = Field("0/0/0", description="คือ วันที่ครบกำหนดชำระเงิน หรือ Payment Due Date หรือ วันครบกำหนด หรือ กำหนดชำระเงิน หรือ ครบกำหนด หรือ Due Date (แต่ต้องไม่ใช่ เครดิต หรือ เงื่อนไขการชำระเงิน)")
                               
-class PackckingList(BaseModel):
-    tabel: list[ItemInvoice] = Field(description="รายการสินค้าไม่ต้องเอาค่ารวมทั้งหมด")
+class PackingList(BaseModel):
+    table: list[PackingListItem] = Field(description="รายการสินค้ารวมถึงปริมาณที่อยู่ใน Packling List")
 
 
 class PurchaseOrder(BaseModel):
@@ -658,6 +687,9 @@ def insert_invoice_to_supabase(invoice_data: Dict[str, Any]):
 def ui_js(session="json_str"):
     with st.container(border=True):
         json_data = json.loads(st.session_state["json_str"]) if session == "json_str" else st.session_state["json"]
+        print("The value is: ")
+        print(session)
+        print(json_data)
         js = {}
         for k, v in json_data.items():
             if isinstance(v, list):
@@ -862,7 +894,7 @@ async def ocr_processing_page():
     with st.sidebar:
         document_type = st.radio(
             "Choose the document type",
-            options=["Invoice", "Purchase Order", "Receipt", "Certificate"],
+            options=["Invoice", "Packing List", "Passport", "Certificate"],
             index=0  # Default to "Invoice"
         )
 
@@ -1018,7 +1050,21 @@ async def ocr_processing_page():
 
                     elif selected_ocr_model == "high_performance_ocr":
                          for img_nn in image_inp_path:
-                            center_stream += await model.typhoon_runpod_predict(img_nn, "default", 1)
+                            if document_type != "Certificate":
+                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "default", 1)
+                                # if tmp_center_stream contain the word "Error"
+                                if "Error" in tmp_center_stream:
+                                    tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+
+                                center_stream += tmp_center_stream
+                            else:
+                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                # if tmp_center_stream contain the word "Error"
+                                if "Error" in tmp_center_stream:
+                                    tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+
+                                center_stream += tmp_center_stream
+                            
                             center_stream += "\n"
 
 
@@ -1117,15 +1163,15 @@ async def ocr_processing_page():
                 if document_type == "Invoice":
                     right_stream = await model.structured_output(center_stream, InvoiceOutput)
                     right_md.markdown(right_stream)
-                elif document_type == "Receipt":
-                    right_stream = await model.structured_output(center_stream, Receipt)
+                elif document_type == "Passport":
+                    right_stream = await model.structured_output(center_stream, PassPortData)
                     right_md.markdown(right_stream)
                 elif document_type == "Certificate":
                     print("Processing certificate")
                     meta_certificate = lang_extract_model.extract_metadata(center_stream)
                     right_md.markdown("###See the in result below tab")
                 else:
-                    right_stream = await model.structured_output(center_stream, PurchaseOrder)
+                    right_stream = await model.structured_output(center_stream, PackingList)
                     right_md.markdown(right_stream)
 
 
@@ -1141,6 +1187,7 @@ async def ocr_processing_page():
                 else:
                     # Convert meta_certificate from Dict into Json String
                     st.session_state["json_str"] = json.dumps(meta_certificate)
+                    print(st.session_state["json_str"])
 
 
                 # st.session_state["json_str"] = right_stream

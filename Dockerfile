@@ -9,6 +9,7 @@ RUN apt-get install -y libgl1 libglib2.0-0 libsm6 libxext6 libxrender1
 RUN apt-get install -y libvips-dev libvips42 tesseract-ocr
 RUN python -m pip install --pre paddlepaddle-gpu -i https://www.paddlepaddle.org.cn/packages/nightly/cu129/
 RUN python -m pip install "paddleocr[all]"
+RUN python -m pip install langextract
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
 
 
