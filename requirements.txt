@@ -23,6 +23,7 @@ accelerate
 gradio==5.23.2
 json-repair
 litellm
+httpx
 loguru
 mdpd
 numpy

@@ -6,7 +6,7 @@ from langchain_ollama import ChatOllama
 # import outlines
 import re
 from olmocr.pipeline import build_page_query
-
+import httpx
 # from outlines import Generator, Template
 from google import genai
 import os
@@ -68,16 +68,39 @@ class OCR:
         self.donut_model = VisionEncoderDecoderModel.from_pretrained("naver-clova-ix/donut-base-finetuned-rvlcdip")
 
         
+        # Configure httpx timeout
+        timeout_config = httpx.Timeout(
+            timeout=330.0,
+            connect=15.0,
+            read=300.0,
+            write=15.0
+        )
+
+
+         # Create httpx client with retry logic
+        http_client = httpx.AsyncClient(
+            timeout=timeout_config
+            # limits=httpx.Limits(
+                # max_keepalive_connections=1,
+                # max_connections=1
+            # ),
+            # transport=httpx.AsyncHTTPTransport(retries=2)
+        )
+        
+        
+
         self.llm=ChatOllama(
             model=llm_model,
             temperature=0,
             base_url="https://ml.weaverbase.com/ollama"
         )
 
-        self.my_openai = AsyncOpenAI(base_url="https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c")
+        self.my_openai = AsyncOpenAI(base_url="https://611mqq6mxg9fvy-8000.proxy.runpod.net/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c", http_client=http_client)
         # self.my_openai = OpenAI(base_url="https://8000-01jv6gbqesg14ne3mavgm9acm7.cloudspaces.litng.ai/v1", api_key="api-key")
         self.olm_ocr_openai = AsyncOpenAI(base_url="https://api.runpod.ai/v2/ajplyymntb6f54/openai/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c")
-        
+
+        self.nanonet_client = AsyncOpenAI(base_url="https://ifp0ig0mslclt9-8000.proxy.runpod.net/v1", api_key="0")
+
         self.q_client = Qwen3VLLMClient()
 
         # genai.configure(api_key=os.environ["GEMINI_API_KEY"])
@@ -109,11 +132,43 @@ class OCR:
 
         return response.choices[0].message.content
 
+
+    async def ocr_page_with_nanonets_s(self, img_file_path):
+        
+        img_base64 = None
+        with open(img_file_path, "rb") as image_file:
+            img_base64 =base64.b64encode(image_file.read()).decode("utf-8")
+
+
+        response = await self.nanonet_client.chat.completions.create(
+            model="nanonets/Nanonets-OCR2-3B",
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            "image_url": {"url": f"data:image/png;base64,{img_base64}"},
+                        },
+                        {
+                            "type": "text",
+                            "text": "Extract the text from the above document as if you were reading it naturally. Return the tables in html format. Return the equations in LaTeX representation. If there is an image in the document and image caption is not present, add a small description of the image inside the <img></img> tag; otherwise, add the image caption inside <img></img>. Watermarks should be wrapped in brackets. Ex: <watermark>OFFICIAL COPY</watermark>. Page numbers should be wrapped in brackets. Ex: <page_number>14</page_number> or <page_number>9/22</page_number>. Prefer using ☐ and ☑ for check boxes.",
+                        },
+                    ],
+                }
+            ],
+            temperature=0.0,
+            max_tokens=6000
+        )
+
+        return response.choices[0].message.content
+
+
     async def dotsocr_runpod_predict(self, f_path):
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://o1jlz8aiaarcfl-8000.proxy.runpod.net/v1"
+        addr = "https://hx2peaj55cxw6b-8000.proxy.runpod.net/v1"
         dots_ocr_client = AsyncOpenAI(api_key="{}".format(os.environ.get("API_KEY", "0")), base_url=addr)
         messages = []
         messages.append(
@@ -132,8 +187,8 @@ class OCR:
             response = await dots_ocr_client.chat.completions.create(
                 messages=messages, 
                 model="model", 
-                max_completion_tokens=32768,
-                temperature=0.001,
+                max_completion_tokens=8000,
+                temperature=0,
                 top_p=0.9)
             
             response = response.choices[0].message.content
@@ -222,10 +277,10 @@ class OCR:
             response = await self.my_openai.chat.completions.create(
                 model="scb10x/typhoon-ocr-7b",
                 messages=messages,
-                max_tokens=10000,
+                max_tokens=32768,
                 extra_body={
-                    "repetition_penalty": 1.2,
-                    "temperature": 0.1,
+                    "repetition_penalty": 1.02,
+                    "temperature": 0.01,
                     "top_p": 0.6,
                 },
             )
@@ -292,6 +347,7 @@ class OCR:
 
         # Single request with thinking mode
         response = await self.q_client.chat_completion([
+            {"role": "system", "content": "You are a helpful assistant that converts Markdown to JSON format according to the given schema."},
             {"role": "user", "content": prompt}
         ])
 

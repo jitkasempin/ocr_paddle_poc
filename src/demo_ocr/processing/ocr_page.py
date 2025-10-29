@@ -1,15 +1,20 @@
 import streamlit as st
 import fitz  # PyMuPDF
 from PIL import Image, ImageEnhance
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Literal
+from decimal import Decimal
 from datetime import datetime
 from supabase import create_client, Client
 import io
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator, field_validator
 from ultralytics import YOLO
 from .ocr_no_flash import OCR
+
+from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes, extract_only_branch_code_number, extract_po_decimal
+
 from pathlib import Path
 from paddleocr import PPStructureV3
+from doc_classification.zero_shot import get_classifier,crop_top_percent
 
 import time
 import json, re
@@ -31,6 +36,68 @@ def process_tags(content: str) -> str:
 
     return content
 
+
+def load_centroids_dict(path: str) -> Dict[str, np.ndarray]:
+    """
+    Load กลับมาเป็น dict[label -> vector] เหมือนตอน build
+    """
+    blob = np.load(path, allow_pickle=True)
+    labels = blob["labels"].tolist()
+    C = blob["centroids"]  # (K, D)
+    centroids = {lbl: C[i] for i, lbl in enumerate(labels)}
+    # (optional) meta = dict(blob["meta"].item()) if blob["meta"].size else {}
+    print(f"📂 Loaded {len(labels)} centroids from {path}")
+    return centroids
+
+
+
+
+
+def load_image_as_rgb_array(path: str) -> np.ndarray:
+    # เปิดรูปภาพด้วย PIL
+    img = Image.open(path).convert("RGB")
+    # แปลงเป็น numpy array
+    arr = np.array(img)
+    return arr
+
+# def extract_code(text: str) -> Optional[str]:
+#     """
+#     Extract numeric code value from text containing CODE or MAT CODE keywords.
+
+#     Args:
+#         text: Input string that may contain code information
+
+#     Returns:
+#         Extracted numeric code as string, or None if not found
+
+#     Examples:
+#         >>> extract_code("Screw Cap SS/SUS304 (200/กล) CODE : 46924")
+#         '46924'
+#         >>> extract_code("สกรูหัวเหลี่ยม SS/SUS304 M14-2.0 (100/กล) MAT CODE : 1166")
+#         '1166'
+#         >>> extract_code("Product code: 12345")
+#         '12345'
+#         >>> extract_code("No code here")
+#         None
+#     """
+#     if not text:
+#         return None
+
+#     # Pattern explanation:
+#     # (?:mat\s+)?  - Optional "mat" followed by whitespace (non-capturing group)
+#     # code         - The word "code" (case-insensitive due to re.IGNORECASE)
+#     # \s*          - Optional whitespace
+#     # [:：]?       - Optional colon (ASCII or full-width)
+#     # \s*          - Optional whitespace
+#     # (\d+)        - Capture group: one or more digits (0-9)
+#     pattern = r'(?:mat\s+)?code\s*[:：]?\s*(\d+)'
+
+#     match = re.search(pattern, text, re.IGNORECASE)
+
+#     if match:
+#         return match.group(1)
+
+#     return None
 
 class Properties(BaseModel):
     parameters: str = Field(None, description="Substance or Matter that used in the analysis")
@@ -128,6 +195,179 @@ class Receipt(BaseModel):
     payment_method: str = Field(None, description="วิธีการชำระเงิน เช่น เงินสด, บัตรเครดิต, บัตรเดบิต หรือ Payment method")
     tax_id: str = Field(None, description="เลขประจำตัวผู้เสียภาษีของร้านค้า หรือ Tax ID")
     address: str = Field(None, description="ที่อยู่ของร้านค้า หรือ Store address")
+
+# from pydantic import BaseModel, Field
+# from typing import List, Optional, Literal
+# from pydantic import BaseModel, Field, field_validator, model_validator
+
+
+
+# from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes
+
+
+class Document(BaseModel):
+    invoice_number: str = Field(
+        default="", description="เลขที่ หรือ เลขที่ใบกำกับ หรือ เลขที่ใบกำกับภาษี หรือ invoice number หรือ invoice no หรือ inv no")
+    po_number: str = Field(
+        default="", description="ใบสั่งซื้อ หรือ P/O NO หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ Purchase order number หรือ เลขที่ PO")
+    date: str = Field(
+        default="", description="วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
+    document_name: str = Field(
+        default="", description="ชื่อเอกสาร สามารถมีค่าต่างๆ ได้เช่น ต้นฉบับใบกำกับภาษี TAX INVOICE หรือ ต้นฉบับใบแจ้งหนี้ หรือ ใบกำกับภาษี หรือ Original Invoice หรือ ต้นฉบับใบเสร็จรับเงิน หรือ ใบแจ้งหนี้")
+    payment_due_date: str = Field(
+        default="0/0/0", description="คือ วันที่ครบกำหนดชำระเงิน หรือ Payment Due Date หรือ วันครบกำหนด หรือ กำหนดชำระเงิน หรือ ครบกำหนด หรือ Due Date (แต่ต้องไม่ใช่ เครดิต หรือ เงื่อนไขการชำระเงิน)")
+    payment_terms: str = Field(
+        default="", description="Credit หรือ Payment terms หรือ เงื่อนไขการชำระเงิน หรือ เครดิต หรือ เงื่อนไขเครดิต หรือ เงื่อนไขการชำระเงิน เช่น เครดิต 30 วัน")
+
+    @field_validator("date", "payment_due_date", mode="before")
+    @classmethod
+    def _heal_all_dates(cls, v):
+        parsed_dated = parse_thai_date(v)
+        if parsed_dated is None:
+            parsed_dated = "00.00.0000"
+
+        return parsed_dated
+
+    @field_validator("po_number", mode="before")
+    @classmethod
+    def _heal_po_number(cls, v):
+        parsed_for_po = extract_po_decimal(v)
+        if parsed_for_po is None:
+            parsed_for_po = ""
+
+        return parsed_for_po
+
+
+class SellerCompany(BaseModel):
+    name: str = Field(
+        default="", description="Company name at the top of the invoice")
+    tax_id: str = Field(
+        default="", description="เลขประจำตัวผู้เสียภาษี หรือ Tax ID")
+    address: str = Field(
+        default="", description="ที่อยู่ของบริษัท หรือที่ตั้งของสำนักงานใหญ่บริษัท")
+    contact: Optional[str] = Field(
+        default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number")
+    branch_name: Optional[str] = Field(
+        default=None, description="ชื่อสาขา หรือ branch name")
+    branch_code: Optional[str] = Field(
+        default=None, description="สาขาที่ หรือ สาขา หรือ branch number")
+
+
+class CustomerCompany(BaseModel):
+    name: str = Field(
+        default="", description="ชื่อลูกค้า หรือ นามลูกค้า หรือ ลูกค้า หรือ ขายให้ หรือ ผู้ซื้อ หรือ CUSTOMER หรือ SOLD TO หรือ ชื่อ หรือ BILL TO หรือ SHIP TO")
+    tax_id: str = Field(
+        default="", description="เลขประจำตัวผู้เสียภาษี หรือ เลขประจำตัวผู้เสียภาษีอากร หรือ เลขประจำตัวผู้เสียภาษีอากรของผู้ซื้อ หรือ Tax ID ของลูกค้า")
+    address: str = Field(
+        default="", description="ที่อยู่ลูกค้า หรือ ที่อยู่ หรือ Address")
+    contact: Optional[str] = Field(
+        default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number")
+    branch_name: Optional[str] = Field(
+        default=None, description="ชื่อสาขา หรือ branch name")
+    branch_code: Optional[str] = Field(
+        default=None, description="สาขาที่ หรือ สาขา หรือ branch number")
+
+    @field_validator("branch_code", mode="before")
+    @classmethod
+    def _heal_branch_code(cls, v):
+        if v is not None:
+            return extract_only_branch_code_number(v)
+        return v
+
+
+class Item(BaseModel):
+    code: str = Field(default="", description="Product code")
+    description: str = Field(
+        default="", description="description ของสินค้า หรือ รายการสินค้า หรือ รายการ หรือ รายละเอียด หรือ รายละเอียดสินค้า")
+    unit_price: Decimal = Field(default=Decimal(
+        "0.00"), description="ราคาต่อหน่วย หรือ หน่วยละ หรือ Unit Price")
+    uom: str = Field(
+        default="", description="ข้อความที่บ่งบอกถึงรูปแบบการขายสินค้า มักจะอยู่คู่กับปริมาณหรือ quantity หรือข้อความที่อยู่ใน column unit หรือ column หน่วย")
+    quantity: int = Field(
+        default=0, description="จำนวน หรือ Quantity หรือ ปริมาณ")
+    discount: Decimal = Field(default=Decimal(
+        "0.00"), description="ส่วนลด หรือ Discount amount")
+    amount: Decimal = Field(default=Decimal(
+        "0.00"), description="ราคารวม หรือ amount หรือ Total amount for this item")
+    note: str = Field(
+        default="-", description="หมายเหตุ หรือ Additional notes")
+    # --- self-healing for Decimal fields ---
+
+    @field_validator("unit_price", "discount", "amount", mode="before")
+    @classmethod
+    def _heal_item_decimals(cls, v):
+        return parse_decimal_like(v)
+
+    @model_validator(mode="after")
+    def extract_code_from_description(self):
+        if self.description:
+            # Add implementation code here
+            tmp_return_code = extract_code(self.description)
+            if tmp_return_code is not None:
+                self.code = tmp_return_code
+            else:
+                self.code = ""
+
+            # parts = self.description.split()
+            # if parts:
+            #     self.code = parts[0]
+
+        return self
+
+
+class Summary(BaseModel):
+    subtotal: Decimal = Field(default=Decimal(
+        "0.00"), description="Subtotal before tax")
+    discount_total: Decimal = Field(
+        default=Decimal("0.00"), description="Total discount")
+    vat_rate: int = Field(default=7, description="VAT rate percentage")
+    vat: Decimal = Field(
+        default=Decimal("0.00"), description="VAT amount")
+    total_amount: Decimal = Field(default=Decimal(
+        "0.00"), description="Total amount including VAT")
+    currency: Literal["BAHT", "THB", "บาท", "US DOLLAR", "USD", "SING.DOLLAR", "SGD", "POUND STERING", "EURO", "GBP", "RUPEE", "INR", "SWISS FRANC", "CHF", "CHINESE YUAN", "CNY", "YEN", "JPY", "CANADIAN DOLLAR", "CAD"] = Field(
+        default="THB", description="สกุลเงินที่ใช้ใน Invoice เช่น BAHT หรือ THB หรือ บาท หรือ US DOLLAR หรือ USD หรือ SING.DOLLAR หรือ SGD หรือ POUND STERING หรือ EURO หรือ GBP หรือ RUPEE หรือ INR หรือ SWISS FRANC หรือ CHF หรือ CHINESE YUAN หรือ CNY หรือ YEN หรือ JPY หรือ CANADIAN DOLLAR หรือ CAD")
+    # --- self-healing for Decimal fields ---
+
+    @field_validator("subtotal", "discount_total", "vat", "total_amount", mode="before")
+    @classmethod
+    def _heal_summary_decimals(cls, v):
+        return parse_decimal_like(v)
+
+
+class Invoice(BaseModel):
+    document: Document = Field(
+        default_factory=Document, description="General invoice information consist of invoice number, purchase order number or reference number and invoice date")
+    seller: SellerCompany = Field(default_factory=SellerCompany,
+                                  description="The information about company that issue the invoice (company that sell the products to customer)")
+    customer: CustomerCompany = Field(
+        default_factory=CustomerCompany, description="The information about the company that buy the products from seller")
+    items: List[Item] = Field(
+        default_factory=list, description="List ของรายการสินค้าที่อยู่ใน Invoice นี้ และต้องเป็นรายการสินค้าที่มี Quantity มากกว่า 0 เท่านั้นด้วย")
+    summary: Summary = Field(default_factory=Summary,
+                             description="Invoice summary")
+# class InvoiceIssueDate(BaseModel):
+#     invoice_day: int = Field(
+#         default=None, description="The day part of the invoice issued date. Must have the value between 1 and 31"
+#     )
+#     invoice_month: int = Field(
+#         default=None, description="The month part of the invoice issued date. Must have the value between 1 and 12. Convert the month name in English or month name in three english letters abbreviation (jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec) or month name in Thai (มกราคม, กุมภาพันธ์, มีนาคม, เมษายน, พฤษภาคม, มิถุนายน, กรกฎาคม, สิงหาคม, กันยายน, ตุลาคม, พฤศจิกายน, ธันวาคม) to the number 1 - 12"
+#     )
+#     invoice_year: int = Field(
+#         default=None, description="The year part of the invoice issued date. The year can be Common Era (CE) or Buddhist Era (BE) and can be in 2 or 4 digits. The year must be in the range of 2010 - 2025 (or 10 - 25) for CE year and 2543 - 2568 (or 43 - 68) for BE year"
+#     )
+
+
+# class InvoicePaymentDate(BaseModel):
+#     payment_day: int = Field(
+#         default=None, description="The day part of the payment term date. Must have the value between 1 and 31"
+#     )
+#     payment_month: int = Field(
+#         default=None, description="The month part of the payment term date. Must have the value between 1 and 12. Convert the month name in English or month name in three english letters abbreviation (jan, feb, mar, apr, may, jun, jul, aug, sep, oct, nov, dec) or month name in Thai (มกราคม, กุมภาพันธ์, มีนาคม, เมษายน, พฤษภาคม, มิถุนายน, กรกฎาคม, สิงหาคม, กันยายน, ตุลาคม, พฤศจิกายน, ธันวาคม) to the number 1 - 12"
+#     )
+#     payment_year: int = Field(
+#         default=None, description="The year part of the payment term date. The year can be Common Era (CE) or Buddhist Era (BE) and can be in 2 or 4 digits. The year must be in the range of 2010 - 2025 (or 10 - 25) for CE year and 2543 - 2568 (or 43 - 68) for BE year"
+#     )
 
 
 class FixedLangExtractProcessor:
@@ -366,19 +606,27 @@ class FixedLangExtractProcessor:
 
 
 @st.cache_resource
-def load_model()->tuple[OCR,YOLO]:
+def load_model()->tuple[OCR, YOLO, Dict[str, np.ndarray]]:
     # from .ocr import OCR
     x = OCR(ocr_model="FILM6912/typhoon-ocr-7b",llm_model="qwen3:14b", load_in_4bit=False)
     # signature=YOLO("C:\\Users\\User\\wb_project\\data\\yolo12l_27062568.pt")
     signature=YOLO("/data/yolo12l_27062568.pt")
-    return x,signature
+
+    OCR_CENTROIDS_PATH =  "/data/centroids_bank.npz"
+
+    centroids = load_centroids_dict(OCR_CENTROIDS_PATH)
+
+    return x,signature, centroids
 
 
 # Load model
-model,signature = load_model()
+model, signature, my_centroid = load_model()
 lang_extract_model = FixedLangExtractProcessor()
 
 pd_pipeline = PPStructureV3(lang="th", device="gpu")
+
+
+
 
 
 def criteria_check_for_report(parameters_value:list[float], check_method:str, threshold_value:float):
@@ -447,6 +695,24 @@ def count_imgs(content):
     total_imgs = len(matches1) + len(matches2)
     
     return total_imgs
+
+
+
+def is_match_centroids(img_rgb: np.ndarray) -> bool:
+    img_rgb = crop_top_percent(img_rgb, 13)
+    clip_model_name: str = "ViT-B-16"
+
+    tau ={'list_delta': 0.94}
+
+    OCR_CLIP_PRETRAINED="/data/modules_resouces/openclip_backend/CLIP-ViT-B-16-laion2B-s34B-b88K/open_clip_model.safetensors"
+
+    res =   get_classifier(my_centroid,input_tau=tau,
+                           input_clip_model_name=clip_model_name,
+                           input_clip_pretrained=OCR_CLIP_PRETRAINED).predict_from_rgb(img_rgb) 
+    # print("res", res)
+    if res["pred"] == "UNKNOWN":
+        return False
+    return True
 
 
 def convert_date_string(date_str, is_payment_term):
@@ -700,6 +966,208 @@ def ui_js(session="json_str"):
                 text_value = st.text_input(k, value=v, key=k)
                 js[k] = text_value
                 
+
+        # TODO: Write the python code to filter out the items inside "js" dictionary variable that has the "quantity" value equal to 0 (please check the "quantity" key of each item in "items" list).
+        # The example value of "js" dictionary variable look like this below:
+        # """
+        # {
+        #     "document": {
+        #         "invoice_number": "5343364350",
+        #         "po_number": "5717600697",
+        #         "date": "03/04/2025",
+        #         "document_name": "Original Tax Invoice / Copy Invoice / Copy Delivery Order",
+        #         "payment_due_date": "0/0/0",
+        #         "payment_terms": ""
+        #     },
+        #     "seller": {
+        #         "name": "บริษัท ทรัคเกอร์ จำกัด (สำนักงานใหญ่)",
+        #         "tax_id": "0 1055 23002 11 8",
+        #         "address": "2166 ถนนสุขาภิบาล แขวงพระโขนงใต้ เขตพระโขนง กรุงเทพฯ 10260",
+        #         "contact": "โทร. 02-3240-9000, ผู้เสียภาษีอากร/ธุรกิจ โทร. 1364, โทรศัพท์ 1-800-222-6666",
+        #         "branch_name": null,
+        #         "branch_code": "00016"
+        #     },
+        #     "customer": {
+        #         "name": "บริษัท อุดิตยา เมอร์ล่า เคมีอัลล์ (ประเทศไทย) จำกัด (ห้างส่งเหล็ก ตัวยับ)",
+        #         "tax_id": "0 105537150963",
+        #         "address": "77 ม.6 ซ.สาลาดินทา ถ.ลำโรง อ.พระประแดง จ.สมุทรปราการ 10130",
+        #         "contact": "0-2748-5720-3",
+        #         "branch_name": null,
+        #         "branch_code": "00008"
+        #     },
+        #     "items": [
+        #         {
+        #         "code": "101234983",
+        #         "description": "6400 PETRIFILM AC 100EA/BOX",
+        #         "unit_price": "3,140.00",
+        #         "uom": "กล่อง",
+        #         "quantity": 4,
+        #         "discount": "0.00",
+        #         "amount": "12,560.00",
+        #         "note": "@ 3,359.80"
+        #         },
+        #         {
+        #         "code": "700002116",
+        #         "description": "4/0 Exp. 08/04/2026",
+        #         "unit_price": "3436HY",
+        #         "uom": "",
+        #         "quantity": 0,
+        #         "discount": "0.00",
+        #         "amount": "0.00",
+        #         "note": "10C0"
+        #         },
+        #         {
+        #         "code": "101234985",
+        #         "description": "6404 PETRIFILM EC 50EA/BOX",
+        #         "unit_price": "3,140.00",
+        #         "uom": "กล่อง",
+        #         "quantity": 8,
+        #         "discount": "0.00",
+        #         "amount": "25,120.00",
+        #         "note": "@ 3,359.80"
+        #         },
+        #         {
+        #         "code": "700002271",
+        #         "description": "8/0 Exp. 29/05/2026",
+        #         "unit_price": "418324333C",
+        #         "uom": "",
+        #         "quantity": 0,
+        #         "discount": "0.00",
+        #         "amount": "0.00",
+        #         "note": "10C0"
+        #         },
+        #         {
+        #         "code": "101235056",
+        #         "description": "6490 PETRIFILM STX 50EA/BOX",
+        #         "unit_price": "4,880.00",
+        #         "uom": "กล่อง",
+        #         "quantity": 8,
+        #         "discount": "0.00",
+        #         "amount": "39,040.00",
+        #         "note": "@ 5,221.60"
+        #         },
+        #         {
+        #         "code": "700002230",
+        #         "description": "8/0 Exp. 08/03/2026",
+        #         "unit_price": "418324251A",
+        #         "uom": "",
+        #         "quantity": 0,
+        #         "discount": "0.00",
+        #         "amount": "0.00",
+        #         "note": "10C0"
+        #         },
+        #         {
+        #         "code": "101235001",
+        #         "description": "6420 PETRIFILM EB 50EA/BOX",
+        #         "unit_price": "3,140.00",
+        #         "uom": "กล่อง",
+        #         "quantity": 8,
+        #         "discount": "0.00",
+        #         "amount": "25,120.00",
+        #         "note": "@ 3,359.80"
+        #         },
+        #         {
+        #         "code": "700002275",
+        #         "description": "8/0 Exp. 24/12/2025",
+        #         "unit_price": "418324177A",
+        #         "uom": "",
+        #         "quantity": 0,
+        #         "discount": "0.00",
+        #         "amount": "0.00",
+        #         "note": "10C0"
+        #         },
+        #         {
+        #         "code": "101235036",
+        #         "description": "6536 PETRIFILM SALX 50EA/BOX",
+        #         "unit_price": "4,200.00",
+        #         "uom": "กล่อง",
+        #         "quantity": 1,
+        #         "discount": "0.00",
+        #         "amount": "4,200.00",
+        #         "note": "@ 4,494.00"
+        #         },
+        #         {
+        #         "code": "700002144",
+        #         "description": "1/0 Exp. 13/02/2026",
+        #         "unit_price": "33LYL5",
+        #         "uom": "",
+        #         "quantity": 0,
+        #         "discount": "0.00",
+        #         "amount": "0.00",
+        #         "note": "10C0"
+        #         },
+        #         {
+        #         "code": "101235042",
+        #         "description": "6475 PETRIFILM RYM 50EA/BOX",
+        #         "unit_price": "4,990.00",
+        #         "uom": "กล่อง",
+        #         "quantity": 4,
+        #         "discount": "0.00",
+        #         "amount": "19,960.00",
+        #         "note": "@ 5,339.30"
+        #         },
+        #         {
+        #         "code": "700002138",
+        #         "description": "4/0 Exp. 20/02/2026",
+        #         "unit_price": "33YNPA",
+        #         "uom": "",
+        #         "quantity": 0,
+        #         "discount": "0.00",
+        #         "amount": "0.00",
+        #         "note": "10C0"
+        #         },
+        #         {
+        #         "code": "101235003",
+        #         "description": "6492 PETRIFILM STX DISKS 20EA/BOX",
+        #         "unit_price": "1,680.00",
+        #         "uom": "กล่อง",
+        #         "quantity": 2,
+        #         "discount": "0.00",
+        #         "amount": "3,360.00",
+        #         "note": "@ 1,797.60"
+        #         },
+        #         {
+        #         "code": "700002142",
+        #         "description": "2/0 Exp. 14/05/2026",
+        #         "unit_price": "343KDF",
+        #         "uom": "",
+        #         "quantity": 0,
+        #         "discount": "0.00",
+        #         "amount": "0.00",
+        #         "note": "10C0"
+        #         }
+        #     ],
+        #     "summary": {
+        #         "subtotal": "129,360.00",
+        #         "discount_total": "0.00",
+        #         "vat_rate": 7,
+        #         "vat": "9,055.20",
+        #         "total_amount": "138,415.20",
+        #         "currency": "THB"
+        #     }
+        # }
+        # """
+        
+        # if "items" in js and isinstance(js["items"], list):
+        #     filtered_items = []
+        #     for item in js["items"]:
+        #         if isinstance(item, dict):
+        #             quantity = item.get("quantity", 0)
+        #             try:
+        #                 if isinstance(quantity, str):
+        #                     quantity = int(quantity.replace(",", ""))
+        #                 elif isinstance(quantity, (int, float)):
+        #                     quantity = int(quantity)
+        #                 else:
+        #                     quantity = 0
+                        
+        #                 if quantity != 0:
+        #                     filtered_items.append(item)
+        #             except (ValueError, AttributeError):
+        #                 filtered_items.append(item)
+            
+        #     js["items"] = filtered_items
+        
         st.session_state["json"] = js
 
         # st.session_state["payment_term"] = js["payment_term"]
@@ -900,7 +1368,7 @@ async def ocr_processing_page():
 
         selected_ocr_model = st.radio(
             "Select OCR Model",
-            options=["text_ocr", "high_performance_ocr"],
+            options=["text_ocr", "high_performance_ocr", "legacy_ocr"],
             index=0,
             horizontal=True
         )
@@ -1004,6 +1472,24 @@ async def ocr_processing_page():
                 label="Successfully checked the invoice", state="complete", expanded=False
             )
 
+        
+        with st.status("Checking if this invoice is from DELTA or not", expanded=True) as status_check_for_delta:
+
+            img_rgb = load_image_as_rgb_array(image_inp_path[0])
+            is_inv_delta = is_match_centroids(img_rgb)
+            if is_inv_delta:
+                status_check_for_delta.update(
+                    label="This invoice is from DELTA", state="complete", expanded=False
+                )
+            else:
+                status_check_for_delta.update(
+                    label="This invoice is not from DELTA", state="complete", expanded=False
+                )
+            
+            # status_check_for_delta.update(
+                # label="Successfully check DELTA invoice", state="complete", expanded=False
+            # )
+
 
         with st.status("Extracting text", expanded=True) as status:
             center_md = st.empty()
@@ -1051,7 +1537,7 @@ async def ocr_processing_page():
                     elif selected_ocr_model == "high_performance_ocr":
                          for img_nn in image_inp_path:
                             if document_type != "Certificate":
-                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "default", 1)
+                                tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                 # if tmp_center_stream contain the word "Error"
                                 if "Error" in tmp_center_stream:
                                     tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
@@ -1065,6 +1551,11 @@ async def ocr_processing_page():
 
                                 center_stream += tmp_center_stream
                             
+                            center_stream += "\n"
+                    
+                    elif selected_ocr_model == "legacy_ocr":
+                        for img_nn in image_inp_path:
+                            center_stream += await model.typhoon_runpod_predict(img_nn, "structure", 1)
                             center_stream += "\n"
 
 
@@ -1161,7 +1652,7 @@ async def ocr_processing_page():
 
                 # if is_invoice_or_quotation == True:
                 if document_type == "Invoice":
-                    right_stream = await model.structured_output(center_stream, InvoiceOutput)
+                    right_stream = await model.structured_output(center_stream, Invoice)
                     right_md.markdown(right_stream)
                 elif document_type == "Passport":
                     right_stream = await model.structured_output(center_stream, PassPortData)
