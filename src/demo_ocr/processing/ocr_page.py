@@ -1,7 +1,7 @@
 import streamlit as st
 import fitz  # PyMuPDF
 from PIL import Image, ImageEnhance
-from typing import List, Dict, Any, Optional, Literal
+from typing import List, Dict, Any, Optional, Literal, Tuple
 from decimal import Decimal
 from datetime import datetime
 from supabase import create_client, Client
@@ -15,6 +15,7 @@ from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, ex
 from pathlib import Path
 from paddleocr import PPStructureV3
 from doc_classification.zero_shot import get_classifier,crop_top_percent
+from bs4 import BeautifulSoup
 
 import time
 import json, re
@@ -346,6 +347,34 @@ class Invoice(BaseModel):
         default_factory=list, description="List ของรายการสินค้าที่อยู่ใน Invoice นี้ และต้องเป็นรายการสินค้าที่มี Quantity มากกว่า 0 เท่านั้นด้วย")
     summary: Summary = Field(default_factory=Summary,
                              description="Invoice summary")
+
+
+
+class DeltaItem(BaseModel):
+    po_no: str = Field(
+        default="", description="""The value of the column "P.O. NO." from the HTML table of this invoice.""")
+    qty: int = Field(
+        default=0, description="""The value of the column "QTY" from the HTML table of this invoice.""")
+    unit_price: Decimal = Field(default=Decimal(
+        "0.00"), description="""The value of the column "UNIT PRICE" from the HTML table of this invoice.""")
+    amount: Decimal = Field(default=Decimal(
+        "0.00"), description="""The value of the column "AMOUNT" from the HTML table of this invoice.""")
+
+
+class DeltaInvoice(BaseModel):
+    invoice_number: str = Field(default="", description="""The invoice number from this invoice text content. It is the decimal number after "Invoice No.:" text.""")
+    invoice_date: str = Field(default="0/0/0", description="""The invoice date from this invoice text content. It is date string in the format of DD/MM/YYYY after "Invoice Date:" text.""")
+    invoice_to: str = Field(default="", description="""The value of "Invoice to:" from this invoice text content. 
+                                                    It must begin with 'D' character follow by 7 decimal numbers and the text that denote the company name and branch.
+                                                    Grab all the content after "Invoice to:" text and stop when you found "Address:" text.""")
+    address: str = Field(default="", description="""The address of the company after "Address:" text and before "Attn. to:" text.""")
+    
+
+
+class AllItemsInDelta(BaseModel):    
+    items: List[DeltaItem] = Field(default_factory=list, description="List of all items in this DELTA invoice")
+
+
 # class InvoiceIssueDate(BaseModel):
 #     invoice_day: int = Field(
 #         default=None, description="The day part of the invoice issued date. Must have the value between 1 and 31"
@@ -627,6 +656,45 @@ pd_pipeline = PPStructureV3(lang="th", device="gpu")
 
 
 
+def get_items_from_html_table(html_string):
+    """
+    Parse HTML table and extract tbody content as 2D list.
+    Each row becomes a list, and each <td> element becomes one item.
+    
+    Args:
+        html_string: HTML string containing the table
+        
+    Returns:
+        List of lists containing the extracted table data
+    """
+    # Parse the HTML
+    soup = BeautifulSoup(html_string, 'html.parser')
+    
+    # Find the tbody
+    tbody = soup.find('tbody')
+    
+    if not tbody:
+        return []
+    
+    # Extract all rows
+    result = []
+    for row in tbody.find_all('tr'):
+        # Extract all cells in the row
+        cells = row.find_all('td')
+        
+        # Get the inner HTML or text from each cell
+        row_data = []
+        for cell in cells:
+            # Get inner HTML (preserves <br> tags, etc.)
+            content = ''.join(str(item) for item in cell.contents)
+            row_data.append(content.strip())
+        
+        result.append(row_data)
+    
+    return result
+
+
+
 
 
 def criteria_check_for_report(parameters_value:list[float], check_method:str, threshold_value:float):
@@ -713,6 +781,43 @@ def is_match_centroids(img_rgb: np.ndarray) -> bool:
     if res["pred"] == "UNKNOWN":
         return False
     return True
+
+
+def pre_process_invoice_string(input_string: str) -> List[Tuple[str, str]]:
+    """
+    Process invoice string to extract item names and quantities.
+    
+    Args:
+        input_string: Raw invoice string with pipe-delimited data
+        
+    Returns:
+        List of tuples containing (item_name, quantity)
+    """
+    return []
+
+def extract_html_table(input_text: str) -> str:
+    """
+    Extract the HTML table from the input text.
+    The HTML table begin with <table> tag and end with </table> tag.
+    Return the first substring begin with "<table>" and end with "</table>".
+    """
+    # Find the start position of <table>
+    start_pos = input_text.find("<table>")
+    
+    # If <table> not found, return empty string
+    if start_pos == -1:
+        return ""
+    
+    # Find the end position of </table> after the start position
+    end_pos = input_text.find("</table>", start_pos)
+    
+    # If </table> not found, return empty string
+    if end_pos == -1:
+        return ""
+    
+    # Extract and return the table including the closing tag
+    # end_pos points to the start of "</table>", so we add len("</table>") to include it
+    return input_text[start_pos:end_pos + len("</table>")]
 
 
 def convert_date_string(date_str, is_payment_term):
@@ -950,6 +1055,23 @@ def insert_invoice_to_supabase(invoice_data: Dict[str, Any]):
         print(f"❌ Error inserting data: {str(e)}")
         raise
 
+
+def delta_items_ui():
+    with st.container(border=True):
+        items_lst_of_dic = []
+        for item in st.session_state["delta_item_array"]:
+            items_lst_of_dic.append({
+                "item_name": item[0],
+                "quantity": item[1]
+            })
+
+        current_df = pd.DataFrame(items_lst_of_dic)
+        newer_df = st.data_editor(current_df, num_rows="dynamic", use_container_width=True)
+
+        st.session_state["delta_item_list_of_dict"] = newer_df.to_dict("records")
+
+
+
 def ui_js(session="json_str"):
     with st.container(border=True):
         json_data = json.loads(st.session_state["json_str"]) if session == "json_str" else st.session_state["json"]
@@ -967,206 +1089,27 @@ def ui_js(session="json_str"):
                 js[k] = text_value
                 
 
-        # TODO: Write the python code to filter out the items inside "js" dictionary variable that has the "quantity" value equal to 0 (please check the "quantity" key of each item in "items" list).
-        # The example value of "js" dictionary variable look like this below:
-        # """
-        # {
-        #     "document": {
-        #         "invoice_number": "5343364350",
-        #         "po_number": "5717600697",
-        #         "date": "03/04/2025",
-        #         "document_name": "Original Tax Invoice / Copy Invoice / Copy Delivery Order",
-        #         "payment_due_date": "0/0/0",
-        #         "payment_terms": ""
-        #     },
-        #     "seller": {
-        #         "name": "บริษัท ทรัคเกอร์ จำกัด (สำนักงานใหญ่)",
-        #         "tax_id": "0 1055 23002 11 8",
-        #         "address": "2166 ถนนสุขาภิบาล แขวงพระโขนงใต้ เขตพระโขนง กรุงเทพฯ 10260",
-        #         "contact": "โทร. 02-3240-9000, ผู้เสียภาษีอากร/ธุรกิจ โทร. 1364, โทรศัพท์ 1-800-222-6666",
-        #         "branch_name": null,
-        #         "branch_code": "00016"
-        #     },
-        #     "customer": {
-        #         "name": "บริษัท อุดิตยา เมอร์ล่า เคมีอัลล์ (ประเทศไทย) จำกัด (ห้างส่งเหล็ก ตัวยับ)",
-        #         "tax_id": "0 105537150963",
-        #         "address": "77 ม.6 ซ.สาลาดินทา ถ.ลำโรง อ.พระประแดง จ.สมุทรปราการ 10130",
-        #         "contact": "0-2748-5720-3",
-        #         "branch_name": null,
-        #         "branch_code": "00008"
-        #     },
-        #     "items": [
-        #         {
-        #         "code": "101234983",
-        #         "description": "6400 PETRIFILM AC 100EA/BOX",
-        #         "unit_price": "3,140.00",
-        #         "uom": "กล่อง",
-        #         "quantity": 4,
-        #         "discount": "0.00",
-        #         "amount": "12,560.00",
-        #         "note": "@ 3,359.80"
-        #         },
-        #         {
-        #         "code": "700002116",
-        #         "description": "4/0 Exp. 08/04/2026",
-        #         "unit_price": "3436HY",
-        #         "uom": "",
-        #         "quantity": 0,
-        #         "discount": "0.00",
-        #         "amount": "0.00",
-        #         "note": "10C0"
-        #         },
-        #         {
-        #         "code": "101234985",
-        #         "description": "6404 PETRIFILM EC 50EA/BOX",
-        #         "unit_price": "3,140.00",
-        #         "uom": "กล่อง",
-        #         "quantity": 8,
-        #         "discount": "0.00",
-        #         "amount": "25,120.00",
-        #         "note": "@ 3,359.80"
-        #         },
-        #         {
-        #         "code": "700002271",
-        #         "description": "8/0 Exp. 29/05/2026",
-        #         "unit_price": "418324333C",
-        #         "uom": "",
-        #         "quantity": 0,
-        #         "discount": "0.00",
-        #         "amount": "0.00",
-        #         "note": "10C0"
-        #         },
-        #         {
-        #         "code": "101235056",
-        #         "description": "6490 PETRIFILM STX 50EA/BOX",
-        #         "unit_price": "4,880.00",
-        #         "uom": "กล่อง",
-        #         "quantity": 8,
-        #         "discount": "0.00",
-        #         "amount": "39,040.00",
-        #         "note": "@ 5,221.60"
-        #         },
-        #         {
-        #         "code": "700002230",
-        #         "description": "8/0 Exp. 08/03/2026",
-        #         "unit_price": "418324251A",
-        #         "uom": "",
-        #         "quantity": 0,
-        #         "discount": "0.00",
-        #         "amount": "0.00",
-        #         "note": "10C0"
-        #         },
-        #         {
-        #         "code": "101235001",
-        #         "description": "6420 PETRIFILM EB 50EA/BOX",
-        #         "unit_price": "3,140.00",
-        #         "uom": "กล่อง",
-        #         "quantity": 8,
-        #         "discount": "0.00",
-        #         "amount": "25,120.00",
-        #         "note": "@ 3,359.80"
-        #         },
-        #         {
-        #         "code": "700002275",
-        #         "description": "8/0 Exp. 24/12/2025",
-        #         "unit_price": "418324177A",
-        #         "uom": "",
-        #         "quantity": 0,
-        #         "discount": "0.00",
-        #         "amount": "0.00",
-        #         "note": "10C0"
-        #         },
-        #         {
-        #         "code": "101235036",
-        #         "description": "6536 PETRIFILM SALX 50EA/BOX",
-        #         "unit_price": "4,200.00",
-        #         "uom": "กล่อง",
-        #         "quantity": 1,
-        #         "discount": "0.00",
-        #         "amount": "4,200.00",
-        #         "note": "@ 4,494.00"
-        #         },
-        #         {
-        #         "code": "700002144",
-        #         "description": "1/0 Exp. 13/02/2026",
-        #         "unit_price": "33LYL5",
-        #         "uom": "",
-        #         "quantity": 0,
-        #         "discount": "0.00",
-        #         "amount": "0.00",
-        #         "note": "10C0"
-        #         },
-        #         {
-        #         "code": "101235042",
-        #         "description": "6475 PETRIFILM RYM 50EA/BOX",
-        #         "unit_price": "4,990.00",
-        #         "uom": "กล่อง",
-        #         "quantity": 4,
-        #         "discount": "0.00",
-        #         "amount": "19,960.00",
-        #         "note": "@ 5,339.30"
-        #         },
-        #         {
-        #         "code": "700002138",
-        #         "description": "4/0 Exp. 20/02/2026",
-        #         "unit_price": "33YNPA",
-        #         "uom": "",
-        #         "quantity": 0,
-        #         "discount": "0.00",
-        #         "amount": "0.00",
-        #         "note": "10C0"
-        #         },
-        #         {
-        #         "code": "101235003",
-        #         "description": "6492 PETRIFILM STX DISKS 20EA/BOX",
-        #         "unit_price": "1,680.00",
-        #         "uom": "กล่อง",
-        #         "quantity": 2,
-        #         "discount": "0.00",
-        #         "amount": "3,360.00",
-        #         "note": "@ 1,797.60"
-        #         },
-        #         {
-        #         "code": "700002142",
-        #         "description": "2/0 Exp. 14/05/2026",
-        #         "unit_price": "343KDF",
-        #         "uom": "",
-        #         "quantity": 0,
-        #         "discount": "0.00",
-        #         "amount": "0.00",
-        #         "note": "10C0"
-        #         }
-        #     ],
-        #     "summary": {
-        #         "subtotal": "129,360.00",
-        #         "discount_total": "0.00",
-        #         "vat_rate": 7,
-        #         "vat": "9,055.20",
-        #         "total_amount": "138,415.20",
-        #         "currency": "THB"
-        #     }
-        # }
-        # """
+
         
         # if "items" in js and isinstance(js["items"], list):
-        #     filtered_items = []
-        #     for item in js["items"]:
-        #         if isinstance(item, dict):
-        #             quantity = item.get("quantity", 0)
-        #             try:
-        #                 if isinstance(quantity, str):
-        #                     quantity = int(quantity.replace(",", ""))
-        #                 elif isinstance(quantity, (int, float)):
-        #                     quantity = int(quantity)
-        #                 else:
-        #                     quantity = 0
+            # filtered_items = []
+            # for item in js["items"]:
+            #     if isinstance(item, dict):
+            #         quantity = item.get("quantity", 0)
+            #         try:
+            #             if isinstance(quantity, str):
+            #                 quantity = int(quantity.replace(",", ""))
+            #             elif isinstance(quantity, (int, float)):
+            #                 quantity = int(quantity)
+            #             else:
+            #                 quantity = 0
                         
-        #                 if quantity != 0:
-        #                     filtered_items.append(item)
-        #             except (ValueError, AttributeError):
-        #                 filtered_items.append(item)
+            #             if quantity != 0:
+            #                 filtered_items.append(item)
+            #         except (ValueError, AttributeError):
+                        # filtered_items.append(item)
             
-        #     js["items"] = filtered_items
+            # js["items"] = filtered_items
         
         st.session_state["json"] = js
 
@@ -1329,6 +1272,12 @@ async def ocr_processing_page():
     if "new_upload" not in st.session_state:
         st.session_state["new_upload"] = True
 
+    if "delta_item_array" not in st.session_state:
+        st.session_state["delta_item_array"] = []
+
+    if "delta_item_list_of_dict" not in st.session_state:
+        st.session_state["delta_item_list_of_dict"] = []
+
     if "markdown" not in st.session_state:
         st.session_state["markdown"] = ""
         
@@ -1456,21 +1405,29 @@ async def ocr_processing_page():
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
             doc_category = model.check_if_it_invoice(image_inp_path[0])
-            doc_category_md = st.empty()
-            if doc_category == "Invoice":
-                doc_category_md.markdown("This document is an invoice")
-                # st.session_state["invoice_check_button_disabled"] = False
-            else:
-                doc_category_md.markdown(f"This document is not an invoice. It is {doc_category}")
-                # st.session_state["invoice_check_button_disabled"] = True
+            # doc_category_md = st.empty()
 
             if doc_category == "Invoice" or doc_category == "Quotation":
                 is_invoice_or_quotation = True
 
+
+            if doc_category == "Invoice":
+                status_check_invoice.update(
+                    label="This document is an invoice", state="complete", expanded=False
+                )
+            else:
+                status_check_invoice.update(
+                    label="This document is not an invoice", state="complete", expanded=False
+                )
+
+                # doc_category_md.markdown("This document is an invoice")
+                # st.session_state["invoice_check_button_disabled"] = False
+            # else:
+                # doc_category_md.markdown(f"This document is not an invoice. It is {doc_category}")
+                # st.session_state["invoice_check_button_disabled"] = True
+
+
             
-            status_check_invoice.update(
-                label="Successfully checked the invoice", state="complete", expanded=False
-            )
 
         
         with st.status("Checking if this invoice is from DELTA or not", expanded=True) as status_check_for_delta:
@@ -1490,6 +1447,16 @@ async def ocr_processing_page():
                 # label="Successfully check DELTA invoice", state="complete", expanded=False
             # )
 
+        # Check if is_inv_delta is True or False.
+        # If it's True, then show the GREEN text ("This invoice is DELTA. Continue to extract the text from invoice") on the screen below the "Checking if this invoice is from DELTA or not" status and continue to extract the text.
+        # If it's False, then show the RED text ("Please upload DELTA invoice only") below "Checking if this invoice is from DELTA or not" status and do not continue to extract the text.
+        
+        if is_inv_delta:
+            st.success("✅ This invoice is DELTA. Continue to extract the text from invoice")
+        else:
+            st.error("❌ Please upload DELTA invoice only")
+            st.session_state["new_upload"] = False
+            return
 
         with st.status("Extracting text", expanded=True) as status:
             center_md = st.empty()
@@ -1617,16 +1584,166 @@ async def ocr_processing_page():
                 st.session_state["processing_time"] = processing_time
             
 
+            # Extract chunk based on P.O. NO. markers
+            items_is_inside_html = False
+            po_start = center_stream.find('| P.O. NO.')
+            if po_start != -1:
+                # Found '| P.O. NO.'
+                vvvv_end = center_stream.find('VVVV |\\n', po_start)
+                if vvvv_end != -1:
+                    # Found 'VVVV |\n' - extract from po_start to end of 'VVVV |\n'
+                    po_no_chunk = center_stream[po_start:vvvv_end + len('VVVV |')]
+                else:
+                    # 'VVVV |\n' not found - extract from po_start until '"' is found
+                    quote_pos = center_stream.find('"', po_start)
+                    if quote_pos != -1:
+                        po_no_chunk = center_stream[po_start:quote_pos]
+                    else:
+                        # No quote found either, just take from po_start to end
+                        po_no_chunk = center_stream[po_start:]
+            else:
+                # '| P.O. NO.' not found - use whole content
+                # po_no_chunk = center_stream
+                # Check if po_no_chunk contain the HTML table tag or not (The table tag is <table>...</table>)
+                if "<table>" in center_stream and "</table>" in center_stream:
+                    # Extract the HTML table from po_no_chunk
+                    po_no_chunk = extract_html_table(center_stream)
+                    print("HTML table:", po_no_chunk)
+                    if len(po_no_chunk) > 5:
+                        items_is_inside_html = True
+                else:
+                    # No HTML table found - use whole content
+                    po_no_chunk = center_stream
+
+            
             center_md.markdown(center_stream)
             st.session_state["markdown"] = center_stream
+            if items_is_inside_html == False:
+                # po_no_chunk = po_no_chunk.replace('\n', '_')
+
+                # replace the new line character in po_no_chunk with the underscore character
+                po_no_chunk = po_no_chunk.replace('\\n', '_')
+
+                print("The input string is:", po_no_chunk)
+
+                # Step 1: Split by newline
+                lines = po_no_chunk.split('_')
+                print("Lines:", lines)
+                print("Length of lines:", len(lines))
+                # Step 2: Filter out lines containing "QTY", "---", or "VVVVV"
+                filtered_lines = [
+                    line for line in lines 
+                    if "QTY" not in line and "---" not in line and "VVVVV" not in line
+                ]
+                
+
+                print("Filtered lines:", filtered_lines)
+                # Lists to store extracted data
+                item_name_lst = []
+                qty_item_lst = []
+                
+                # Step 3: Process each remaining line
+                for line in filtered_lines:
+                    # Step 3.1: Split by pipe
+                    words = line.split('|')
+                    print("Words:", words)
+                    # Ensure we have at least 3 elements (indices 0, 1, 2)
+                    if len(words) < 4:
+                        # check if the words index 0 or 1 is not empty (contain the non-blank string)
+                        if len(words) == 1:
+                            if len(words[0].strip()) > 1 and not words[0].strip().startswith('('):
+                                if len(qty_item_lst) > 0:
+                                    item_name_lst.append(words[0].strip())
+
+                        elif len(words) == 2:
+                            if len(words[1].strip()) > 1 and not words[1].strip().startswith('('):
+                                if len(qty_item_lst) > 0:
+                                    item_name_lst.append(words[1].strip())
+                            elif len(words[0].strip()) > 1 and not words[0].strip().startswith('('):
+                                if len(qty_item_lst) > 0:
+                                    item_name_lst.append(words[0].strip())
+
+                        continue
+                        
+                    # Step 3.2: Check third element (index 2)
+                    third_element = words[3].strip()
+                    print(third_element)
+                    
+                    if third_element == '' or third_element == ' ':
+                        # Third element is blank or empty
+                        first_element = words[1].strip()
+                        
+                        # Check if first element doesn't begin with '('
+                        if first_element and not first_element.startswith('('):
+                            if len(qty_item_lst) > 0:
+                                item_name_lst.append(first_element)
+                    else:
+                        # Third element has content - it's a quantity
+                        qty_item_lst.append(third_element)
+                        # If we also found that the first element is exists, then we need to append the first element to the item_name_lst
+                        tmp_first_ele = words[1].strip()
+                        if tmp_first_ele and len(tmp_first_ele) > 1 and not tmp_first_ele.startswith('('):
+                            item_name_lst.append(tmp_first_ele)
+                
+                # Step 4: Zip the lists together
+                # Ensure both lists have the same length by padding qty_item_lst if needed
+                while len(qty_item_lst) < len(item_name_lst):
+                    qty_item_lst.append("")
+
+                print("Qty item lst:", qty_item_lst)
+                print("Item name lst:", item_name_lst)
+                # Truncate if qty_item_lst is longer
+                qty_item_lst = qty_item_lst[:len(item_name_lst)]
+                
+                result = list(zip(item_name_lst, qty_item_lst))
+            
+            else:
+                tmp_result_lst = get_items_from_html_table(po_no_chunk)
+
+                item_n_lst = []
+                qty_lst = []
+
+                for each_row in tmp_result_lst:
+                    if len(each_row) < 3:
+                        first_ele = each_row[0].strip()
+                        if first_ele.startswith('$'):
+                            break
+                        else:
+                            if len(qty_lst) > 0:
+                                item_n_lst.append(first_ele)
+
+                        continue
+
+                    second_ele = each_row[1].strip()
+                    if len(second_ele) > 0:
+                        qty_lst.append(second_ele)
+
+                        # We still need to check for the first element to see if it is empty string or has the value
+                        f_ele = each_row[0].strip()
+                        if len(f_ele) > 0 and not f_ele.startswith('$'):
+                            item_n_lst.append(f_ele)
+
+
+
+                while len(qty_lst) < len(item_n_lst):
+                    qty_lst.append("")
+
+                qty_lst = qty_lst[:len(item_n_lst)]
+
+                result = list(zip(item_n_lst, qty_lst))
+
+
+            st.session_state["delta_item_array"] = result
+            
+            # pre_process_invoice_string(po_no_chunk)
             
 
             # Example usage with the robust function
-            result_count = extract_observation_and_check_robust(center_stream)
-            if result_count["contains_target_words"] == True:
-                st.session_state["total_images"] = 1
-            else:
-                st.session_state["total_images"] = 0 
+            # result_count = extract_observation_and_check_robust(center_stream)
+            # if result_count["contains_target_words"] == True:
+                # st.session_state["total_images"] = 1
+            # else:
+                # st.session_state["total_images"] = 0 
 
 
             #[1:-1].replace('"', '')
@@ -1652,7 +1769,7 @@ async def ocr_processing_page():
 
                 # if is_invoice_or_quotation == True:
                 if document_type == "Invoice":
-                    right_stream = await model.structured_output(center_stream, Invoice)
+                    right_stream = await model.structured_output(center_stream, DeltaInvoice)
                     right_md.markdown(right_stream)
                 elif document_type == "Passport":
                     right_stream = await model.structured_output(center_stream, PassPortData)
@@ -1711,6 +1828,11 @@ async def ocr_processing_page():
         if not er["error_bool"]:
             ui_js("json_str")
 
+            if len(st.session_state["delta_item_array"]) > 0:
+                delta_items_ui()
+            else:
+                st.warning("No items found in the delta invoice")
+
             handle_json_button_click()
             # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
             st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=st.session_state["invoice_check_button_disabled"])
@@ -1751,6 +1873,9 @@ async def ocr_processing_page():
     else:
         st.session_state["new_upload"] = True
         st.session_state["markdown"] = ""
+        st.session_state["delta_item_array"] = []
+
+        st.session_state["delta_item_list_of_dict"] = []
         st.session_state["json_str"] = ""
         st.session_state["json"] = {}
         st.session_state["payment_term"] = ""

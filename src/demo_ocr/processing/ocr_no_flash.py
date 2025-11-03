@@ -168,7 +168,7 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://hx2peaj55cxw6b-8000.proxy.runpod.net/v1"
+        addr = "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
         dots_ocr_client = AsyncOpenAI(api_key="{}".format(os.environ.get("API_KEY", "0")), base_url=addr)
         messages = []
         messages.append(
