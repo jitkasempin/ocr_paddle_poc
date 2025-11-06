@@ -1,3 +1,4 @@
+from unittest import result
 import streamlit as st
 import fitz  # PyMuPDF
 from PIL import Image, ImageEnhance
@@ -11,7 +12,7 @@ from ultralytics import YOLO
 from .ocr_no_flash import OCR
 
 from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes, extract_only_branch_code_number, extract_po_decimal
-
+from .hybrid_search import HybridSearch
 from pathlib import Path
 from paddleocr import PPStructureV3
 from doc_classification.zero_shot import get_classifier,crop_top_percent
@@ -645,11 +646,13 @@ def load_model()->tuple[OCR, YOLO, Dict[str, np.ndarray]]:
 
     centroids = load_centroids_dict(OCR_CENTROIDS_PATH)
 
-    return x,signature, centroids
+    hb_search = HybridSearch()
+
+    return x,signature, centroids, hb_search
 
 
 # Load model
-model, signature, my_centroid = load_model()
+model, signature, my_centroid, my_hybrid_search = load_model()
 lang_extract_model = FixedLangExtractProcessor()
 
 pd_pipeline = PPStructureV3(lang="th", device="gpu")
@@ -1123,6 +1126,72 @@ def dialog():
 @st.dialog("Result")
 def result_dialog(message):
     st.write(message)
+
+
+def handle_delta_items_from_the_invoice():
+    if len(st.session_state["delta_item_list_of_dict"]) > 0:
+        print("Has the items in the invoice")
+        final_result_lst = []
+        for itm in st.session_state["delta_item_list_of_dict"]:
+            it_name = itm["item_name"]
+            results = my_hybrid_search.advanced_search(it_name)
+            current_item_status = {}
+            current_item_status["name"] = it_name
+            if len(results) > 0:
+                print(f"Found {len(results)} results for {it_name}")
+                itm_found = results[0]
+                current_item_status["status"] = f"Approved Item: Match item is {itm_found['name']}"
+                # for result in results:
+                    # print(f"Result: {result}")
+            else:
+                current_item_status["status"] = "Not Approved Item"
+                # print(f"No results found for {it_name}")
+            
+            final_result_lst.append(current_item_status)
+
+        # Render Streamlit UI to show the data in final_result_lst variable (it is the list of dict with key "name" and "status")
+        # Please use Streamlit table to show the data in final_result_lst variable
+
+        # Display the results in a table format
+        if final_result_lst:
+            st.subheader("Item Approval Status")
+
+            # Convert the list of dictionaries to a DataFrame for better table display
+            import pandas as pd
+            df = pd.DataFrame(final_result_lst)
+
+            # Display the table using Streamlit's dataframe method
+            st.dataframe(
+                df,
+                use_container_width=True,
+                hide_index=True,
+                column_config={
+                    "name": st.column_config.TextColumn("Item Name", width="medium"),
+                    "status": st.column_config.TextColumn("Approval Status", width="large")
+                }
+            )
+
+            # Count the number of items in final_result_lst variable that have the value of "status" key not equal to "Not Approved Item"
+            number_of_approved_items = len([item for item in final_result_lst if item["status"] != "Not Approved Item"])
+            
+            if number_of_approved_items == len(final_result_lst):
+                st.info("Approved all items in this invoice")
+            elif number_of_approved_items > 0 and number_of_approved_items < len(final_result_lst):
+                st.info(f"Partial Approved {number_of_approved_items} items in this invoice")
+            else:
+                st.info("Not approved any item in this invoice")
+
+            # st.info(f"Number of approved items: {number_of_approved_items}")
+
+            # Count the number of items in final_result_lst variable that have the value of "status" key equal to "Not Approved Item"
+            # number_of_not_approved_items = len([item for item in final_result_lst if item["status"] == "Not Approved Item"])
+            # st.info(f"Number of not approved items: {number_of_not_approved_items}")
+
+        else:
+            st.info("No items to display")
+
+    # pass
+
 
 def handle_invoice_check_click():
     """Handle the Invoice Check button click - retrieve latest invoice data and check dates"""
@@ -1704,23 +1773,32 @@ async def ocr_processing_page():
                 qty_lst = []
 
                 for each_row in tmp_result_lst:
-                    if len(each_row) < 3:
+                    if len(each_row) < 2:
                         first_ele = each_row[0].strip()
-                        if first_ele.startswith('$'):
+                        if first_ele.startswith('$') or first_ele.startswith("VVVV"):
                             break
                         else:
                             if len(qty_lst) > 0:
-                                item_n_lst.append(first_ele)
+                                if len(first_ele) > 0 and not first_ele.startswith('('):
+                                    item_n_lst.append(first_ele)
 
                         continue
 
                     second_ele = each_row[1].strip()
+                    f_ele = each_row[0].strip()
+                    if f_ele.startswith('$') or f_ele.startswith("VVVV"):
+                        break
+
+                    if second_ele.startswith("VVVV"):
+                        break
+
+
                     if len(second_ele) > 0:
                         qty_lst.append(second_ele)
 
                         # We still need to check for the first element to see if it is empty string or has the value
-                        f_ele = each_row[0].strip()
-                        if len(f_ele) > 0 and not f_ele.startswith('$'):
+                        
+                        if len(f_ele) > 0 and not f_ele.startswith('$') and not f_ele.startswith('('):
                             item_n_lst.append(f_ele)
 
 
@@ -1833,11 +1911,11 @@ async def ocr_processing_page():
             else:
                 st.warning("No items found in the delta invoice")
 
-            handle_json_button_click()
+            # handle_json_button_click()
             # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
-            st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=st.session_state["invoice_check_button_disabled"])
+            st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=False)
         else:
-            st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=True)    
+            st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=True)    
         # else:
             # if not er["error_bool"]:
                 # ui_js("json_str")

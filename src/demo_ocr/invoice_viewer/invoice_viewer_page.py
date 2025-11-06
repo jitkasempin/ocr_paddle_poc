@@ -1,18 +1,15 @@
 import streamlit as st
 import pandas as pd
 import json
-import plotly.express as px
-import plotly.graph_objects as go
 from datetime import datetime, timedelta
-import numpy as np
 
-# Check if running on Streamlit Cloud or locally
+# Check if Qdrant client is available
 try:
-    from supabase import create_client, Client
-    SUPABASE_AVAILABLE = True
+    from qdrant_client import QdrantClient
+    QDRANT_AVAILABLE = True
 except ImportError:
-    SUPABASE_AVAILABLE = False
-    st.warning("Supabase client not installed. Using sample data instead.")
+    QDRANT_AVAILABLE = False
+    st.warning("Qdrant client not installed. Please install with: pip install qdrant-client")
 
 # Custom CSS for better styling
 def load_css():
@@ -48,167 +45,185 @@ def load_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Initialize Supabase connection
+# Initialize Qdrant connection
 @st.cache_resource
-def init_supabase():
-    """Initialize Supabase client with credentials from secrets."""
-    if not SUPABASE_AVAILABLE:
+def init_qdrant():
+    """Initialize Qdrant client with credentials."""
+    if not QDRANT_AVAILABLE:
         return None
     
     try:
-        url = "https://ufffvetqzjuyfsxzlufj.supabase.co"
-        key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZmZ2ZXRxemp1eWZzeHpsdWZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1NDIwMTgsImV4cCI6MjA2MzExODAxOH0.amaDdf6kIoZgO-eiKxmB6qs4fEYIIcV-1U9gvyMDQuc"
-
-        return create_client(url, key)
+        QDRANT_URL = "https://qdrant.ml.weaverbase.com:443"
+        QDRANT_API_KEY = "db090fa8926fdd3260fb5cf364b9e0b517ea5ab8fdd45f778bb1473603fdfde9"
+        
+        client = QdrantClient(
+            url=QDRANT_URL,
+            api_key=QDRANT_API_KEY,
+            timeout=60
+        )
+        return client
     except Exception as e:
-        st.error(f"Failed to connect to Supabase: {str(e)}")
+        st.error(f"Failed to connect to Qdrant: {str(e)}")
         return None
 
 # Data fetching functions
 @st.cache_data(ttl=300)  # Cache for 5 minutes
-def fetch_invoice_data():
-    """Fetch invoice data from Supabase or return empty list."""
-    supabase = init_supabase()
+def fetch_qdrant_data():
+    """Fetch all points from Qdrant collection."""
+    client = init_qdrant()
     
-    if supabase:
-        try:
-            response = supabase.table('invoice_data').select('*').execute()
-            return response.data
-        except Exception as e:
-            st.warning(f"Failed to fetch data from Supabase: {str(e)}.")
-            return []
-    else:
+    if not client:
+        return []
+    
+    try:
+        COLLECTION_NAME = "ieat_production_embeddings"
+        all_points = []
+        offset = None
+        limit = 100  # Fetch 100 points per request for efficiency
+        
+        # Use scroll to retrieve all points with pagination
+        while True:
+            result = client.scroll(
+                collection_name=COLLECTION_NAME,
+                limit=limit,
+                offset=offset,
+                with_payload=True,
+                with_vectors=False  # Don't need vectors for display
+            )
+            
+            points, next_offset = result
+            
+            if not points:
+                break
+            
+            all_points.extend(points)
+            
+            # If next_offset is None, we've reached the end
+            if next_offset is None:
+                break
+            
+            offset = next_offset
+        
+        return all_points
+        
+    except Exception as e:
+        st.error(f"Failed to fetch data from Qdrant: {str(e)}")
         return []
 
-def process_invoice_data(invoices):
-    """Process raw invoice data into a pandas DataFrame with calculated fields."""
+def process_qdrant_data(points):
+    """Process Qdrant points into a pandas DataFrame."""
     processed_data = []
     
-    for invoice in invoices:
-        # Calculate total amount from items_list
-        if isinstance(invoice.get('items_list'), list):
-            total_amount = sum(item.get("total", 0) for item in invoice["items_list"])
-            items_count = len(invoice["items_list"])
-        else:
-            total_amount = 0
-            items_count = 0
+    for point in points:
+        # Extract payload data
+        payload = point.payload if hasattr(point, 'payload') else {}
         
         processed_row = {
-            "id": invoice.get("id"),
-            "company": invoice.get("company", ""),
-            "invoice_number": invoice.get("invoice_number", ""),
-            "invoice_date": invoice.get("invoice_date", ""),
-            "tax_id": invoice.get("tax_id", ""),
-            "purchase_order_number": invoice.get("purchase_order_number", ""),
-            "total_amount": total_amount,
-            "items_count": items_count,
-            "created_at": invoice.get("created_at", ""),
-            "updated_at": invoice.get("updated_at", "")
+            "id": point.id,
+            "text": payload.get("text", ""),
+            # Extract any additional metadata from payload
+            **{k: v for k, v in payload.items() if k != "text"}
         }
         processed_data.append(processed_row)
     
     df = pd.DataFrame(processed_data)
     
-    # Convert date columns
-    if not df.empty:
-        df['invoice_date'] = pd.to_datetime(df['invoice_date'], errors='coerce')
-        df['created_at'] = pd.to_datetime(df['created_at'], errors='coerce')
-        df['updated_at'] = pd.to_datetime(df['updated_at'], errors='coerce')
-    
     return df
 
-def display_invoice_details(invoice):
-    """Display detailed view of a single invoice."""
-    col1, col2 = st.columns(2)
+def display_point_details(point_data):
+    """Display detailed view of a single point."""
+    st.subheader("Point Details")
     
-    with col1:
-        st.write(f"**Invoice Number:** {invoice.get('invoice_number', 'N/A')}")
-        st.write(f"**Company:** {invoice.get('company', 'N/A')}")
-        st.write(f"**Invoice Date:** {invoice.get('invoice_date', 'N/A')}")
-        st.write(f"**Tax ID:** {invoice.get('tax_id', 'N/A')}")
+    # Display ID
+    st.write(f"**Point ID:** {point_data.get('id', 'N/A')}")
     
-    with col2:
-        st.write(f"**Purchase Order:** {invoice.get('purchase_order_number', 'N/A')}")
-        st.write(f"**Created:** {invoice.get('created_at', 'N/A')}")
-        st.write(f"**Updated:** {invoice.get('updated_at', 'N/A')}")
+    # Display text
+    st.write("**Page Content:**")
+    text = point_data.get('text', 'No content available')
+    st.text_area("Content", text, height=200, disabled=True)
     
-    # Display items list
-    if invoice.get('items_list') and isinstance(invoice['items_list'], list):
-        st.subheader("Invoice Items")
-        items_df = pd.DataFrame(invoice['items_list'])
-        
-        # Format the dataframe for better display
-        if not items_df.empty:
-            if 'unit_price' in items_df.columns:
-                items_df['unit_price'] = items_df['unit_price'].apply(lambda x: f"${x:.2f}")
-            if 'total' in items_df.columns:
-                items_df['total'] = items_df['total'].apply(lambda x: f"${x:.2f}")
-            
-            st.dataframe(items_df, use_container_width=True)
-            
-            # Calculate and display total
-            # total_amount = sum(item.get("total", 0) for item in invoice['items_list'])
-            # st.write(f"**Total Amount: ${total_amount:.2f}**")
-        else:
-            st.write("No items found for this invoice.")
-    else:
-        st.write("No items data available for this invoice.")
+    # Display other metadata if available
+    metadata_keys = [k for k in point_data.keys() if k not in ['id', 'text']]
+    if metadata_keys:
+        st.write("**Additional Metadata:**")
+        metadata_dict = {k: point_data[k] for k in metadata_keys}
+        st.json(metadata_dict)
 
 def invoice_viewer_page():
-    """Main invoice viewer page function"""
+    """Main Qdrant data viewer page function"""
     # Load CSS
     load_css()
     
-    st.header("📋 Invoice Data Viewer")
+    st.header("📊 DELTA Approved Items")
+    
+    # Add collection info
+    # st.info("**Collection:** similarity_search_poc")
     
     # Fetch and process data
-    with st.spinner("Loading invoice data..."):
-        raw_invoices = fetch_invoice_data()
-        df = process_invoice_data(raw_invoices)
+    with st.spinner("Loading data from Qdrant..."):
+        raw_points = fetch_qdrant_data()
+        df = process_qdrant_data(raw_points)
     
     if df.empty:
-        st.error("No invoice data available.")
+        st.error("No data available in the Qdrant collection.")
         return
     
-    # Invoice table with expandable details
-    st.subheader("Invoice Table")
+    # Display statistics
+    col1, col2 = st.columns(2)
+    with col1:
+        st.metric("Total Points", len(df))
+    with col2:
+        st.metric("Total Columns", len(df.columns))
+    
+    # Main data table
+    st.subheader("Items Table")
     
     if not df.empty:
-        # Display table
-        display_df = df[['invoice_number', 'company', 'items_count']].copy()
-        # display_df['total_amount'] = display_df['total_amount'].apply(lambda x: f"${x:,.2f}")
-        # display_df['invoice_date'] = display_df['invoice_date'].dt.strftime('%Y-%m-%d')
+        # Display configuration for better readability
+        column_config = {
+            "id": st.column_config.TextColumn("Point ID", width="small"),
+            "text": st.column_config.TextColumn("Text", width="large")
+        }
+        
+        # Add any additional columns to config
+        # for col in df.columns:
+            # if col not in ['id', 'text']:
+                # column_config[col] = st.column_config.TextColumn(col.replace('_', ' ').title())
         
         st.dataframe(
-            display_df,
+            df,
             use_container_width=True,
-            column_config={
-                "invoice_number": "Invoice #",
-                "company": "Company",
-                # "invoice_date": "Date",
-                # "total_amount": "Total Amount",
-                "items_count": "Items Count"
-            }
+            column_config=column_config,
+            height=400
         )
         
-        # Detailed view for selected invoice
-        st.subheader("Invoice Details")
+        # Detailed view for selected point
+        # st.subheader("Point Details")
         
-        # Create a selectbox for choosing an invoice to view details
-        invoice_options = {f"{row['invoice_number']} - {row['company']}": idx 
-                         for idx, row in df.iterrows()}
+        # Create a selectbox for choosing a point to view details
+        # point_options = {f"Point ID: {row['id']}": idx for idx, row in df.iterrows()}
         
-        if invoice_options:
-            selected_invoice_key = st.selectbox(
-                "Select an invoice to view details:",
-                options=list(invoice_options.keys())
-            )
+        # if point_options:
+        #     selected_point_key = st.selectbox(
+        #         "Select a point to view details:",
+        #         options=list(point_options.keys())
+        #     )
             
-            if selected_invoice_key:
-                selected_idx = invoice_options[selected_invoice_key]
-                selected_invoice_data = raw_invoices[selected_idx]
+        #     if selected_point_key:
+        #         selected_idx = point_options[selected_point_key]
+        #         selected_point_data = df.iloc[selected_idx].to_dict()
                 
-                with st.expander("View Invoice Details", expanded=True):
-                    display_invoice_details(selected_invoice_data)
+        #         with st.expander("View Point Details", expanded=True):
+        #             display_point_details(selected_point_data)
+        
+        # Download option
+        st.subheader("Export Data")
+        csv = df.to_csv(index=False).encode('utf-8')
+        st.download_button(
+            label="Download as CSV",
+            data=csv,
+            file_name="qdrant_points_data.csv",
+            mime="text/csv"
+        )
     else:
-        st.warning("No invoices available.")
+        st.warning("No points available in the collection.")

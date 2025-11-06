@@ -11,6 +11,8 @@ RUN python -m pip install --pre paddlepaddle-gpu -i https://www.paddlepaddle.org
 RUN python -m pip install "paddleocr[all]"
 RUN python -m pip install "open-clip-torch>=3.1.0"
 RUN python -m pip install beautifulsoup4
+RUN python -m pip install qdrant-client
+RUN python -m pip install rapidfuzz
 RUN python -m pip install langextract
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
 

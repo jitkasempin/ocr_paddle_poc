@@ -23,12 +23,12 @@ st.title("📄OCR System")
 st.sidebar.title("Navigation")
 page = st.sidebar.selectbox(
     "Choose a page:",
-    ["OCR PROCESSING", "INVOICE VIEWER"]
+    ["OCR PROCESSING", "ITEM VIEWER"]
 )
 
 # Page routing
 if page == "OCR PROCESSING":
     # Run the async function using asyncio
     asyncio.run(ocr_processing_page())
-elif page == "INVOICE VIEWER":
+elif page == "ITEM VIEWER":
     invoice_viewer_page()
