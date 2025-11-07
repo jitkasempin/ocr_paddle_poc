@@ -1,6 +1,11 @@
 from qdrant_client import QdrantClient
 from openai import OpenAI
 import numpy as np
+import uuid
+from qdrant_client.models import (
+    VectorParams, Distance, PointStruct, 
+    HnswConfigDiff, OptimizersConfigDiff
+)
 from typing import List, Dict, Optional
 from tenacity import retry, stop_after_attempt, wait_exponential
 import time
@@ -70,6 +75,23 @@ class HybridSearch:
         wait=wait_exponential(multiplier=1, min=2, max=60),
         reraise=True
     )
+    def upload_batch_to_qdrant(
+        self,
+        points: List[PointStruct],
+        wait: bool = False
+    ):
+        """Upload batch with retry logic."""
+        self.qdrant_client.upsert(
+            collection_name="ieat_production_embeddings",
+            points=points,
+            wait=wait
+        )
+
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=2, max=60),
+        reraise=True
+    )
     def generate_embeddings(
         self,
         texts: List[str],
@@ -114,6 +136,96 @@ class HybridSearch:
             # logger.error(f"Embedding generation failed: {e}")
             raise
 
+
+    def process_dataset(
+        self,
+        texts: List[str],
+        metadata: Optional[List[Dict]] = None,
+        instruction: Optional[str] = None,
+        embedding_batch_size: int = 32,
+        upload_batch_size: int = 32
+    ) -> List[str]:
+        """
+        Process complete dataset: embed and store in Qdrant.
+        
+        Args:
+            texts: All texts to process
+            metadata: Optional metadata for each text
+            instruction: Embedding instruction (for queries)
+            embedding_batch_size: Batch size for embedding generation
+            upload_batch_size: Batch size for Qdrant upload
+        
+        Returns:
+            List of point IDs in Qdrant
+        """
+        if metadata is None:
+            metadata = [{}] * len(texts)
+        
+        total_texts = len(texts)
+        all_point_ids = []
+        
+        # logger.info(f"Processing {total_texts} texts")
+        # logger.info(f"Embedding batch size: {embedding_batch_size}")
+        # logger.info(f"Upload batch size: {upload_batch_size}")
+        
+        # Process in embedding batches
+        for i in range(0, total_texts, embedding_batch_size):
+            batch_texts = texts[i:i+embedding_batch_size]
+            batch_meta = metadata[i:i+embedding_batch_size]
+            
+            batch_num = i // embedding_batch_size + 1
+            total_batches = (total_texts - 1) // embedding_batch_size + 1
+            
+            # logger.info(f"Processing embedding batch {batch_num}/{total_batches}")
+            
+            # Generate embeddings
+            try:
+                embeddings = self.generate_embeddings(batch_texts, instruction)
+            except Exception as e:
+                # logger.error(f"Failed to generate embeddings for batch {batch_num}: {e}")
+                continue
+            
+            # Create points
+            batch_point_ids = [str(uuid.uuid4()) for _ in batch_texts]
+            points = [
+                PointStruct(
+                    id=point_id,
+                    vector=embedding,
+                    payload={"text": text, **meta}
+                )
+                for point_id, text, embedding, meta
+                in zip(batch_point_ids, batch_texts, embeddings, batch_meta)
+            ]
+            
+            all_point_ids.extend(batch_point_ids)
+            
+            # Upload to Qdrant in sub-batches
+            for j in range(0, len(points), upload_batch_size):
+                upload_batch = points[j:j+upload_batch_size]
+                
+                try:
+                    self.upload_batch_to_qdrant(
+                        upload_batch,
+                        wait=False  # Async for better throughput
+                    )
+                except Exception as e:
+                    # logger.error(f"Failed to upload batch: {e}")
+                    continue
+            
+            # Brief pause between embedding batches
+            if i + embedding_batch_size < total_texts:
+                time.sleep(0.1)
+        
+        # logger.info(f"Completed processing {len(all_point_ids)} texts")
+        time.sleep(3)
+        self.qdrant_client.update_collection(
+            collection_name="ieat_production_embeddings",
+            hnsw_config=HnswConfigDiff(m=16, ef_construct=100),
+            optimizers_config=OptimizersConfigDiff(indexing_threshold=20000)
+        )
+        
+
+        return all_point_ids
 
     def search(
         self,

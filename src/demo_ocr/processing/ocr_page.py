@@ -1,3 +1,4 @@
+import random
 from unittest import result
 import streamlit as st
 import fitz  # PyMuPDF
@@ -1182,6 +1183,18 @@ def handle_delta_items_from_the_invoice():
                 st.info("Not approved any item in this invoice")
 
             # st.info(f"Number of approved items: {number_of_approved_items}")
+            # Get the not approved items from the final_result_lst variable as the list of name of the items
+            only_not_approved_items = [item["name"] for item in final_result_lst if item["status"] == "Not Approved Item"]
+            
+            not_approved_metadata = [
+                {
+                    "doc_id": (k + random.randint(21, 1000)),
+                    "category": "DELTA"
+                }
+                for k in range(len(only_not_approved_items))
+            ]
+
+            my_hybrid_search.process_dataset(texts=only_not_approved_items, metadata=not_approved_metadata)
 
             # Count the number of items in final_result_lst variable that have the value of "status" key equal to "Not Approved Item"
             # number_of_not_approved_items = len([item for item in final_result_lst if item["status"] == "Not Approved Item"])
