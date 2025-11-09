@@ -1160,10 +1160,18 @@ def handle_delta_items_from_the_invoice():
             # Convert the list of dictionaries to a DataFrame for better table display
             import pandas as pd
             df = pd.DataFrame(final_result_lst)
+            # Apply color styling based on status column
+            def color_rows(row):
+                if row['status'] == 'Not Approved Item':
+                    return ['background-color: #ffcccc'] * len(row)  # Red background
+                else:
+                    return ['background-color: #ccffcc'] * len(row)  # Green background
+            
+            styled_df = df.style.apply(color_rows, axis=1)
 
             # Display the table using Streamlit's dataframe method
             st.dataframe(
-                df,
+                styled_df,
                 use_container_width=True,
                 hide_index=True,
                 column_config={
