@@ -14,7 +14,7 @@ from rapidfuzz import fuzz
 class HybridSearch:
     def __init__(self):
         self.client = OpenAI(
-            base_url="https://qegsy7vzf32snx-8000.proxy.runpod.net/v1",
+            base_url="https://2vnn6llpqzyyo8-8000.proxy.runpod.net/v1",
             api_key="EMPTY"
         )
 
@@ -313,6 +313,7 @@ class HybridSearch:
             
             result = {
                 "name": hit.payload["text"],
+                "doc_id": hit.payload["doc_id"],
                 "semantic_score": round(item['semantic_score'], 4),
                 "fuzzy_score": round(item['fuzzy_score'], 4),
                 "hybrid_score": round(item['hybrid_score'], 4)

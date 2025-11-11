@@ -17,7 +17,7 @@ from processing.ocr_page import ocr_processing_page
 from invoice_viewer.invoice_viewer_page import invoice_viewer_page
 
 # Main title
-st.title("📄OCR System")
+st.title("📄IEAT Pre-approve System")
 
 # Sidebar navigation
 st.sidebar.title("Navigation")

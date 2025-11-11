@@ -771,10 +771,10 @@ def count_imgs(content):
 
 
 def is_match_centroids(img_rgb: np.ndarray) -> bool:
-    img_rgb = crop_top_percent(img_rgb, 13)
+    img_rgb = crop_top_percent(img_rgb, 20)
     clip_model_name: str = "ViT-B-16"
 
-    tau ={'list_delta': 0.94}
+    tau ={'list_delta': 0.88}
 
     OCR_CLIP_PRETRAINED="/data/modules_resouces/openclip_backend/CLIP-ViT-B-16-laion2B-s34B-b88K/open_clip_model.safetensors"
 
@@ -1128,6 +1128,49 @@ def dialog():
 def result_dialog(message):
     st.write(message)
 
+@st.dialog("Approval Status")
+def approval_success_dialog():
+    st.success("Approval is success")
+    if st.button("Close"):
+        st.session_state["refresh_page"] = True
+        st.rerun()
+
+@st.dialog("Rejection Status")
+def rejection_dialog():
+    st.warning("Not approve the items")
+    if st.button("Close"):
+        st.session_state["refresh_page"] = True
+        st.rerun()
+
+
+def approve_items_into_db():
+    """Approve items and store them into the database"""
+    try:
+        only_not_approved_items = st.session_state.get("only_not_approved_items", [])
+        print(f"Only not approved items: {only_not_approved_items}")
+
+        if len(only_not_approved_items) > 0:
+            not_approved_metadata = [
+                {
+                    "doc_id": (k + random.randint(21, 1000)),
+                    "category": "DELTA"
+                }
+                for k in range(len(only_not_approved_items))
+            ]
+            
+            my_hybrid_search.process_dataset(texts=only_not_approved_items, metadata=not_approved_metadata)
+
+            # if approve_items_into_db():
+            approval_success_dialog()
+            # else:
+        
+            # return True
+        # return True
+    except Exception as e:
+        print(f"Error in approve_items_into_db: {str(e)}")
+        st.error("Failed to approve items")
+        # return False
+
 
 def handle_delta_items_from_the_invoice():
     if len(st.session_state["delta_item_list_of_dict"]) > 0:
@@ -1142,10 +1185,12 @@ def handle_delta_items_from_the_invoice():
                 print(f"Found {len(results)} results for {it_name}")
                 itm_found = results[0]
                 current_item_status["status"] = f"Approved Item: Match item is {itm_found['name']}"
+                current_item_status["doc_id"] = f"Doc ID: {str( itm_found['doc_id'] )}"
                 # for result in results:
                     # print(f"Result: {result}")
             else:
                 current_item_status["status"] = "Not Approved Item"
+                current_item_status["doc_id"] = "NONE"
                 # print(f"No results found for {it_name}")
             
             final_result_lst.append(current_item_status)
@@ -1182,31 +1227,61 @@ def handle_delta_items_from_the_invoice():
 
             # Count the number of items in final_result_lst variable that have the value of "status" key not equal to "Not Approved Item"
             number_of_approved_items = len([item for item in final_result_lst if item["status"] != "Not Approved Item"])
+            only_not_approved_items = [item["name"] for item in final_result_lst if item["status"] == "Not Approved Item"]
+
+            it_name_that_not_match = "\n".join(only_not_approved_items)
+            # Get the doc_id from final_result_lst variable that have the value of "doc_id" key not equal to "NONE"
+            doc_ids = [item["doc_id"] for item in final_result_lst if item["doc_id"] != "NONE"]
+            # Join all items in doc_ids list with pipe character
+            doc_ids_str = "|".join(doc_ids)
+            recommend_final = ""
             
             if number_of_approved_items == len(final_result_lst):
-                st.info("Approved all items in this invoice")
+                recommend_final += f"""
+                Ready for Fast-Track Approval (พร้อมสำหรับอนุมัติด่วน)
+                ทั้ง {number_of_approved_items} items ใน invoice นี้ ตรงกับ items จากเอกสารที่เคยอนุมัติแล้ว คำขอนี้มีสิทธิ์ได้รับการ pre-approval
+                Reference Documents (เอกสารอ้างอิง): {doc_ids_str}
+                -----------------------------------------------
+                """
+                st.info(recommend_final)
             elif number_of_approved_items > 0 and number_of_approved_items < len(final_result_lst):
-                st.info(f"Partial Approved {number_of_approved_items} items in this invoice")
+
+                recommend_final += f"""
+                Partial Match Found - Review Required (พบบางส่วนตรงกัน - ต้องตรวจสอบ)
+                บาง items ใน invoice นี้ พบในเอกสารอนุมัติก่อนหน้า (ดูเอกสารอ้างอิง) อย่างไรก็ตาม items ต่อไปนี้เป็น items ใหม่ 
+                หรือยังไม่เคยตรวจสอบ (unverified):
+                {it_name_that_not_match}
+                
+                กรุณาตรวจสอบ (review) items ใหม่เหล่านี้เทียบกับ approval guidelines (แนวทางการอนุมัติ) ด้วยตนเอง
+                Reference Documents for Matched Items (เอกสารอ้างอิงสำหรับรายการที่ตรงกัน): {doc_ids_str} 
+                """
+                st.info(recommend_final)
+
             else:
-                st.info("Not approved any item in this invoice")
+                recommend_final += """
+                Full Manual Review Required (ต้องตรวจสอบด้วยตนเองทั้งหมด)
+                items ทั้งหมดใน invoice นี้เป็น items ใหม่ และไม่มีประวัติการอนุมัติ
+                กรุณาตรวจสอบ line items ทั้งหมดและรายละเอียดเอกสารเทียบกับ guidelines (แนวทาง) ของบริษัทอย่างรอบคอบก่อนอนุมัติ
+                -----------------------------------------------
+                """
+                st.info(recommend_final)
+
 
             # st.info(f"Number of approved items: {number_of_approved_items}")
             # Get the not approved items from the final_result_lst variable as the list of name of the items
-            only_not_approved_items = [item["name"] for item in final_result_lst if item["status"] == "Not Approved Item"]
-            
-            not_approved_metadata = [
-                {
-                    "doc_id": (k + random.randint(21, 1000)),
-                    "category": "DELTA"
-                }
-                for k in range(len(only_not_approved_items))
-            ]
+            if number_of_approved_items < len(final_result_lst):
+                
+                
+                # Store only_not_approved_items in session state
+                st.session_state["only_not_approved_items"] = only_not_approved_items
 
-            my_hybrid_search.process_dataset(texts=only_not_approved_items, metadata=not_approved_metadata)
-
-            # Count the number of items in final_result_lst variable that have the value of "status" key equal to "Not Approved Item"
-            # number_of_not_approved_items = len([item for item in final_result_lst if item["status"] == "Not Approved Item"])
-            # st.info(f"Number of not approved items: {number_of_not_approved_items}")
+                # Add Approve and Reject buttons
+                col1, col2 = st.columns(2)
+                with col1:
+                    st.button("Reject", type="secondary", use_container_width=True, on_click=rejection_dialog)
+                with col2:
+                    st.button("Approve", type="primary", use_container_width=True, on_click=approve_items_into_db)
+                        
 
         else:
             st.info("No items to display")
@@ -1356,7 +1431,7 @@ def handle_json_button_click():
 
 async def ocr_processing_page():
     """Main OCR processing page function"""
-    st.header("📄 OCR Processing")
+    # st.header("📄 OCR Processing")
     
     # Initialize session state variables
     if "new_upload" not in st.session_state:
@@ -1395,6 +1470,30 @@ async def ocr_processing_page():
     if "processing_time" not in st.session_state:
         st.session_state["processing_time"] = 0
 
+    if "only_not_approved_items" not in st.session_state:
+        st.session_state["only_not_approved_items"] = []
+
+    if "refresh_page" not in st.session_state:
+        st.session_state["refresh_page"] = False
+
+    # Check if page needs to be refreshed
+    if st.session_state.get("refresh_page", False):
+        # Reset all session state variables to initial state
+        st.session_state["new_upload"] = True
+        st.session_state["delta_item_array"] = []
+        st.session_state["delta_item_list_of_dict"] = []
+        st.session_state["markdown"] = ""
+        st.session_state["json_str"] = ""
+        st.session_state["payment_term"] = ""
+        st.session_state["json"] = {}
+        st.session_state["json_button_disabled"] = False
+        st.session_state["invoice_check_button_disabled"] = True
+        st.session_state["resultss"] = 0
+        st.session_state["total_images"] = 0
+        st.session_state["processing_time"] = 0
+        st.session_state["only_not_approved_items"] = []
+        st.session_state["refresh_page"] = False
+        st.rerun()
 
 
     # === Upload PDF ===
@@ -1475,20 +1574,20 @@ async def ocr_processing_page():
                 st.text_input(label="Filename :",value=image_inp_path[0])
                         
             for img in images:
-                results = signature.predict(np.array(img), conf=0.5)
-                print(results)
-                st.image(results[0].plot())
+                # results = signature.predict(np.array(img), conf=0.5)
+                # print(results)
+                # st.image(results[0].plot())
 
-                resultss=[]
-                for result in results:
-                    for box in result.boxes:
-                        cls_id = int(box.cls[0]) 
-                        class_name = signature.names[cls_id]
-                        conf = float(box.conf[0])
-                        resultss.append({"class_name":class_name,"score":conf,"class_id":cls_id})
+                # resultss=[]
+                # for result in results:
+                #     for box in result.boxes:
+                #         cls_id = int(box.cls[0]) 
+                #         class_name = signature.names[cls_id]
+                #         conf = float(box.conf[0])
+                #         resultss.append({"class_name":class_name,"score":conf,"class_id":cls_id})
 
-                st.session_state["resultss"]=len(resultss)
-                # st.image(img)
+                # st.session_state["resultss"]=len(resultss)
+                st.image(img)
 
     if uploaded_file and st.session_state["new_upload"]:
         # OCR model selection (default model_a)
@@ -1831,6 +1930,10 @@ async def ocr_processing_page():
 
                 result = list(zip(item_n_lst, qty_lst))
 
+            # Add code to filter the items in result (list of tuple) variable.
+            # The example of data in result list => [('AC Motor','1SET'), ('DC Motor','2SET'), ('Wire','5SET')]
+            # Filter out the items in result list which have the second element of tuple equal to empty string (the string which length = 0)
+            result = [item for item in result if len(item[1]) > 0]
 
             st.session_state["delta_item_array"] = result
             
@@ -1947,27 +2050,27 @@ async def ocr_processing_page():
             
     elif uploaded_file and not st.session_state["new_upload"]:
         
-        with st.status("Extracting text", expanded=True) as status:
-            st.markdown(st.session_state["markdown"])
-            status.update(
-                label="Successfully extracted text", state="complete", expanded=False
-            )
+        # with st.status("Extracting text", expanded=True) as status:
+            # st.markdown(st.session_state["markdown"])
+            # status.update(
+                # label="Successfully extracted text", state="complete", expanded=False
+            # )
 
-        if "processing_time" in st.session_state and st.session_state["processing_time"] > 0:
-            st.metric(label="OCR Processing Time", value=f"{st.session_state['processing_time']:.2f} seconds")
+        # if "processing_time" in st.session_state and st.session_state["processing_time"] > 0:
+            # st.metric(label="OCR Processing Time", value=f"{st.session_state['processing_time']:.2f} seconds")
 
-        with st.status("Extracting Json", expanded=True) as status_json:
-            st.markdown(st.session_state["json_str"])
-            status_json.update(
-                label="Successfully extracted Json", state="complete", expanded=False
-            )
+        # with st.status("Extracting Json", expanded=True) as status_json:
+            # st.markdown(st.session_state["json_str"])
+            # status_json.update(
+                # label="Successfully extracted Json", state="complete", expanded=False
+            # )
             
 
         # st.text_input(label="signature",value=st.session_state["resultss"])
         ui_js("json")
         
         # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
-        st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=st.session_state["invoice_check_button_disabled"])
+        # st.button("Invoice Check", use_container_width=True, on_click=handle_invoice_check_click, disabled=st.session_state["invoice_check_button_disabled"])
 
     else:
         st.session_state["new_upload"] = True
