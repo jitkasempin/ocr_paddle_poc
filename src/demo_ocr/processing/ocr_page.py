@@ -1230,42 +1230,58 @@ def handle_delta_items_from_the_invoice():
             number_of_approved_items = len([item for item in final_result_lst if item["status"] != "Not Approved Item"])
             only_not_approved_items = [item["name"] for item in final_result_lst if item["status"] == "Not Approved Item"]
 
-            it_name_that_not_match = "\n".join(only_not_approved_items)
+            # Format it_name_that_not_match as HTML list (one item per row)
+            if only_not_approved_items:
+                it_name_that_not_match = "<br>".join([f"• {item}" for item in only_not_approved_items])
+            else:
+                it_name_that_not_match = ""
+            
             # Get the doc_id from final_result_lst variable that have the value of "doc_id" key not equal to "NONE"
             doc_ids = [item["doc_id"] for item in final_result_lst if item["doc_id"] != "NONE"]
-            # Join all items in doc_ids list with newline character to display each on a separate line
-            doc_ids_str = "\n".join(doc_ids)
+            # Format doc_ids_str as HTML list (one item per row)
+            if doc_ids:
+                doc_ids_str = "<br>".join([f"• {doc_id}" for doc_id in doc_ids])
+            else:
+                doc_ids_str = ""
+            
             recommend_final = ""
             
             if number_of_approved_items == len(final_result_lst):
-                recommend_final += f"""
-                Ready for Fast-Track Approval (พร้อมสำหรับอนุมัติด่วน)
-                ทั้ง {number_of_approved_items} items ใน invoice นี้ ตรงกับ items จากเอกสารที่เคยอนุมัติแล้ว คำขอนี้มีสิทธิ์ได้รับการ pre-approval
-                Reference Documents (เอกสารอ้างอิง): {doc_ids_str}
-                -----------------------------------------------
+                recommend_final = f"""
+                <div style="background-color: #9c27b0; padding: 20px; border-radius: 5px; color: white;">
+                    <strong>Ready for Fast-Track Approval (พร้อมสำหรับอนุมัติด่วน)</strong><br><br>
+                    ทั้ง {number_of_approved_items} items ใน invoice นี้ ตรงกับ items จากเอกสารที่เคยอนุมัติแล้ว คำขอนี้มีสิทธิ์ได้รับการ pre-approval<br><br>
+                    <strong>Reference Documents (เอกสารอ้างอิง):</strong><br>
+                    {doc_ids_str}
+                    <hr style="border-color: rgba(255,255,255,0.3); margin: 15px 0;">
+                </div>
                 """
-                st.info(recommend_final)
+                st.markdown(recommend_final, unsafe_allow_html=True)
             elif number_of_approved_items > 0 and number_of_approved_items < len(final_result_lst):
 
-                recommend_final += f"""
-                Partial Match Found - Review Required (พบบางส่วนตรงกัน - ต้องตรวจสอบ)
-                บาง items ใน invoice นี้ พบในเอกสารอนุมัติก่อนหน้า (ดูเอกสารอ้างอิง) อย่างไรก็ตาม items ต่อไปนี้เป็น items ใหม่ 
-                หรือยังไม่เคยตรวจสอบ (unverified):
-                {it_name_that_not_match}
-                
-                กรุณาตรวจสอบ (review) items ใหม่เหล่านี้เทียบกับ approval guidelines (แนวทางการอนุมัติ) ด้วยตนเอง
-                Reference Documents for Matched Items (เอกสารอ้างอิงสำหรับรายการที่ตรงกัน): {doc_ids_str} 
+                recommend_final = f"""
+                <div style="background-color: #9c27b0; padding: 20px; border-radius: 5px; color: white;">
+                    <strong>Partial Match Found - Review Required (พบบางส่วนตรงกัน - ต้องตรวจสอบ)</strong><br><br>
+                    บาง items ใน invoice นี้ พบในเอกสารอนุมัติก่อนหน้า (ดูเอกสารอ้างอิง) อย่างไรก็ตาม items ต่อไปนี้เป็น items ใหม่ 
+                    หรือยังไม่เคยตรวจสอบ (unverified):<br>
+                    {it_name_that_not_match}<br><br>
+                    กรุณาตรวจสอบ (review) items ใหม่เหล่านี้เทียบกับ approval guidelines (แนวทางการอนุมัติ) ด้วยตนเอง<br><br>
+                    <strong>Reference Documents for Matched Items (เอกสารอ้างอิงสำหรับรายการที่ตรงกัน):</strong><br>
+                    {doc_ids_str}
+                </div>
                 """
-                st.info(recommend_final)
+                st.markdown(recommend_final, unsafe_allow_html=True)
 
             else:
-                recommend_final += """
-                Full Manual Review Required (ต้องตรวจสอบด้วยตนเองทั้งหมด)
-                items ทั้งหมดใน invoice นี้เป็น items ใหม่ และไม่มีประวัติการอนุมัติ
-                กรุณาตรวจสอบ line items ทั้งหมดและรายละเอียดเอกสารเทียบกับ guidelines (แนวทาง) ของบริษัทอย่างรอบคอบก่อนอนุมัติ
-                -----------------------------------------------
+                recommend_final = """
+                <div style="background-color: #9c27b0; padding: 20px; border-radius: 5px; color: white;">
+                    <strong>Full Manual Review Required (ต้องตรวจสอบด้วยตนเองทั้งหมด)</strong><br><br>
+                    items ทั้งหมดใน invoice นี้เป็น items ใหม่ และไม่มีประวัติการอนุมัติ<br>
+                    กรุณาตรวจสอบ line items ทั้งหมดและรายละเอียดเอกสารเทียบกับ guidelines (แนวทาง) ของบริษัทอย่างรอบคอบก่อนอนุมัติ
+                    <hr style="border-color: rgba(255,255,255,0.3); margin: 15px 0;">
+                </div>
                 """
-                st.info(recommend_final)
+                st.markdown(recommend_final, unsafe_allow_html=True)
 
 
             # st.info(f"Number of approved items: {number_of_approved_items}")
@@ -1873,9 +1889,9 @@ async def ocr_processing_page():
         if is_inv_delta:
             st.success("✅ This invoice is DELTA. Continue to extract the text from invoice")
         else:
-            st.error("❌ Please upload DELTA invoice only")
-            st.session_state["new_upload"] = False
-            return
+            st.info("Process invoice parsing without pre-approval process")
+            # st.session_state["new_upload"] = False
+            # return
 
         with st.status("Extracting text", expanded=True) as status:
             center_md = st.empty()
@@ -2002,187 +2018,189 @@ async def ocr_processing_page():
                 processing_time = end_time - start_time
                 st.session_state["processing_time"] = processing_time
             
-
-            # Extract chunk based on P.O. NO. markers
-            items_is_inside_html = False
-            po_start = center_stream.find('| P.O. NO.')
-            if po_start != -1:
-                # Found '| P.O. NO.'
-                vvvv_end = center_stream.find('VVVV |\\n', po_start)
-                if vvvv_end != -1:
-                    # Found 'VVVV |\n' - extract from po_start to end of 'VVVV |\n'
-                    po_no_chunk = center_stream[po_start:vvvv_end + len('VVVV |')]
-                else:
-                    # 'VVVV |\n' not found - extract from po_start until '"' is found
-                    quote_pos = center_stream.find('"', po_start)
-                    if quote_pos != -1:
-                        po_no_chunk = center_stream[po_start:quote_pos]
-                    else:
-                        # No quote found either, just take from po_start to end
-                        po_no_chunk = center_stream[po_start:]
-            else:
-                # '| P.O. NO.' not found - use whole content
-                # po_no_chunk = center_stream
-                # Check if po_no_chunk contain the HTML table tag or not (The table tag is <table>...</table>)
-                if "<table>" in center_stream and "</table>" in center_stream:
-                    # Extract the HTML table from po_no_chunk
-                    po_no_chunk = extract_html_table(center_stream)
-                    print("HTML table:", po_no_chunk)
-                    if len(po_no_chunk) > 5:
-                        items_is_inside_html = True
-                else:
-                    # No HTML table found - use whole content
-                    po_no_chunk = center_stream
-
-            
             center_md.markdown(center_stream)
             st.session_state["markdown"] = center_stream
-            if items_is_inside_html == False:
-                # po_no_chunk = po_no_chunk.replace('\n', '_')
 
-                # replace the new line character in po_no_chunk with the underscore character
-                po_no_chunk = po_no_chunk.replace('\\n', '_')
-
-                print("The input string is:", po_no_chunk)
-
-                # Step 1: Split by newline
-                lines = po_no_chunk.split('_')
-                print("Lines:", lines)
-                print("Length of lines:", len(lines))
-                # Step 2: Filter out lines containing "QTY", "---", or "VVVVV"
-                filtered_lines = [
-                    line for line in lines 
-                    if "QTY" not in line and "---" not in line and "VVVVV" not in line
-                ]
-                
-
-                print("Filtered lines:", filtered_lines)
-                # Lists to store extracted data
-                item_name_lst = []
-                qty_item_lst = []
-                
-                # Step 3: Process each remaining line
-                for line in filtered_lines:
-                    # Step 3.1: Split by pipe
-                    words = line.split('|')
-                    print("Words:", words)
-                    # Ensure we have at least 3 elements (indices 0, 1, 2)
-                    if len(words) < 4:
-                        # check if the words index 0 or 1 is not empty (contain the non-blank string)
-                        if len(words) == 1:
-                            if len(words[0].strip()) > 1 and not words[0].strip().startswith('('):
-                                if len(qty_item_lst) > 0:
-                                    item_name_lst.append(words[0].strip())
-
-                        elif len(words) == 2:
-                            if len(words[1].strip()) > 1 and not words[1].strip().startswith('('):
-                                if len(qty_item_lst) > 0:
-                                    item_name_lst.append(words[1].strip())
-                            elif len(words[0].strip()) > 1 and not words[0].strip().startswith('('):
-                                if len(qty_item_lst) > 0:
-                                    item_name_lst.append(words[0].strip())
-
-                        continue
-                        
-                    # Step 3.2: Check third element (index 2)
-                    third_element = words[3].strip()
-                    print(third_element)
-                    
-                    if third_element == '' or third_element == ' ':
-                        # Third element is blank or empty
-                        first_element = words[1].strip()
-                        
-                        # Check if first element doesn't begin with '('
-                        if first_element and not first_element.startswith('('):
-                            if len(qty_item_lst) > 0:
-                                item_name_lst.append(first_element)
+            if is_inv_delta:
+                # Extract chunk based on P.O. NO. markers
+                items_is_inside_html = False
+                po_start = center_stream.find('| P.O. NO.')
+                if po_start != -1:
+                    # Found '| P.O. NO.'
+                    vvvv_end = center_stream.find('VVVV |\\n', po_start)
+                    if vvvv_end != -1:
+                        # Found 'VVVV |\n' - extract from po_start to end of 'VVVV |\n'
+                        po_no_chunk = center_stream[po_start:vvvv_end + len('VVVV |')]
                     else:
-                        # Third element has content - it's a quantity
-                        qty_item_lst.append(third_element)
-                        # If we also found that the first element is exists, then we need to append the first element to the item_name_lst
-                        tmp_first_ele = words[1].strip()
-                        if tmp_first_ele and len(tmp_first_ele) > 1 and not tmp_first_ele.startswith('('):
-                            item_name_lst.append(tmp_first_ele)
-                
-                # Step 4: Zip the lists together
-                # Ensure both lists have the same length by padding qty_item_lst if needed
-                while len(qty_item_lst) < len(item_name_lst):
-                    qty_item_lst.append("")
-
-                print("Qty item lst:", qty_item_lst)
-                print("Item name lst:", item_name_lst)
-                # Truncate if qty_item_lst is longer
-                qty_item_lst = qty_item_lst[:len(item_name_lst)]
-                
-                result = list(zip(item_name_lst, qty_item_lst))
-            
-            else:
-                tmp_result_lst = get_items_from_html_table(po_no_chunk)
-
-                item_n_lst = []
-                qty_lst = []
-
-                for each_row in tmp_result_lst:
-                    if len(each_row) < 2:
-                        first_ele = each_row[0].strip()
-                        if first_ele.startswith('$') or first_ele.startswith("VVVV"):
-                            break
+                        # 'VVVV |\n' not found - extract from po_start until '"' is found
+                        quote_pos = center_stream.find('"', po_start)
+                        if quote_pos != -1:
+                            po_no_chunk = center_stream[po_start:quote_pos]
                         else:
-                            if len(qty_lst) > 0:
-                                if len(first_ele) > 0 and not first_ele.startswith('('):
-                                    item_n_lst.append(first_ele)
+                            # No quote found either, just take from po_start to end
+                            po_no_chunk = center_stream[po_start:]
+                else:
+                    # '| P.O. NO.' not found - use whole content
+                    # po_no_chunk = center_stream
+                    # Check if po_no_chunk contain the HTML table tag or not (The table tag is <table>...</table>)
+                    if "<table>" in center_stream and "</table>" in center_stream:
+                        # Extract the HTML table from po_no_chunk
+                        po_no_chunk = extract_html_table(center_stream)
+                        print("HTML table:", po_no_chunk)
+                        if len(po_no_chunk) > 5:
+                            items_is_inside_html = True
+                    else:
+                        # No HTML table found - use whole content
+                        po_no_chunk = center_stream
 
-                        continue
+            
+            
+                if items_is_inside_html == False:
+                    # po_no_chunk = po_no_chunk.replace('\n', '_')
 
-                    second_ele = each_row[1].strip()
-                    f_ele = each_row[0].strip()
-                    if f_ele.startswith('$') or f_ele.startswith("VVVV"):
-                        break
+                    # replace the new line character in po_no_chunk with the underscore character
+                    po_no_chunk = po_no_chunk.replace('\\n', '_')
 
-                    if second_ele.startswith("VVVV"):
-                        break
+                    print("The input string is:", po_no_chunk)
 
+                    # Step 1: Split by newline
+                    lines = po_no_chunk.split('_')
+                    print("Lines:", lines)
+                    print("Length of lines:", len(lines))
+                    # Step 2: Filter out lines containing "QTY", "---", or "VVVVV"
+                    filtered_lines = [
+                        line for line in lines 
+                        if "QTY" not in line and "---" not in line and "VVVVV" not in line
+                    ]
+                    
 
-                    if len(second_ele) > 0:
-                        qty_lst.append(second_ele)
+                    print("Filtered lines:", filtered_lines)
+                    # Lists to store extracted data
+                    item_name_lst = []
+                    qty_item_lst = []
+                    
+                    # Step 3: Process each remaining line
+                    for line in filtered_lines:
+                        # Step 3.1: Split by pipe
+                        words = line.split('|')
+                        print("Words:", words)
+                        # Ensure we have at least 3 elements (indices 0, 1, 2)
+                        if len(words) < 4:
+                            # check if the words index 0 or 1 is not empty (contain the non-blank string)
+                            if len(words) == 1:
+                                if len(words[0].strip()) > 1 and not words[0].strip().startswith('('):
+                                    if len(qty_item_lst) > 0:
+                                        item_name_lst.append(words[0].strip())
 
-                        # We still need to check for the first element to see if it is empty string or has the value
+                            elif len(words) == 2:
+                                if len(words[1].strip()) > 1 and not words[1].strip().startswith('('):
+                                    if len(qty_item_lst) > 0:
+                                        item_name_lst.append(words[1].strip())
+                                elif len(words[0].strip()) > 1 and not words[0].strip().startswith('('):
+                                    if len(qty_item_lst) > 0:
+                                        item_name_lst.append(words[0].strip())
+
+                            continue
+                            
+                        # Step 3.2: Check third element (index 2)
+                        third_element = words[3].strip()
+                        print(third_element)
                         
-                        if len(f_ele) > 0 and not f_ele.startswith('$') and not f_ele.startswith('('):
-                            item_n_lst.append(f_ele)
+                        if third_element == '' or third_element == ' ':
+                            # Third element is blank or empty
+                            first_element = words[1].strip()
+                            
+                            # Check if first element doesn't begin with '('
+                            if first_element and not first_element.startswith('('):
+                                if len(qty_item_lst) > 0:
+                                    item_name_lst.append(first_element)
+                        else:
+                            # Third element has content - it's a quantity
+                            qty_item_lst.append(third_element)
+                            # If we also found that the first element is exists, then we need to append the first element to the item_name_lst
+                            tmp_first_ele = words[1].strip()
+                            if tmp_first_ele and len(tmp_first_ele) > 1 and not tmp_first_ele.startswith('('):
+                                item_name_lst.append(tmp_first_ele)
+                    
+                    # Step 4: Zip the lists together
+                    # Ensure both lists have the same length by padding qty_item_lst if needed
+                    while len(qty_item_lst) < len(item_name_lst):
+                        qty_item_lst.append("")
+
+                    print("Qty item lst:", qty_item_lst)
+                    print("Item name lst:", item_name_lst)
+                    # Truncate if qty_item_lst is longer
+                    qty_item_lst = qty_item_lst[:len(item_name_lst)]
+                    
+                    result = list(zip(item_name_lst, qty_item_lst))
+                
+                else:
+                    tmp_result_lst = get_items_from_html_table(po_no_chunk)
+
+                    item_n_lst = []
+                    qty_lst = []
+
+                    for each_row in tmp_result_lst:
+                        if len(each_row) < 2:
+                            first_ele = each_row[0].strip()
+                            if first_ele.startswith('$') or first_ele.startswith("VVVV"):
+                                break
+                            else:
+                                if len(qty_lst) > 0:
+                                    if len(first_ele) > 0 and not first_ele.startswith('('):
+                                        item_n_lst.append(first_ele)
+
+                            continue
+
+                        second_ele = each_row[1].strip()
+                        f_ele = each_row[0].strip()
+                        if f_ele.startswith('$') or f_ele.startswith("VVVV"):
+                            break
+
+                        if second_ele.startswith("VVVV"):
+                            break
+
+
+                        if len(second_ele) > 0:
+                            qty_lst.append(second_ele)
+
+                            # We still need to check for the first element to see if it is empty string or has the value
+                            
+                            if len(f_ele) > 0 and not f_ele.startswith('$') and not f_ele.startswith('('):
+                                item_n_lst.append(f_ele)
 
 
 
-                while len(qty_lst) < len(item_n_lst):
-                    qty_lst.append("")
+                    while len(qty_lst) < len(item_n_lst):
+                        qty_lst.append("")
 
-                qty_lst = qty_lst[:len(item_n_lst)]
+                    qty_lst = qty_lst[:len(item_n_lst)]
 
-                result = list(zip(item_n_lst, qty_lst))
+                    result = list(zip(item_n_lst, qty_lst))
 
-            # Add code to filter the items in result (list of tuple) variable.
-            # The example of data in result list => [('AC Motor','1SET'), ('DC Motor','2SET'), ('Wire','5SET')]
-            # Filter out the items in result list which have the second element of tuple equal to empty string (the string which length = 0)
-            if len(result) == 0:
-                result = perform_chandra_ocr_online()
-
-
-            result_filter_out = [item for item in result if (len(item[1]) > 0 and bool(re.search(r'\d', item[1])) == True)]
-
-            st.session_state["delta_item_array"] = result_filter_out
-            
-            # pre_process_invoice_string(po_no_chunk)
-            
-
-            # Example usage with the robust function
-            # result_count = extract_observation_and_check_robust(center_stream)
-            # if result_count["contains_target_words"] == True:
-                # st.session_state["total_images"] = 1
-            # else:
-                # st.session_state["total_images"] = 0 
+                # Add code to filter the items in result (list of tuple) variable.
+                # The example of data in result list => [('AC Motor','1SET'), ('DC Motor','2SET'), ('Wire','5SET')]
+                # Filter out the items in result list which have the second element of tuple equal to empty string (the string which length = 0)
+                if len(result) == 0:
+                    result = perform_chandra_ocr_online()
 
 
-            #[1:-1].replace('"', '')
+                result_filter_out = [item for item in result if (len(item[1]) > 0 and bool(re.search(r'\d', item[1])) == True)]
+
+                st.session_state["delta_item_array"] = result_filter_out
+                
+                # pre_process_invoice_string(po_no_chunk)
+                
+
+                # Example usage with the robust function
+                # result_count = extract_observation_and_check_robust(center_stream)
+                # if result_count["contains_target_words"] == True:
+                    # st.session_state["total_images"] = 1
+                # else:
+                    # st.session_state["total_images"] = 0 
+
+
+                #[1:-1].replace('"', '')
             
             status.update(
                 label="Successfully extracted text", state="complete", expanded=False
@@ -2205,7 +2223,11 @@ async def ocr_processing_page():
 
                 # if is_invoice_or_quotation == True:
                 if document_type == "Invoice":
-                    right_stream = await model.structured_output(center_stream, DeltaInvoice)
+                    if is_inv_delta:
+                        right_stream = await model.structured_output(center_stream, DeltaInvoice)
+                    else:
+                        right_stream = await model.structured_output(center_stream, Invoice)
+
                     right_md.markdown(right_stream)
                 elif document_type == "Passport":
                     right_stream = await model.structured_output(center_stream, PassPortData)
@@ -2264,17 +2286,19 @@ async def ocr_processing_page():
         if not er["error_bool"]:
             ui_js("json_str")
 
-            if len(st.session_state["delta_item_array"]) > 0:
-                delta_items_ui()
-            else:
-                st.warning("No items found in the delta invoice")
+            if is_inv_delta:
+                if len(st.session_state["delta_item_array"]) > 0:
+                    delta_items_ui()
+                else:
+                    st.warning("No items found in the delta invoice")
 
-            # handle_json_button_click()
-            # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
-            if len(st.session_state["delta_item_array"]) > 0:
-                st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=False)
+                # handle_json_button_click()
+                # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
+                if len(st.session_state["delta_item_array"]) > 0:
+                    st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=False)
         else:
-            st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=True)    
+            st.error("❌ Error occurred while extracting JSON")
+            # st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=True)    
         # else:
             # if not er["error_bool"]:
                 # ui_js("json_str")
