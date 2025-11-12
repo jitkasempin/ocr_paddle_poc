@@ -18,6 +18,7 @@ from pathlib import Path
 from paddleocr import PPStructureV3
 from doc_classification.zero_shot import get_classifier,crop_top_percent
 from bs4 import BeautifulSoup
+import requests
 
 import time
 import json, re
@@ -1232,8 +1233,8 @@ def handle_delta_items_from_the_invoice():
             it_name_that_not_match = "\n".join(only_not_approved_items)
             # Get the doc_id from final_result_lst variable that have the value of "doc_id" key not equal to "NONE"
             doc_ids = [item["doc_id"] for item in final_result_lst if item["doc_id"] != "NONE"]
-            # Join all items in doc_ids list with pipe character
-            doc_ids_str = "|".join(doc_ids)
+            # Join all items in doc_ids list with newline character to display each on a separate line
+            doc_ids_str = "\n".join(doc_ids)
             recommend_final = ""
             
             if number_of_approved_items == len(final_result_lst):
@@ -1288,6 +1289,234 @@ def handle_delta_items_from_the_invoice():
 
     # pass
 
+def perform_chandra_ocr_online() -> list[tuple]:
+    
+    API_URL = "https://www.datalab.to/api/v1/marker"
+    HEADERS = {"X-Api-Key": "hdv5UyGQj5hg2WUXa7B88NrysefSCKfuoVpnlRY13lE"}
+
+    #
+    # Schema and file configuration
+    #
+    schema_json = """{
+    "type": "object",
+    "title": "ExtractionSchema",
+    "description": "Schema for structured data extraction",
+    "properties": {
+        "supplier_info": {
+        "type": "object",
+        "description": "Details about the company issuing the invoice.",
+        "properties": {
+            "name": {
+            "type": "string",
+            "description": "Full legal name of the supplier."
+            },
+            "address": {
+            "type": "string",
+            "description": "Full address of the supplier."
+            },
+            "tax_id": {
+            "type": "string",
+            "description": "Tax identification number of the supplier."
+            },
+            "phone": {
+            "type": "string",
+            "description": "Supplier's telephone number."
+            },
+            "fax": {
+            "type": "string",
+            "description": "Supplier's fax number."
+            }
+        }
+        },
+        "invoice_header": {
+        "type": "object",
+        "description": "Key identifying information for the invoice.",
+        "properties": {
+            "invoice_number": {
+            "type": "string",
+            "description": "The unique invoice number."
+            },
+            "invoice_date": {
+            "type": "string",
+            "description": "The date the invoice was issued (MM/DD/YYYY format)."
+            },
+            "aeo_number": {
+            "type": "string",
+            "description": "Authorized Economic Operator (AEO) number."
+            },
+            "country_of_origin": {
+            "type": "string",
+            "description": "The country where the goods originated."
+            },
+            "price_term": {
+            "type": "string",
+            "description": "The Incoterm or price term used (e.g., CIF, FOB)."
+            }
+        }
+        },
+        "recipient_info": {
+        "type": "object",
+        "description": "Details about the recipient (Invoice To/Ship To party).",
+        "properties": {
+            "customer_id": {
+            "type": "string",
+            "description": "The customer or recipient identification code."
+            },
+            "name": {
+            "type": "string",
+            "description": "Name of the recipient company."
+            },
+            "address": {
+            "type": "string",
+            "description": "Full address of the recipient."
+            },
+            "is_ship_to_same_as_invoice_to": {
+            "type": "boolean",
+            "description": "Indicates if the Ship To address is identical to the Invoice To address."
+            }
+        }
+        },
+        "shipping_details": {
+        "type": "object",
+        "description": "Information regarding the transportation and logistics of the shipment.",
+        "properties": {
+            "shipped_per": {
+            "type": "string",
+            "description": "Method of shipment (e.g., TRUCK, AIR)."
+            },
+            "ex_factory_date": {
+            "type": "string",
+            "description": "Date the goods left the factory (MM/DD/YYYY format)."
+            },
+            "sailing_date": {
+            "type": "string",
+            "description": "Estimated sailing or departure date (MM/DD/YYYY format)."
+            },
+            "gross_weight_kg": {
+            "type": "number",
+            "description": "Total gross weight of the shipment in kilograms."
+            },
+            "net_weight_kg": {
+            "type": "number",
+            "description": "Total net weight of the shipment in kilograms."
+            }
+        }
+        },
+        "line_items": {
+        "type": "array",
+        "description": "List of products or services included in the invoice.",
+        "items": {
+            "type": "object",
+            "properties": {
+            "po_number": {
+                "type": "string",
+                "description": "Purchase Order number associated with the line item."
+            },
+            "part_number": {
+                "type": "string",
+                "description": "Manufacturer or internal part number."
+            },
+            "description": {
+                "type": "string",
+                "description": "Detailed description of the item."
+            },
+            "quantity": {
+                "type": "string",
+                "description": "Quantity of the item, including unit (e.g., '1 SET')."
+            },
+            "unit_price": {
+                "type": "string",
+                "description": "Price per unit, including currency."
+            },
+            "amount": {
+                "type": "string",
+                "description": "Total amount for the line item, including currency and any notes (e.g., F.O.C.)."
+            }
+            }
+        }
+        }
+    },
+    "required": [
+        "supplier_info",
+        "invoice_header",
+        "recipient_info",
+        "shipping_details",
+        "line_items"
+    ]
+    }"""
+    pdf_path = "document.pdf"
+
+    #
+    # Load file and submit request. You can also pass in file_url
+    #
+    with open(pdf_path, "rb") as f:
+        files = {
+            'file': ('document.pdf', f, 'application/pdf'),
+            'page_schema': (None, schema_json)
+        }
+
+        # Submit request
+        response = requests.post(API_URL, files=files, headers=HEADERS)
+
+        if response.status_code != 200:
+            print(f"Error submitting job: {response.status_code}")
+            print(response.text)
+            exit(1)
+
+        data = response.json()
+        check_url = data["request_check_url"]
+        print(f"Job submitted successfully. Polling URL: {check_url}")
+
+    #
+    # Poll for completion using request_check_url
+    #
+    max_polls = 300
+    for i in range(max_polls):
+        time.sleep(2)
+        poll_response = requests.get(check_url, headers=HEADERS)
+
+        if poll_response.status_code != 200:
+            print(f"Error polling status: {poll_response.status_code}")
+            break
+
+        poll_data = poll_response.json()
+        status = poll_data.get("status")
+
+        print(f"Poll {i+1}: Status = {status}")
+
+        if status == "failed":
+            print(f"\nExtraction failed: {poll_data.get('error', 'Unknown error')}")
+            break
+
+        if status == "complete":
+            print("\nExtraction completed successfully!")
+            #
+            # Your extracted results are in a field called extraction_schema_json
+            # The raw parsed document with detected blocks are in json
+            # Your extracted_schema_json contains contains to block IDs in the json
+            # response field
+            #
+            extraction_result = json.loads(poll_data.get('extraction_schema_json', '{}'))
+            print("\nExtracted data:")
+            print(json.dumps(extraction_result, indent=2))
+            all_it_des = []
+            all_it_qty = []
+
+            l_itm_lst = extraction_result.get("line_items",[])
+            for e_it in l_itm_lst:
+                tmp_itm_description = e_it["description"]
+                tmp_itm_quantity    = e_it["quantity"]
+
+                all_it_des.append(tmp_itm_description.strip())
+                all_it_qty.append(tmp_itm_quantity.strip())
+
+
+            return  list(zip(all_it_des, all_it_qty))
+
+            # break
+    else:
+        print("\nTimeout reached after 300 polls. Job may still be processing.")
+    # pass
 
 def handle_invoice_check_click():
     """Handle the Invoice Check button click - retrieve latest invoice data and check dates"""
@@ -1527,7 +1756,8 @@ async def ocr_processing_page():
             if file_extension == "pdf":
                 # Handle PDF file
                 doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-                
+                doc.save("document.pdf")
+
                 for i, page in enumerate(doc):
                     # Page as image
                     pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
@@ -1933,9 +2163,13 @@ async def ocr_processing_page():
             # Add code to filter the items in result (list of tuple) variable.
             # The example of data in result list => [('AC Motor','1SET'), ('DC Motor','2SET'), ('Wire','5SET')]
             # Filter out the items in result list which have the second element of tuple equal to empty string (the string which length = 0)
-            result = [item for item in result if len(item[1]) > 0]
+            if len(result) == 0:
+                result = perform_chandra_ocr_online()
 
-            st.session_state["delta_item_array"] = result
+
+            result_filter_out = [item for item in result if (len(item[1]) > 0 and bool(re.search(r'\d', item[1])) == True)]
+
+            st.session_state["delta_item_array"] = result_filter_out
             
             # pre_process_invoice_string(po_no_chunk)
             
@@ -2037,7 +2271,8 @@ async def ocr_processing_page():
 
             # handle_json_button_click()
             # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
-            st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=False)
+            if len(st.session_state["delta_item_array"]) > 0:
+                st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=False)
         else:
             st.button("Invoice Check", use_container_width=True, on_click=handle_delta_items_from_the_invoice, disabled=True)    
         # else:
