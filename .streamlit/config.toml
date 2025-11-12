@@ -1,0 +1,9 @@
+[theme]
+primaryColor = "#9B7EBD"  # Light purple for primary elements
+backgroundColor = "#FFFFFF"  # White background
+secondaryBackgroundColor = "#F5F3F7"  # Very light purple for secondary backgrounds
+textColor = "#1F1F1F"  # Dark text for readability
+font = "sans serif"
+
+[server]
+headless = true
