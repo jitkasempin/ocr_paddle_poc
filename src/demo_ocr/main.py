@@ -124,6 +124,31 @@ st.markdown("""
     h1, h2, h3 {
         color: #1F1F1F !important;
     }
+
+    /* Radio button styling - light purple selection */
+    .stRadio > div > label > div[data-baseweb="radio"] > div:first-child {
+        background-color: #FFFFFF !important;
+        border-color: #D4C5E0 !important;
+    }
+
+    .stRadio > div > label > div[data-baseweb="radio"] > div:first-child:hover {
+        border-color: #9B7EBD !important;
+    }
+
+    /* Radio button when checked - light purple */
+    .stRadio > div > label > div[data-baseweb="radio"] input:checked + div {
+        background-color: #9B7EBD !important;
+        border-color: #9B7EBD !important;
+    }
+
+    .stRadio > div > label > div[data-baseweb="radio"] input:checked + div::before {
+        background-color: #FFFFFF !important;
+    }
+
+    /* Radio button focus state */
+    .stRadio > div > label > div[data-baseweb="radio"]:focus-within {
+        box-shadow: 0 0 0 2px rgba(155, 126, 189, 0.3) !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
