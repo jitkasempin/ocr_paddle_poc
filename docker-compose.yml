@@ -14,6 +14,7 @@ services:
       - ./cache:/root/.cache
       - ./data:/data
       - ./paddlex:/root/.paddlex
+      - ./streamlit:/app/.streamlit
     command: ["streamlit", "run", "src/demo_ocr/main.py","--server.port","8506"]
     runtime: nvidia
     labels:
