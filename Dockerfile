@@ -7,11 +7,11 @@ COPY requirements.txt .
 RUN apt-get update && apt-get install -y gcc && apt-get install -y poppler-utils
 RUN apt-get install -y libgl1 libglib2.0-0 libsm6 libxext6 libxrender1
 RUN apt-get install -y libvips-dev libvips42 tesseract-ocr
-RUN python -m pip install --pre paddlepaddle-gpu -i https://www.paddlepaddle.org.cn/packages/nightly/cu129/
+RUN python -m pip install paddlepaddle-gpu 
 RUN python -m pip install "paddleocr[all]"
 RUN python -m pip install "open-clip-torch>=3.1.0"
 RUN python -m pip install beautifulsoup4
-RUN python -m pip install qdrant-client
+RUN python -m pip install "qdrant-client==1.15.1"
 RUN python -m pip install rapidfuzz
 RUN python -m pip install langextract
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt

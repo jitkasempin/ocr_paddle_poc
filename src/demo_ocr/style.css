@@ -1,0 +1,88 @@
+/*
+Best Practice Custom CSS for Streamlit Radio Buttons (Pill-style)
+Tested with Streamlit 1.51.0
+*/
+
+/* 1. Target the main radio group container to enable flex layout */
+div[role="radiogroup"] {
+    display: flex;
+    flex-direction: row; /* Arrange options horizontally */
+    gap: 10px; /* Space between options */
+    flex-wrap: wrap; /* Allow wrapping on smaller screens */
+}
+
+/* 2. Hide the default radio input (the small circle) */
+div[role="radiogroup"] input[type="radio"] {
+    /* Use position absolute to hide it completely without affecting layout */
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* 3. Style the label (which contains the text and will act as the button) */
+div[role="radiogroup"] label {
+    /* The label is the element that the user clicks */
+    display: inline-block;
+    padding: 8px 20px;
+    background-color: #f0f2f6; /* Default background color (light gray) */
+    color: #31333f; /* Default text color */
+    border-radius: 20px; /* Pill shape */
+    cursor: pointer;
+    transition: all 0.2s ease-in-out;
+    border: 1px solid #f0f2f6; /* Default border */
+    text-align: center;
+    user-select: none; /* Prevent text selection */
+}
+
+/* 4. Style the label on hover */
+div[role="radiogroup"] label:hover {
+    background-color: #e6e8eb;
+    border-color: #d1d3d6;
+}
+
+/* 5. Style the selected state (The core of the color change) */
+/* The selector targets the 'div' (which holds the text) that is adjacent to a checked 'input' */
+div[role="radiogroup"] input[type="radio"]:checked + div {
+    background-color: #f0f2f6; /* Primary color when selected (Blue) */
+    color: rgb(193, 5, 251); /* White text when selected */
+    font-weight: bold;
+    border-color: #f0f2f6;
+}
+
+/* Optional: To ensure the label's div is the one being styled, we need to target the div inside the label */
+/* Streamlit's structure is usually: label > div (text) */
+/* The selector above works because the input and the div are siblings inside the label */
+/* Let's refine the selector to be more robust if needed, but the above is generally correct for st.radio */
+/* The actual structure is: <label><input type="radio"><div>...text...</div></label> */
+/* The selector input[type="radio"]:checked + div is correct for this structure. */
+
+:root {
+    --light-purple-bg: #efe1ff;
+    --light-purple-border: #d5b4ff;
+    --dark-gray-text: #31333f;
+}
+
+/* Streamlit dropdown (selectbox) styles */
+div[data-baseweb="select"] {
+    background-color: var(--light-purple-bg);
+    color: var(--dark-gray-text);
+    border-radius: 8px;
+    border: 1px solid var(--light-purple-border);
+}
+
+div[data-baseweb="select"] * {
+    color: var(--dark-gray-text);
+}
+
+/* Streamlit button styles */
+.stButton button {
+    border: 1px solid var(--light-purple-border);
+    background-color: #ffffff;
+    color: var(--dark-gray-text);
+    border-radius: 6px;
+}
+
+.stButton button:hover {
+    border-color: var(--light-purple-bg);
+}

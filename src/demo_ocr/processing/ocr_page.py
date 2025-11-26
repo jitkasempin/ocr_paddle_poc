@@ -15,7 +15,7 @@ from .ocr_no_flash import OCR
 from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes, extract_only_branch_code_number, extract_po_decimal
 from .hybrid_search import HybridSearch
 from pathlib import Path
-from paddleocr import PPStructureV3
+# from paddleocr import PPStructureV3
 from doc_classification.zero_shot import get_classifier,crop_top_percent
 from bs4 import BeautifulSoup
 import requests
@@ -657,7 +657,7 @@ def load_model()->tuple[OCR, YOLO, Dict[str, np.ndarray]]:
 model, signature, my_centroid, my_hybrid_search = load_model()
 lang_extract_model = FixedLangExtractProcessor()
 
-pd_pipeline = PPStructureV3(lang="th", device="gpu")
+# pd_pipeline = PPStructureV3(lang="th", device="gpu")
 
 
 
@@ -1248,19 +1248,19 @@ def handle_delta_items_from_the_invoice():
             
             if number_of_approved_items == len(final_result_lst):
                 recommend_final = f"""
-                <div style="background-color: #9c27b0; padding: 20px; border-radius: 5px; color: white;">
+                <div style="background-color: #9B7EBD; padding: 20px; border-radius: 5px; color: white;">
                     <strong>Ready for Fast-Track Approval (พร้อมสำหรับอนุมัติด่วน)</strong><br><br>
                     ทั้ง {number_of_approved_items} items ใน invoice นี้ ตรงกับ items จากเอกสารที่เคยอนุมัติแล้ว คำขอนี้มีสิทธิ์ได้รับการ pre-approval<br><br>
                     <strong>Reference Documents (เอกสารอ้างอิง):</strong><br>
                     {doc_ids_str}
-                    <hr style="border-color: rgba(255,255,255,0.3); margin: 15px 0;">
+                    <br><br>
                 </div>
                 """
                 st.markdown(recommend_final, unsafe_allow_html=True)
             elif number_of_approved_items > 0 and number_of_approved_items < len(final_result_lst):
 
                 recommend_final = f"""
-                <div style="background-color: #9c27b0; padding: 20px; border-radius: 5px; color: white;">
+                <div style="background-color: #9B7EBD; padding: 20px; border-radius: 5px; color: white;">
                     <strong>Partial Match Found - Review Required (พบบางส่วนตรงกัน - ต้องตรวจสอบ)</strong><br><br>
                     บาง items ใน invoice นี้ พบในเอกสารอนุมัติก่อนหน้า (ดูเอกสารอ้างอิง) อย่างไรก็ตาม items ต่อไปนี้เป็น items ใหม่ 
                     หรือยังไม่เคยตรวจสอบ (unverified):<br>
@@ -1268,17 +1268,17 @@ def handle_delta_items_from_the_invoice():
                     กรุณาตรวจสอบ (review) items ใหม่เหล่านี้เทียบกับ approval guidelines (แนวทางการอนุมัติ) ด้วยตนเอง<br><br>
                     <strong>Reference Documents for Matched Items (เอกสารอ้างอิงสำหรับรายการที่ตรงกัน):</strong><br>
                     {doc_ids_str}
+                    <br><br>
                 </div>
                 """
                 st.markdown(recommend_final, unsafe_allow_html=True)
 
             else:
                 recommend_final = """
-                <div style="background-color: #9c27b0; padding: 20px; border-radius: 5px; color: white;">
+                <div style="background-color: #9B7EBD; padding: 20px; border-radius: 5px; color: white;">
                     <strong>Full Manual Review Required (ต้องตรวจสอบด้วยตนเองทั้งหมด)</strong><br><br>
                     items ทั้งหมดใน invoice นี้เป็น items ใหม่ และไม่มีประวัติการอนุมัติ<br>
-                    กรุณาตรวจสอบ line items ทั้งหมดและรายละเอียดเอกสารเทียบกับ guidelines (แนวทาง) ของบริษัทอย่างรอบคอบก่อนอนุมัติ
-                    <hr style="border-color: rgba(255,255,255,0.3); margin: 15px 0;">
+                    กรุณาตรวจสอบ line items ทั้งหมดและรายละเอียดเอกสารเทียบกับ guidelines (แนวทาง) ของบริษัทอย่างรอบคอบก่อนอนุมัติ <br><br>
                 </div>
                 """
                 st.markdown(recommend_final, unsafe_allow_html=True)
@@ -1916,24 +1916,24 @@ async def ocr_processing_page():
                 start_time = time.time()
                 if True:
                     if selected_ocr_model == "text_ocr":
-                        output_path = Path("./output_markdown")
+                        # output_path = Path("./output_markdown")
 
-                        for img_nn in image_inp_path:
-                            print(f"Processing image name: {img_nn}")
+                        # for img_nn in image_inp_path:
+                        #     print(f"Processing image name: {img_nn}")
 
-                            output = pd_pipeline.predict(input=img_nn)
+                        #     output = pd_pipeline.predict(input=img_nn)
 
-                            markdown_list = []
-                            # markdown_images = []
+                        #     markdown_list = []
+                        #     # markdown_images = []
 
-                            for res in output:
-                                md_info = res.markdown
-                                markdown_list.append(md_info)
-                                # markdown_images.append(md_info.get("markdown_images", {}))
+                        #     for res in output:
+                        #         md_info = res.markdown
+                        #         markdown_list.append(md_info)
+                        #         # markdown_images.append(md_info.get("markdown_images", {}))
 
-                            markdown_texts = pd_pipeline.concatenate_markdown_pages(markdown_list)
+                        #     markdown_texts = pd_pipeline.concatenate_markdown_pages(markdown_list)
 
-                            center_stream += markdown_texts
+                            center_stream += ""
                             center_stream += "\n"
 
                     elif selected_ocr_model == "high_performance_ocr":

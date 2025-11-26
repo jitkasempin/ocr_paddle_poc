@@ -14,7 +14,7 @@ from rapidfuzz import fuzz
 class HybridSearch:
     def __init__(self):
         self.client = OpenAI(
-            base_url="https://2vnn6llpqzyyo8-8000.proxy.runpod.net/v1",
+            base_url="https://sa94oigsno1rrq-8000.proxy.runpod.net/v1",
             api_key="EMPTY"
         )
 
