@@ -169,7 +169,7 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://vjklh7i33jbm0o-8000.proxy.runpod.net/v1" 
+        addr = "https://en3mvx70t92s25-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"

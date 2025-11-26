@@ -1871,11 +1871,11 @@ async def ocr_processing_page():
             is_inv_delta = is_match_centroids(img_rgb)
             if is_inv_delta:
                 status_check_for_delta.update(
-                    label="This invoice is from DELTA", state="complete", expanded=False
+                    label="✅ This invoice is from DELTA", state="complete", expanded=False
                 )
             else:
                 status_check_for_delta.update(
-                    label="This invoice is not from DELTA", state="complete", expanded=False
+                    label="❌ This invoice is not from DELTA", state="error", expanded=False
                 )
             
             # status_check_for_delta.update(
