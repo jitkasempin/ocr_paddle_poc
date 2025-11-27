@@ -1749,12 +1749,13 @@ async def ocr_processing_page():
             index=0  # Default to "Invoice"
         )
 
-        selected_ocr_model = st.radio(
-            "Select OCR Model",
-            options=["text_ocr", "high_performance_ocr", "legacy_ocr"],
-            index=0,
-            horizontal=True
-        )
+        selected_ocr_model = "high_performance_ocr"
+        # st.radio(
+        #     "Select OCR Model",
+        #     options=["text_ocr", "high_performance_ocr", "legacy_ocr"],
+        #     index=0,
+        #     horizontal=True
+        # )
         st.session_state["ocr_model"] = selected_ocr_model
 
         uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
@@ -1938,11 +1939,13 @@ async def ocr_processing_page():
 
                     elif selected_ocr_model == "high_performance_ocr":
                          for img_nn in image_inp_path:
-                            if document_type != "Certificate":
+                            if (document_type == "Invoice") or (document_type == "Packing List") or (document_type == "Passport"):
                                 tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                 # if tmp_center_stream contain the word "Error"
                                 if "Error" in tmp_center_stream:
                                     tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                # else:
+                                    # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
                                 center_stream += tmp_center_stream
                             else:
