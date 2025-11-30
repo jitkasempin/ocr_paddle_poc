@@ -4,7 +4,7 @@ from typing import List, Dict
 
 
 class Qwen3VLLMClient:
-    def __init__(self, base_url="https://f5aieujalslomi-8000.proxy.runpod.net/v1"):
+    def __init__(self, base_url="https://rlcz0lxs6nj0eq-8000.proxy.runpod.net/v1"):
         # print("Runpod API Key")
         # print(default_config.runpod_api_key)
         self.client = AsyncOpenAI(
