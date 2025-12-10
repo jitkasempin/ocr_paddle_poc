@@ -40,3 +40,4 @@ pdf2image
 pytesseract
 sentencepiece
 olmocr==0.3.4
+typhoon-ocr

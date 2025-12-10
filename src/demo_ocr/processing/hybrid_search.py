@@ -2,6 +2,7 @@ from qdrant_client import QdrantClient
 from openai import OpenAI
 import numpy as np
 import uuid
+from qdrant_client.http import models
 from qdrant_client.models import (
     VectorParams, Distance, PointStruct, 
     HnswConfigDiff, OptimizersConfigDiff
@@ -50,6 +51,35 @@ class HybridSearch:
             ]
         return [f"<|embed|>\n{text}" for text in texts]
 
+
+    def build_collection_with_tenant_index(self, tenant_id: str):
+        # TODO: implement this function
+        """Create a Qdrant collection with the specified parameters."""
+        try:
+            self.qdrant_client.create_collection(
+                collection_name="ieat_production_embeddings",
+                vectors_config=VectorParams(
+                    size=4096,
+                    distance=Distance.COSINE
+                ),
+                hnsw_config=models.HnswConfigDiff(
+                        payload_m=16,
+                        m=0,
+                )                
+            )
+            print(f"Collection ieat_production_embeddings created successfully.")
+        except Exception as e:
+            print(f"Error creating collection: {e}")
+
+        self.qdrant_client.create_payload_index(
+            collection_name="ieat_production_embeddings",
+            field_name="tenant_id",
+            field_schema=models.KeywordIndexParams(
+                type=models.KeywordIndexType.KEYWORD,
+                is_tenant=True,
+            ),
+        )
+        # pass
 
     def get_embeddings(self, texts):
         if isinstance(texts, str):
@@ -140,6 +170,7 @@ class HybridSearch:
     def process_dataset(
         self,
         texts: List[str],
+        tenant_id: str,
         metadata: Optional[List[Dict]] = None,
         instruction: Optional[str] = None,
         embedding_batch_size: int = 32,
@@ -191,7 +222,7 @@ class HybridSearch:
                 PointStruct(
                     id=point_id,
                     vector=embedding,
-                    payload={"text": text, **meta}
+                    payload={"tenant_id": tenant_id, "text": text, **meta}
                 )
                 for point_id, text, embedding, meta
                 in zip(batch_point_ids, batch_texts, embeddings, batch_meta)
@@ -217,12 +248,13 @@ class HybridSearch:
                 time.sleep(0.1)
         
         # logger.info(f"Completed processing {len(all_point_ids)} texts")
-        time.sleep(3)
-        self.qdrant_client.update_collection(
-            collection_name="ieat_production_embeddings",
-            hnsw_config=HnswConfigDiff(m=16, ef_construct=100),
-            optimizers_config=OptimizersConfigDiff(indexing_threshold=20000)
-        )
+        time.sleep(1)
+
+        # self.qdrant_client.update_collection(
+            # collection_name="ieat_production_embeddings",
+            # hnsw_config=HnswConfigDiff(m=16, ef_construct=100),
+            # optimizers_config=OptimizersConfigDiff(indexing_threshold=20000)
+        # )
         
 
         return all_point_ids
@@ -230,6 +262,7 @@ class HybridSearch:
     def search(
         self,
         query: str,
+        tenant_id: str,
         instruction: str = "Represent this query for searching relevant passages",
         limit: int = 10
     ):
@@ -240,10 +273,20 @@ class HybridSearch:
             instruction=instruction
         )[0]
         
+
+        # Build filter conditions
+        filter_conditions = [
+            models.FieldCondition(
+                key="tenant_id",
+                match=models.MatchValue(value=tenant_id),
+            )
+        ]
+
         # Search Qdrant
         results = self.qdrant_client.search(
             collection_name="ieat_production_embeddings",   # self.collection_name,
             query_vector=query_embedding,
+            query_filter=models.Filter(must=filter_conditions),
             limit=limit,
             score_threshold=None,
             with_payload=True
@@ -252,7 +295,7 @@ class HybridSearch:
         return results
     
 
-    def advanced_search(self, query: str, top_k: int = 4) -> List[Dict]:
+    def advanced_search(self, query: str, tenant_id: str, top_k: int = 4) -> List[Dict]:
         threshold = 0.7
         SEMANTIC_WEIGHT = 0.4
         FUZZY_WEIGHT = 0.6
@@ -260,7 +303,7 @@ class HybridSearch:
 
         # query_embedding = self.get_embeddings(query)[0]
         
-        search_results = self.search(query=query, limit=search_limit)
+        search_results = self.search(query=query, tenant_id=tenant_id, limit=search_limit)
         # self.qdrant_client.search(
         #     collection_name="similarity_search_poc_cosine",
         #     query_vector=query_embedding.tolist(),

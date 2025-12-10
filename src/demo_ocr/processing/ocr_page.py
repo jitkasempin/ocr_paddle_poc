@@ -649,6 +649,7 @@ def load_model()->tuple[OCR, YOLO, Dict[str, np.ndarray]]:
     centroids = load_centroids_dict(OCR_CENTROIDS_PATH)
 
     hb_search = HybridSearch()
+    hb_search.build_collection_with_tenant_index("1011")
 
     return x,signature, centroids, hb_search
 
@@ -1159,7 +1160,7 @@ def approve_items_into_db():
                 for k in range(len(only_not_approved_items))
             ]
             
-            my_hybrid_search.process_dataset(texts=only_not_approved_items, metadata=not_approved_metadata)
+            my_hybrid_search.process_dataset(texts=only_not_approved_items, tenant_id="1011", metadata=not_approved_metadata)
 
             # if approve_items_into_db():
             approval_success_dialog()
@@ -1179,7 +1180,7 @@ def handle_delta_items_from_the_invoice():
         final_result_lst = []
         for itm in st.session_state["delta_item_list_of_dict"]:
             it_name = itm["item_name"]
-            results = my_hybrid_search.advanced_search(it_name)
+            results = my_hybrid_search.advanced_search(query=it_name, tenant_id="1011")
             current_item_status = {}
             current_item_status["name"] = it_name
             if len(results) > 0:
