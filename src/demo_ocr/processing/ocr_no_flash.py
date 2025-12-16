@@ -20,7 +20,7 @@ from dots_ocr.utils import dict_promptmode_to_prompt
 # from dots_ocr.model.inference import inference_with_vllm
 from dots_ocr.utils.image_utils import PILimage_to_base64
 # from typhoon_ocr import ocr_document
-from typhoon_ocr import prepare_ocr_messages
+from typhoon_ocr import ocr_document, prepare_ocr_messages
 
 # Disable flash_attn to avoid import errors
 import os
@@ -97,7 +97,7 @@ class OCR:
             base_url="https://ml.weaverbase.com/ollama"
         )
 
-        self.my_openai = AsyncOpenAI(base_url="https://lqprcpqb3vvdcf-8009.proxy.runpod.net/v1", api_key="0", http_client=http_client)
+        self.my_openai = AsyncOpenAI(base_url="https://veejutidvzi7xy-8000.proxy.runpod.net/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c", http_client=http_client)
         # self.my_openai = OpenAI(base_url="https://8000-01jv6gbqesg14ne3mavgm9acm7.cloudspaces.litng.ai/v1", api_key="api-key")
         self.olm_ocr_openai = AsyncOpenAI(base_url="https://api.runpod.ai/v2/ajplyymntb6f54/openai/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c")
 
@@ -170,7 +170,7 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://en3mvx70t92s25-8000.proxy.runpod.net/v1" 
+        addr = "https://veejutidvzi7xy-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
@@ -191,7 +191,7 @@ class OCR:
         try:
             response = await dots_ocr_client.chat.completions.create(
                 messages=messages, 
-                model="model", 
+                model="rednote-hilab/dots.ocr", 
                 max_completion_tokens=8000,
                 temperature=0,
                 top_p=0.9)
@@ -264,59 +264,59 @@ class OCR:
 
         # orig_filename = pdf_or_image_file.name
     
-        try:
-            # Use the new simplified function to prepare OCR messages with page number
-            messages = prepare_ocr_messages(
-                pdf_or_image_path=orig_filename,
-                task_type=task_type,
-                target_image_dim=1800,
-                target_text_length=8000,
-                page_num=page_number if page_number else 1
-            )
+        # try:
+        #     # Use the new simplified function to prepare OCR messages with page number
+        #     messages = prepare_ocr_messages(
+        #         pdf_or_image_path=orig_filename,
+        #         task_type=task_type,
+        #         target_image_dim=1800,
+        #         target_text_length=8000,
+        #         page_num=page_number if page_number else 1
+        #     )
             
-            # Extract the image from the message content for display
-            # image_url = messages[0]["content"][1]["image_url"]["url"]
-            # image_base64 = image_url.replace("data:image/png;base64,", "")
-            # image_pil = Image.open(BytesIO(base64.b64decode(image_base64)))
+        #     # Extract the image from the message content for display
+        #     image_url = messages[0]["content"][1]["image_url"]["url"]
+        #     image_base64 = image_url.replace("data:image/png;base64,", "")
+        #     image_pil = Image.open(BytesIO(base64.b64decode(image_base64)))
             
-            # Send messages to OpenAI compatible API
-            response = await self.my_openai.chat.completions.create(
-                model="scb10x/typhoon-ocr-7b",
-                messages=messages,
-                max_tokens=8000,
-                extra_body={
-                    "repetition_penalty": 1.0,
-                    "temperature": 0.1,
-                    "top_p": 0.6,
-                },
-            )
-            text_output = response.choices[0].message.content
+        #     # Send messages to OpenAI compatible API
+        #     response = await self.my_openai.chat.completions.create(
+        #         model="scb10x/typhoon-ocr-7b",
+        #         messages=messages,
+        #         max_tokens=20000,
+        #         extra_body={
+        #             "repetition_penalty": 1.0,
+        #             "temperature": 0.1,
+        #             "top_p": 0.6,
+        #         },
+        #     )
+        #     text_output = response.choices[0].message.content
             
-            # Try to parse the output assuming it is a Python dictionary containing 'natural_text'
-            try:
-                json_data = json.loads(text_output)
-                markdown_out = json_data.get('natural_text', "").replace("<figure>", "").replace("</figure>", "")
-            except Exception as e:
-                markdown_out = f"⚠️ Could not extract `natural_text` from output.\nError: {str(e)}"
+        #     # Try to parse the output assuming it is a Python dictionary containing 'natural_text'
+        #     try:
+        #         json_data = json.loads(text_output)
+        #         markdown_out = json_data.get('natural_text', "").replace("<figure>", "").replace("</figure>", "")
+        #     except Exception as e:
+        #         markdown_out = f"⚠️ Could not extract `natural_text` from output.\nError: {str(e)}"
             
-            return markdown_out
+        #     return markdown_out
         
-        except Exception as e:
-            return None, f"Error processing file: {str(e)}"
+        # except Exception as e:
+        #     return None, f"Error processing file: {str(e)}"
 
             
         # orig_filename = pdf_or_image_file.name
 
         # from typhoon_ocr import ocr_document
-        # markdown = ocr_document(orig_filename, 
-                                # model = "typhoon-ocr-1-5" , 
-                                # figure_language = "Thai" , 
-                                # task_type="v1.5", 
-                                # base_url='https://lqprcpqb3vvdcf-8009.proxy.runpod.net/v1', 
-                                # api_key='0')
+        markdown = ocr_document(orig_filename, 
+                                model = "typhoon-ocr-1-5" , 
+                                figure_language = "Thai" , 
+                                task_type="v1.5", 
+                                base_url='https://zxbtmvrs6fsog4-8000.proxy.runpod.net/v1', 
+                                api_key='0')
 # print(markdown)
 
-        # return markdown
+        return markdown
         # try:
         #     # Use the new simplified function to prepare OCR messages with page number
         #     messages = prepare_ocr_messages(

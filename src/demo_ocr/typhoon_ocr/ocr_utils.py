@@ -700,7 +700,7 @@ def ocr_document(pdf_or_image_path: str, task_type: str = "v1.5", target_image_d
     response = openai.chat.completions.create(
         model=model,
         messages=messages,
-        max_tokens=16384,
+        max_tokens=8000,
         extra_body={
             "repetition_penalty": 1.1 if task_type == "v1.5" else 1.2,
             "temperature": 0.01,

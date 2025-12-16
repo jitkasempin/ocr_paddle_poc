@@ -1746,7 +1746,7 @@ async def ocr_processing_page():
     with st.sidebar:
         document_type = st.radio(
             "Choose the document type",
-            options=["Invoice", "Packing List", "Passport", "Certificate"],
+            options=["Invoice", "Packing List", "Passport", "Certificate", "Stock Shareholder"],
             index=0  # Default to "Invoice"
         )
 

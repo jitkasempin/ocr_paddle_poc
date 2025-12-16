@@ -14,6 +14,7 @@ RUN python -m pip install beautifulsoup4
 RUN python -m pip install "qdrant-client==1.15.1"
 RUN python -m pip install rapidfuzz
 RUN python -m pip install langextract
+RUN python -m pip uninstall typhoon-ocr
 RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
 
 
