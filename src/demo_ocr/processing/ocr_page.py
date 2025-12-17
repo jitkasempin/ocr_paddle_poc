@@ -1949,6 +1949,12 @@ async def ocr_processing_page():
                                     # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
                                 center_stream += tmp_center_stream
+
+                            elif document_type == "Stock Shareholder":
+                                tmp_center_stream = await model.docling_with_surya("document.pdf")
+
+                                center_stream += tmp_center_stream
+
                             else:
                                 tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                 # if tmp_center_stream contain the word "Error"

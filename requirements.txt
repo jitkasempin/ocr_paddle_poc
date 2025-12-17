@@ -40,3 +40,10 @@ pdf2image
 pytesseract
 sentencepiece
 olmocr==0.3.4
+surya-ocr
+docling
+qdrant-client==1.15.1
+rapidfuzz
+langextract
+beautifulsoup4
+open-clip-torch>=3.1.0

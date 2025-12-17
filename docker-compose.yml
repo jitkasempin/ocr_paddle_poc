@@ -10,12 +10,15 @@ services:
       - "8506"
     env_file:
       - .env
+    environment:
+      AGENT_RUN_ID: "post-fix"
     volumes:
       - ./cache:/root/.cache
       - ./data:/data
       - ./paddlex:/root/.paddlex
       - ./streamlit:/app/.streamlit
-    command: ["streamlit", "run", "src/demo_ocr/main.py","--server.port","8506"]
+      - /home/jitkasem/.cursor:/home/jitkasem/.cursor
+    command: ["bash","-lc","source /opt/venv/bin/activate && python --version && pip install docling-surya && streamlit run src/demo_ocr/main.py --server.port 8506 --server.address 0.0.0.0"]
     runtime: nvidia
     labels:
       - "traefik.enable=true"

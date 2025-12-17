@@ -1,21 +1,32 @@
-FROM pytorch/pytorch:2.8.0-cuda12.9-cudnn9-runtime AS base
+FROM pytorch/pytorch:2.9.0-cuda13.0-cudnn9-runtime AS base
+
+# FROM pytorch/pytorch:2.8.0-cuda12.9-cudnn9-runtime AS base
 # FROM python:3.11-slim AS base
 WORKDIR /app
 # RUN apt-get update && apt-get install -y git
 
 COPY requirements.txt .
-RUN apt-get update && apt-get install -y gcc && apt-get install -y poppler-utils
-RUN apt-get install -y libgl1 libglib2.0-0 libsm6 libxext6 libxrender1
-RUN apt-get install -y libvips-dev libvips42 tesseract-ocr
-RUN python -m pip install paddlepaddle-gpu 
-RUN python -m pip install "paddleocr[all]"
-RUN python -m pip install "open-clip-torch>=3.1.0"
-RUN python -m pip install beautifulsoup4
-RUN python -m pip install "qdrant-client==1.15.1"
-RUN python -m pip install rapidfuzz
-RUN python -m pip install langextract
-RUN python -m pip uninstall typhoon-ocr
-RUN --mount=type=cache,target=/root/.cache/pip pip install -r requirements.txt
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends gcc poppler-utils \
+    libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
+    libvips-dev libvips42 tesseract-ocr \
+ && rm -rf /var/lib/apt/lists/*
+# RUN python -m pip install paddlepaddle-gpu 
+# RUN python -m pip install "paddleocr[all]"
+
+# Python 3.12.3 virtual environment (run Streamlit from here)
+RUN conda create -y -n py312 python=3.12.3 pip \
+ && conda clean -afy \
+ && /opt/conda/envs/py312/bin/python -m venv /opt/venv \
+ && /opt/venv/bin/python -m pip install --upgrade pip setuptools wheel
+
+ENV VIRTUAL_ENV=/opt/venv
+ENV PATH="/opt/venv/bin:${PATH}"
+
+RUN --mount=type=cache,target=/root/.cache/pip /opt/venv/bin/pip install -r requirements.txt
+RUN /opt/venv/bin/python -c "import sys; print(sys.version)"
+
+
 
 
 FROM base AS runner

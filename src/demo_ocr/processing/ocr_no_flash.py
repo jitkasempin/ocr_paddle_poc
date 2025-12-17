@@ -10,6 +10,26 @@ import httpx
 # from outlines import Generator, Template
 from google import genai
 import os
+# #region agent log
+def _agent_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
+    try:
+        import json, time
+        payload = {
+            "sessionId": "debug-session",
+            "runId": os.getenv("AGENT_RUN_ID", "pre-fix"),
+            "hypothesisId": hypothesis_id,
+            "location": location,
+            "message": message,
+            "data": data,
+            "timestamp": int(time.time() * 1000),
+        }
+        os.makedirs("/home/jitkasem/.cursor", exist_ok=True)
+        with open("/home/jitkasem/.cursor/debug.log", "a", encoding="utf-8") as f:
+            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+    except Exception:
+        pass
+# #endregion
+
 # from typhoon_ocr import prepare_ocr_messages
 from openai import OpenAI, AsyncOpenAI
 import json
@@ -21,6 +41,63 @@ from dots_ocr.utils import dict_promptmode_to_prompt
 from dots_ocr.utils.image_utils import PILimage_to_base64
 # from typhoon_ocr import ocr_document
 from typhoon_ocr import ocr_document, prepare_ocr_messages
+import asyncio
+# Requires `pip install docling-surya`
+# See https://pypi.org/project/docling-surya/
+_agent_log(
+    "H1",
+    "processing/ocr_no_flash.py:docling_surya_import",
+    "Attempting import docling_surya",
+    {"pythonpath": os.getenv("PYTHONPATH")},
+)
+try:
+    from docling_surya import SuryaOcrOptions
+    _agent_log(
+        "H1",
+        "processing/ocr_no_flash.py:docling_surya_import",
+        "Imported docling_surya successfully",
+        {"has_docling_surya": True},
+    )
+except Exception as e:
+    import sys
+    try:
+        from importlib.metadata import PackageNotFoundError, version
+        try:
+            docling_surya_version = version("docling-surya")
+        except PackageNotFoundError:
+            docling_surya_version = None
+        try:
+            surya_ocr_version = version("surya-ocr")
+        except PackageNotFoundError:
+            surya_ocr_version = None
+        try:
+            docling_version = version("docling")
+        except PackageNotFoundError:
+            docling_version = None
+    except Exception:
+        docling_surya_version = None
+        surya_ocr_version = None
+        docling_version = None
+
+    _agent_log(
+        "H1",
+        "processing/ocr_no_flash.py:docling_surya_import",
+        "Failed to import docling_surya",
+        {
+            "error_repr": repr(e),
+            "python_version": sys.version,
+            "executable": sys.executable,
+            "docling_surya_version": docling_surya_version,
+            "surya_ocr_version": surya_ocr_version,
+            "docling_version": docling_version,
+            "sys_path_head": sys.path[:8],
+        },
+    )
+    raise
+
+from docling.datamodel.base_models import InputFormat
+from docling.datamodel.pipeline_options import PdfPipelineOptions
+from docling.document_converter import DocumentConverter, PdfFormatOption
 
 # Disable flash_attn to avoid import errors
 import os
@@ -202,6 +279,39 @@ class OCR:
         except Exception as e:
             print(f"request error: {e}")
             return None
+
+
+        # pass
+    async def docling_with_surya(self, image_path):
+
+        source = image_path
+
+        pipeline_options = PdfPipelineOptions(
+            do_ocr=True,
+            ocr_model="suryaocr",
+            allow_external_plugins=True,
+            ocr_options=SuryaOcrOptions(lang=["th"]),
+        )
+
+        converter = DocumentConverter(
+            format_options={
+                InputFormat.PDF: PdfFormatOption(pipeline_options=pipeline_options),
+                InputFormat.IMAGE: PdfFormatOption(pipeline_options=pipeline_options),
+            }
+        )
+
+        # result = converter.convert(image_path)
+        # print("The result is complete")
+
+        result = await asyncio.to_thread(converter.convert, source)
+        print(result.document.export_to_markdown())
+
+
+
+        return result.document.export_to_markdown() 
+
+
+
 
 
         # pass
