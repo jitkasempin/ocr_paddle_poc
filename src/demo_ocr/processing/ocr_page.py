@@ -389,7 +389,23 @@ class AllItemsInDelta(BaseModel):
 #         default=None, description="The year part of the invoice issued date. The year can be Common Era (CE) or Buddhist Era (BE) and can be in 2 or 4 digits. The year must be in the range of 2010 - 2025 (or 10 - 25) for CE year and 2543 - 2568 (or 43 - 68) for BE year"
 #     )
 
+class StakeHolders(BaseModel):
+    stakeholder_name: str = Field(default="", description="ชื่อผู้ถือหุ้น หรือ รายชื่อผู้ถือหุ้น (สามารถเป็นชื่อบุคคล หรือชื่อบริษัทก็ได้)")
+    stock_amount: Decimal = Field(default=Decimal("0.00"), description="จำนวนหุ้นที่ถือ")
+    stakeholder_nationality: str = Field(default="", description="สัญชาติ")
 
+
+
+class CompanyStock(BaseModel):
+    company_name: str = Field(default="", description="ชื่อบริษัทจำกัด")
+    register_number: str = Field(default="", description="ทะเบียนเลขที่")
+    company_stakeholders: List[StakeHolders] = Field(default_factory=list, description="รายชื่อผู้ถือหุ้นของบริษัท")
+    thai_stakeholders_number: str = Field(default="-", description="ผู้ถือหุ้น ไทย")
+    other_stakeholders_number: str = Field(default="-", description="หุ้น อื่นๆ")
+
+class Certificate_DBD(BaseModel):
+    company_name: str = Field(default="", description="ชื่อบริษัท ยกตัวอย่างเช่น 'บริษัท เฉิงหลัน เทคโนโลยี จำกัด'")
+    certificate_issued_date: str = Field(default="", description="วันที่ออกใบอนุญาต ยกตัวอย่างเช่น 'ออกให้ ณ วันที่ 5 เดือน เมษายน พ.ศ. 2567'")
 # class InvoicePaymentDate(BaseModel):
 #     payment_day: int = Field(
 #         default=None, description="The day part of the payment term date. Must have the value between 1 and 31"
@@ -1090,6 +1106,28 @@ def ui_js(session="json_str"):
                 df = pd.DataFrame(v)
                 st_df = st.data_editor(df, num_rows="dynamic", use_container_width=True)
                 js[k] = st_df.to_dict("records")
+            elif isinstance(v, dict):
+                # Handle nested dict - use expander with nested inputs
+                with st.expander(f"📁 {k}", expanded=True):
+                    nested_dict = {}
+                    for nested_k, nested_v in v.items():
+                        if isinstance(nested_v, (str, int, float, type(None))):
+                            nested_value = st.text_input(
+                                nested_k, 
+                                value=str(nested_v) if nested_v is not None else "", 
+                                key=f"{k}_{nested_k}"
+                            )
+                            nested_dict[nested_k] = nested_value
+                        elif isinstance(nested_v, list):
+                            # Handle list inside dict
+                            nested_df = pd.DataFrame(nested_v)
+                            nested_st_df = st.data_editor(nested_df, num_rows="dynamic", use_container_width=True, key=f"{k}_{nested_k}_editor")
+                            nested_dict[nested_k] = nested_st_df.to_dict("records")
+                        else:
+                            # For complex nested structures, display as JSON
+                            st.json({nested_k: nested_v})
+                            nested_dict[nested_k] = nested_v
+                    js[k] = nested_dict
             else:
                 text_value = st.text_input(k, value=v, key=k)
                 js[k] = text_value
@@ -1746,7 +1784,7 @@ async def ocr_processing_page():
     with st.sidebar:
         document_type = st.radio(
             "Choose the document type",
-            options=["Invoice", "Packing List", "Passport", "Certificate", "Stock Shareholder"],
+            options=["Invoice", "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD"],
             index=0  # Default to "Invoice"
         )
 
@@ -1944,16 +1982,30 @@ async def ocr_processing_page():
                                 tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                 # if tmp_center_stream contain the word "Error"
                                 if "Error" in tmp_center_stream:
-                                    tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                    if is_inv_delta:
+                                        tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                    else:
+                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                 # else:
                                     # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
                                 center_stream += tmp_center_stream
 
-                            elif document_type == "Stock Shareholder":
+                            elif document_type == "Stock Shareholder BOJ5":
                                 tmp_center_stream = await model.docling_with_surya("document.pdf")
 
                                 center_stream += tmp_center_stream
+
+                            elif document_type == "DBD":
+                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                # if tmp_center_stream contain the word "Error"
+
+                                center_stream += tmp_center_stream
+
+                                if "ออกให้" in tmp_center_stream:
+                                    break
+                                    # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+
 
                             else:
                                 tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
@@ -2028,7 +2080,11 @@ async def ocr_processing_page():
                 processing_time = end_time - start_time
                 st.session_state["processing_time"] = processing_time
             
-            center_md.markdown(center_stream)
+            if document_type == "Stock Shareholder BOJ5":
+                st.text_area("Center Stream", center_stream, height=500)
+            else:
+                center_md.markdown(center_stream)
+                
             st.session_state["markdown"] = center_stream
 
             if is_inv_delta:
@@ -2242,6 +2298,15 @@ async def ocr_processing_page():
                 elif document_type == "Passport":
                     right_stream = await model.structured_output(center_stream, PassPortData)
                     right_md.markdown(right_stream)
+                    
+                elif document_type == "Stock Shareholder BOJ5":
+                    right_stream = await model.structured_output(center_stream, CompanyStock)
+                    right_md.markdown(right_stream)
+                
+                elif document_type == "DBD":
+                    right_stream = await model.structured_output(center_stream, Certificate_DBD)
+                    right_md.markdown(right_stream)
+                    
                 elif document_type == "Certificate":
                     print("Processing certificate")
                     meta_certificate = lang_extract_model.extract_metadata(center_stream)

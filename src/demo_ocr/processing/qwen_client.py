@@ -4,7 +4,7 @@ from typing import List, Dict
 
 
 class Qwen3VLLMClient:
-    def __init__(self, base_url="https://api.runpod.ai/v2/em2h41xp8ytr67/openai/v1"):
+    def __init__(self, base_url="https://api.runpod.ai/v2/18d408y3rc5uzk/openai/v1"):
         # print("Runpod API Key")
         # print(default_config.runpod_api_key)
         self.client = AsyncOpenAI(
@@ -12,14 +12,14 @@ class Qwen3VLLMClient:
             # api_key="0"
             api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
         )
-        self.model_name = "Qwen/Qwen3-14B" # "./Qwen3-14B-FP8-Dynamic"
+        self.model_name = "qwen/qwen3-32b-fp8" # "./Qwen3-14B-FP8-Dynamic"
 
     async def chat_completion(self, messages: List[Dict[str, str]]) -> str:
         """Async chat completion with Qwen3-14B"""
         response = await self.client.chat.completions.create(
             model=self.model_name,
             messages=messages,
-            temperature=0.1,
+            temperature=0,
             max_tokens=10000,
             # extra_body={
             #     "top_k": kwargs.get('top_k', 20),

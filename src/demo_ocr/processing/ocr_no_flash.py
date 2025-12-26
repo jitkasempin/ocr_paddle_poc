@@ -290,7 +290,7 @@ class OCR:
             do_ocr=True,
             ocr_model="suryaocr",
             allow_external_plugins=True,
-            ocr_options=SuryaOcrOptions(lang=["th"]),
+            ocr_options=SuryaOcrOptions(lang=["en"]),
         )
 
         converter = DocumentConverter(
@@ -422,7 +422,7 @@ class OCR:
                                 model = "typhoon-ocr-1-5" , 
                                 figure_language = "Thai" , 
                                 task_type="v1.5", 
-                                base_url='https://zxbtmvrs6fsog4-8000.proxy.runpod.net/v1', 
+                                base_url='https://qvwpe0rure63j9-8000.proxy.runpod.net/v1', 
                                 api_key='0')
 # print(markdown)
 
