@@ -1391,57 +1391,58 @@ async def ocr_processing_page():
         # )
         st.session_state["ocr_model"] = selected_ocr_model
 
-        uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
-        if uploaded_file:
-            # doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        # List PDF files from /data/pdfs folder
+        pdf_folder = Path("/data/pdfs")
+        pdf_files = sorted([f.name for f in pdf_folder.glob("*.pdf")]) if pdf_folder.exists() else []
+
+        if not pdf_files:
+            st.warning("No PDF files found in /data/pdfs folder")
+            selected_pdf = None
+        else:
+            selected_pdf = st.selectbox(
+                "Select a PDF file",
+                options=pdf_files,
+                index=0
+            )
+
+        submit_ocr = st.button("Submit for OCR", type="primary")
+
+        # Track if OCR should be processed
+        if submit_ocr and selected_pdf:
+            st.session_state["ocr_submitted"] = True
+            st.session_state["selected_pdf_name"] = selected_pdf
+
+        if selected_pdf and st.session_state.get("ocr_submitted", False):
             images = []
             texts = []
             is_invoice_or_quotation = False
             image_inp_path = []
             pdf_input_paths = []
 
-            # Check if uploaded file is PDF or image
-            file_extension = uploaded_file.name.split('.')[-1].lower()
-            
-            if file_extension == "pdf":
-                # Handle PDF file
-                doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-                doc.save("document.pdf")
+            # Load PDF file from /data/pdfs folder
+            pdf_path = pdf_folder / selected_pdf
+            doc = fitz.open(str(pdf_path))
+            doc.save("document.pdf")
 
-                for i, page in enumerate(doc):
-                    # Page as image
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                    img_bytes = pix.tobytes("png")
-                    img = Image.open(io.BytesIO(img_bytes))
-                    img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+            base_no_ext = selected_pdf.rsplit('.', 1)[0]
 
-                    image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
-                    images.append(img)
+            for i, page in enumerate(doc):
+                # Page as image
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                img_bytes = pix.tobytes("png")
+                img = Image.open(io.BytesIO(img_bytes))
+                img.save(f"{base_no_ext}_{i}.png")
 
-                    # Save each page as a separate PDF and append to pdf_input_paths
-                    base_no_ext = uploaded_file.name.rsplit('.', 1)[0]
-                    page_pdf_path = f"{base_no_ext}_{i}.pdf"
-                    single_doc = fitz.open()  # create an empty PDF
-                    single_doc.insert_pdf(doc, from_page=i, to_page=i)
-                    single_doc.save(page_pdf_path)
-                    single_doc.close()
-                    pdf_input_paths.append(page_pdf_path)
-                    
-            elif file_extension in ["png", "jpg", "jpeg"]:
-                # Handle image file
-                img = Image.open(uploaded_file)
-                
-                # Convert to PNG format and save
-                base_name = uploaded_file.name.rsplit('.', 1)[0]
-                png_filename = f"{base_name}.png"
-                
-                # Convert to RGB if necessary (for JPEG compatibility)
-                if img.mode != 'RGB' and img.mode != 'RGBA':
-                    img = img.convert('RGB')
-                
-                img.save(png_filename, 'PNG')
-                image_inp_path.append(png_filename)
+                image_inp_path.append(f"{base_no_ext}_{i}.png")
                 images.append(img)
+
+                # Save each page as a separate PDF and append to pdf_input_paths
+                page_pdf_path = f"{base_no_ext}_{i}.pdf"
+                single_doc = fitz.open()  # create an empty PDF
+                single_doc.insert_pdf(doc, from_page=i, to_page=i)
+                single_doc.save(page_pdf_path)
+                single_doc.close()
+                pdf_input_paths.append(page_pdf_path)
 
                 # enhancer = ImageEnhance.Sharpness(img)
                 # img_sharp = enhancer.enhance(2)
@@ -1469,7 +1470,7 @@ async def ocr_processing_page():
                 # st.session_state["resultss"]=len(resultss)
                 st.image(img)
 
-    if uploaded_file and st.session_state["new_upload"]:
+    if selected_pdf and st.session_state.get("ocr_submitted", False) and st.session_state["new_upload"]:
         # OCR model selection (default model_a)
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
@@ -1976,7 +1977,7 @@ async def ocr_processing_page():
             
         st.session_state["new_upload"] = False
             
-    elif uploaded_file and not st.session_state["new_upload"]:
+    elif selected_pdf and st.session_state.get("ocr_submitted", False) and not st.session_state["new_upload"]:
         
         # with st.status("Extracting text", expanded=True) as status:
             # st.markdown(st.session_state["markdown"])
