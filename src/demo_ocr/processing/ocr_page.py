@@ -28,19 +28,6 @@ from core.pdf2md.pdf2md import convert_to_markdown_stream
 import uuid
 
 
-def process_tags(content: str) -> str:
-    content = content.replace("<img>", "&lt;img&gt;")
-    content = content.replace("</img>", "&lt;/img&gt;")
-    content = content.replace("<watermark>", "&lt;watermark&gt;")
-    content = content.replace("</watermark>", "&lt;/watermark&gt;")
-    content = content.replace("<page_number>", "&lt;page_number&gt;")
-    content = content.replace("</page_number>", "&lt;/page_number&gt;")
-    content = content.replace("<signature>", "&lt;signature&gt;")
-    content = content.replace("</signature>", "&lt;/signature&gt;")
-
-    return content
-
-
 def load_centroids_dict(path: str) -> Dict[str, np.ndarray]:
     """
     Load กลับมาเป็น dict[label -> vector] เหมือนตอน build
@@ -733,61 +720,6 @@ def criteria_check_for_report(parameters_value:list[float], check_method:str, th
     elif check_method == "not_equal_to":
         return sum(parameters_value) != threshold_value
     
-def count_signatures(content):
-    """
-    Count the number of signatures in the markdown content.
-    
-    Checks for both regular tags <signature> and HTML-encoded tags &lt;signature&gt;
-    
-    Args:
-        content (str): The markdown file content
-        
-    Returns:
-        int: Number of signatures found
-    """
-    # Pattern to match both regular and HTML-encoded signature tags
-    # This will match <signature>...</signature> or &lt;signature&gt;...&lt;/signature&gt;
-    pattern1 = r'<signature>.*?</signature>'
-    pattern2 = r'&lt;signature&gt;.*?&lt;/signature&gt;'
-    
-    # Find all matches for both patterns
-    matches1 = re.findall(pattern1, content, re.DOTALL | re.IGNORECASE)
-    matches2 = re.findall(pattern2, content, re.DOTALL | re.IGNORECASE)
-    
-    # Total count
-    total_signatures = len(matches1) + len(matches2)
-    
-    return total_signatures
-
-
-def count_imgs(content):
-    """
-    Count the number of images in the markdown content.
-    
-    Checks for both regular tags <img> and HTML-encoded tags &lt;img&gt;
-    
-    Args:
-        content (str): The markdown file content
-        
-    Returns:
-        int: Number of images found
-    """
-    # Pattern to match both regular and HTML-encoded signature tags
-    # This will match <signature>...</signature> or &lt;signature&gt;...&lt;/signature&gt;
-    pattern1 = r'<img>.*?</img>'
-    pattern2 = r'&lt;img&gt;.*?&lt;/img&gt;'
-    
-    # Find all matches for both patterns
-    matches1 = re.findall(pattern1, content, re.DOTALL | re.IGNORECASE)
-    matches2 = re.findall(pattern2, content, re.DOTALL | re.IGNORECASE)
-    
-    # Total count
-    total_imgs = len(matches1) + len(matches2)
-    
-    return total_imgs
-
-
-
 def is_match_centroids(img_rgb: np.ndarray) -> bool:
     img_rgb = crop_top_percent(img_rgb, 20)
     clip_model_name: str = "ViT-B-16"
@@ -804,18 +736,6 @@ def is_match_centroids(img_rgb: np.ndarray) -> bool:
         return False
     return True
 
-
-def pre_process_invoice_string(input_string: str) -> List[Tuple[str, str]]:
-    """
-    Process invoice string to extract item names and quantities.
-    
-    Args:
-        input_string: Raw invoice string with pipe-delimited data
-        
-    Returns:
-        List of tuples containing (item_name, quantity)
-    """
-    return []
 
 def extract_html_table(input_text: str) -> str:
     """
@@ -841,153 +761,6 @@ def extract_html_table(input_text: str) -> str:
     # end_pos points to the start of "</table>", so we add len("</table>") to include it
     return input_text[start_pos:end_pos + len("</table>")]
 
-
-def convert_date_string(date_str, is_payment_term):
-    """
-    Convert date string to Python datetime object.
-    
-    Supports formats:
-    - day/month/year (e.g., "8/5/2025", "08/05/2025")
-    - Handles both CE and BE years
-    - 2-digit years: 00-42 = 2000-2042 (CE), 43-99 = 2543-2599 (BE)
-    - 4-digit years: >2500 = BE, <=2500 = CE
-    - BE years are converted to CE (subtract 543)
-    
-    Args:
-        date_str (str): Date string in format "day/month/year"
-        is_payment_term (bool): True if the date is for payment term, False if the date is for invoice date
-                
-    Returns:
-        datetime: Python datetime object with CE year
-        
-    Raises:
-        ValueError: If date string is invalid or represents a future date
-    """
-    try:
-        # Split the date string
-        parts = date_str.split('/')
-        if len(parts) != 3:
-            # raise ValueError(f"Invalid date format: {date_str}")
-            return None
-        
-        day, month, year = parts
-        
-        # Convert to integers
-        day = int(day)
-        month = int(month)
-        year = int(year)
-        
-        # Handle 2-digit years
-        if year < 100:
-            if year < 43:
-                # Years 00-42 are interpreted as CE years 2000-2042
-                year = year + 2000
-            else:
-                # Years 43-99 are interpreted as BE years 2543-2599
-                year = year + 2500
-        
-        # Determine if year is BE or CE
-        if year > 2500:
-            # Buddhist Era - convert to CE by subtracting 543
-            ce_year = year - 543
-        else:
-            # Common Era - use as is
-            ce_year = year
-        
-        # Create datetime object
-        date_obj = datetime(ce_year, month, day)
-        
-        # Check if date is in the future
-        if date_obj > datetime.now():
-            if is_payment_term == False:
-                return None
-                # raise ValueError(f"Date {date_str} represents a future date")
-        
-        return date_obj
-        
-    except ValueError as e:
-        # Re-raise ValueError with more context
-        # raise ValueError(f"Error converting date string '{date_str}': {str(e)}")
-        return None
-    
-def extract_observation_and_check_robust(text):
-    """
-    Robust version with better error handling and alternative extraction methods
-    
-    Args:
-        text (str): The input text containing observation
-    
-    Returns:
-        dict: Dictionary with extraction results and metadata
-    """
-    result = {
-        'observation_text': None,
-        'contains_target_words': False,
-        'word_counts': {'ภาพ': 0, 'โลโก้': 0},
-        'extraction_method': None,
-        'error': None
-    }
-    
-    try:
-        # Method 1: Regex with markdown bold markers
-        pattern1 = r'\*\*Observation:\*\*\s*(.*?)(?=\n|$)'
-        match = re.search(pattern1, text, re.DOTALL)
-        
-        if match:
-            observation_text = match.group(1).strip()
-            result['extraction_method'] = 'regex_markdown'
-        else:
-            # Method 2: Simple string search without markdown
-            pattern2 = r'Observation:\s*(.*?)(?=\n|$)'
-            match = re.search(pattern2, text, re.DOTALL)
-            
-            if match:
-                observation_text = match.group(1).strip()
-                result['extraction_method'] = 'regex_simple'
-            else:
-                # Method 3: Line-by-line search
-                lines = text.split('\n')
-                for i, line in enumerate(lines):
-                    if 'Observation:' in line:
-                        # Extract text after "Observation:" on the same line
-                        observation_text = line.split('Observation:', 1)[1].strip()
-                        # Remove any markdown markers
-                        observation_text = observation_text.replace('**', '').strip()
-                        result['extraction_method'] = 'line_search'
-                        break
-                else:
-                    result['error'] = 'Observation text not found'
-                    return result
-        
-        # Store the extracted text
-        result['observation_text'] = observation_text
-        
-        # Count target words
-        result['word_counts']['ภาพ'] = observation_text.count('ภาพ')
-        result['word_counts']['โลโก้'] = observation_text.count('โลโก้')
-        
-        # Check if total count > 0
-        total_count = sum(result['word_counts'].values())
-        result['contains_target_words'] = total_count > 0
-        
-    except Exception as e:
-        result['error'] = f"Error during extraction: {str(e)}"
-    
-    return result
-
-# print(f"Observation text: {result['observation_text']}")
-# print(f"Contains target words: {result['contains_target_words']}")
-# print(f"Word counts: {result['word_counts']}")
-# print(f"Extraction method used: {result['extraction_method']}")
-
-# Simple function that just returns the boolean as requested
-def check_image_or_logo_in_observation(text):
-    """Simple function that returns True/False based on requirements"""
-    result = extract_observation_and_check_robust(text)
-    return result['contains_target_words']
-
-# Test the simple function
-# print(f"\nFinal result: {check_image_or_logo_in_observation(example_text)}")
 
 def handle_check_for_oxides():
     oxide_values = []
@@ -1040,42 +813,7 @@ def handle_check_for_oxides():
         else:
             result_dialog("Cannot find the oxides and gross cv in this Analysis Report")
 
-        
 
-
-def insert_invoice_to_supabase(invoice_data: Dict[str, Any]):
-    """
-    Insert invoice data into Supabase table
-    """
-    # Get Supabase credentials from environment variables
-    supabase_url = "https://ufffvetqzjuyfsxzlufj.supabase.co"
-    supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZmZ2ZXRxemp1eWZzeHpsdWZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1NDIwMTgsImV4cCI6MjA2MzExODAxOH0.amaDdf6kIoZgO-eiKxmB6qs4fEYIIcV-1U9gvyMDQuc"
-    
-    if not supabase_url or not supabase_key:
-        raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
-    
-    try:
-        # Create Supabase client
-        supabase: Client = create_client(supabase_url, supabase_key)
-        
-        # Insert data into invoice_data table
-        print("Inserting invoice data into Supabase...")
-        result = supabase.table('invoice_data').insert(invoice_data).execute()
-        
-        # Check if insert was successful
-        if result.data:
-            print(f"✅ Successfully inserted invoice data!")
-            print(f"Inserted record ID: {result.data[0]['id']}")
-            print(f"Invoice Number: {result.data[0]['invoice_number']}")
-            print(f"Company: {result.data[0]['company']}")
-            return result.data[0]
-        else:
-            print("❌ Failed to insert data")
-            return None
-            
-    except Exception as e:
-        print(f"❌ Error inserting data: {str(e)}")
-        raise
 
 
 def delta_items_ui():
@@ -1158,11 +896,6 @@ def ui_js(session="json_str"):
         st.session_state["json"] = js
 
         # st.session_state["payment_term"] = js["payment_term"]
-
-@st.dialog("Json")
-def dialog():
-    with st.container(border=True):
-        st.json(st.session_state["json"])
 
 @st.dialog("Result")
 def result_dialog(message):
@@ -1573,145 +1306,6 @@ def perform_chandra_ocr_online() -> list[tuple]:
         print("\nTimeout reached after 300 polls. Job may still be processing.")
     # pass
 
-def handle_invoice_check_click():
-    """Handle the Invoice Check button click - retrieve latest invoice data and check dates"""
-    try:
-        # Get Supabase credentials from environment variables
-        supabase_url = "https://ufffvetqzjuyfsxzlufj.supabase.co"
-        supabase_key = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVmZmZ2ZXRxemp1eWZzeHpsdWZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDc1NDIwMTgsImV4cCI6MjA2MzExODAxOH0.amaDdf6kIoZgO-eiKxmB6qs4fEYIIcV-1U9gvyMDQuc"
-        
-        if not supabase_url or not supabase_key:
-            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set in environment variables")
-
-        # Create Supabase client
-        supabase: Client = create_client(supabase_url, supabase_key)
-        
-        # Retrieve the latest row from invoice_data table
-        print("Retrieving latest invoice data from Supabase...")
-        result = supabase.table('invoice_data').select('invoice_date, payment_date').order('id', desc=True).limit(1).execute()
-        
-        if result.data:
-            latest_invoice = result.data[0]
-            invoice_date = latest_invoice.get('invoice_date')
-            payment_date = latest_invoice.get('payment_date')
-            
-            # Display original dates from database
-            with st.expander("Date Processing Details", expanded=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    st.write("**Original Invoice Date:**", invoice_date)
-                with col2:
-                    st.write("**Original Payment Date:**", payment_date)
-            
-            # First begin by calling the function convert_date_string to convert the date string to datetime object
-            temp_invoice_date = convert_date_string(invoice_date, False)
-
-            if (temp_invoice_date is None) and (invoice_date is not None):
-                invoice_txt_msg = f"""
-                    From this invoice, I found that the invoice issued date is on {invoice_date}.
-                    Please extract the day, month and year from the invoice issued date.
-                """
-                
-                # Suppose the minimal date to be 1/1/25
-                if len(invoice_date) > 5:
-                    llm_invoice_date = model.generate_invoice_term_date(invoice_txt_msg)
-                else:
-                    llm_invoice_date = None
-
-
-                # Display llm_invoice_date in the UI
-                # st.info(f"LLM Invoice Date Result: {llm_invoice_date}")
-
-                if llm_invoice_date is not None:
-                    temp_invoice_date = convert_date_string(llm_invoice_date, False)
-                
-
-            temp_payment_date = convert_date_string(payment_date, True)
-
-            if (temp_payment_date is None) and (payment_date is not None):
-                payment_txt_msg = f"""
-                    From this invoice, I found that the payment term date is on {payment_date}.
-                    Please extract the day, month and year from the payment term date.
-                """
-
-                # Suppose the minimal date to be 1/1/68
-                if len(payment_date) > 5:
-                    llm_payment_date = model.generate_payment_term_date(payment_txt_msg)
-                else:
-                    llm_payment_date = None
-
-                # Display llm_payment_date in the UI
-                # st.info(f"LLM Payment Date Result: {llm_payment_date}")
-
-                if llm_payment_date is not None:
-                    temp_payment_date = convert_date_string(llm_payment_date, True)
-                
-
-            # Get the current date
-            current_date = datetime.now()
-
-            # Check if dates can be compared
-            if temp_invoice_date and temp_payment_date:
-                # Check if the invoice is active
-                if temp_invoice_date < current_date < temp_payment_date:
-                    message = "This invoice is still ACTIVE"
-                else:
-                    message = "This invoice is INACTIVE and passed the deadline of payment"
-            else:
-                if (temp_payment_date is None) and (temp_invoice_date is None):
-                    message = "Cannot find the payment due date and invoice issued date in the invoice"
-                elif temp_payment_date is None:
-                    message = "Cannot find the payment due date in the invoice"
-                elif temp_invoice_date is None:
-                    message = "Cannot find the invoice issued date in the invoice"
-                else:
-                    message = "Cannot compare the date in invoice"
-            
-            number_logo = st.session_state["resultss"]
-            logos_msg = f"Number of signature detected in this invoice : {number_logo}"
-
-            number_of_img = st.session_state["total_images"]
-            
-            if number_of_img > 0:
-                imgs_msg = "Found company logo in this invoice"
-            else:
-                imgs_msg = "No company logo found in this invoice. Please check the invoice again."
-
-            st.info(message)
-            st.info(logos_msg)
-            st.info(imgs_msg)
-        else:
-            result_dialog("Could not retrieve invoice data")
-
-    except Exception as e:
-        print(f"Error in handle_invoice_check_click: {str(e)}")
-        result_dialog(f"Error: {str(e)}")
-
-def handle_json_button_click():
-    """Handle the Json button click - insert data to Supabase and show result"""
-    try:
-        # Convert JSON data to Python Dict (it should already be a dict)
-        invoice_data = dict(st.session_state["json"])
-        
-        # Call insert_invoice_to_supabase function
-        result = insert_invoice_to_supabase(invoice_data)
-        
-        # Check if insertion was successful
-        if result:
-            # result_dialog("SEND DATA TO DB SUCCESS")
-            st.text_input(label="Send Data Status",value="SEND DATA TO DB SUCCESS")
-            st.session_state["invoice_check_button_disabled"] = False
-        else:
-            # result_dialog("SEND DATA TO DB FAIL")
-            st.text_input(label="Send Data Status",value="SEND DATA TO DB FAIL")
-            
-    except Exception as e:
-        print(f"Error in handle_json_button_click: {str(e)}")
-        # result_dialog("FAIL")
-        st.text_input(label="Send Data Status",value="ERROR OCCURRED")
-    
-    # Disable the button after processing
-    # st.session_state["json_button_disabled"] = True
 
 async def ocr_processing_page():
     """Main OCR processing page function"""
@@ -1797,57 +1391,58 @@ async def ocr_processing_page():
         # )
         st.session_state["ocr_model"] = selected_ocr_model
 
-        uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
-        if uploaded_file:
-            # doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
+        # List PDF files from /data/pdfs folder
+        pdf_folder = Path("/data/pdfs")
+        pdf_files = sorted([f.name for f in pdf_folder.glob("*.pdf")]) if pdf_folder.exists() else []
+
+        if not pdf_files:
+            st.warning("No PDF files found in /data/pdfs folder")
+            selected_pdf = None
+        else:
+            selected_pdf = st.selectbox(
+                "Select a PDF file",
+                options=pdf_files,
+                index=0
+            )
+
+        submit_ocr = st.button("Submit for OCR", type="primary")
+
+        # Track if OCR should be processed
+        if submit_ocr and selected_pdf:
+            st.session_state["ocr_submitted"] = True
+            st.session_state["selected_pdf_name"] = selected_pdf
+
+        if selected_pdf and st.session_state.get("ocr_submitted", False):
             images = []
             texts = []
             is_invoice_or_quotation = False
             image_inp_path = []
             pdf_input_paths = []
 
-            # Check if uploaded file is PDF or image
-            file_extension = uploaded_file.name.split('.')[-1].lower()
-            
-            if file_extension == "pdf":
-                # Handle PDF file
-                doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
-                doc.save("document.pdf")
+            # Load PDF file from /data/pdfs folder
+            pdf_path = pdf_folder / selected_pdf
+            doc = fitz.open(str(pdf_path))
+            doc.save("document.pdf")
 
-                for i, page in enumerate(doc):
-                    # Page as image
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                    img_bytes = pix.tobytes("png")
-                    img = Image.open(io.BytesIO(img_bytes))
-                    img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+            base_no_ext = selected_pdf.rsplit('.', 1)[0]
 
-                    image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
-                    images.append(img)
+            for i, page in enumerate(doc):
+                # Page as image
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                img_bytes = pix.tobytes("png")
+                img = Image.open(io.BytesIO(img_bytes))
+                img.save(f"{base_no_ext}_{i}.png")
 
-                    # Save each page as a separate PDF and append to pdf_input_paths
-                    base_no_ext = uploaded_file.name.rsplit('.', 1)[0]
-                    page_pdf_path = f"{base_no_ext}_{i}.pdf"
-                    single_doc = fitz.open()  # create an empty PDF
-                    single_doc.insert_pdf(doc, from_page=i, to_page=i)
-                    single_doc.save(page_pdf_path)
-                    single_doc.close()
-                    pdf_input_paths.append(page_pdf_path)
-                    
-            elif file_extension in ["png", "jpg", "jpeg"]:
-                # Handle image file
-                img = Image.open(uploaded_file)
-                
-                # Convert to PNG format and save
-                base_name = uploaded_file.name.rsplit('.', 1)[0]
-                png_filename = f"{base_name}.png"
-                
-                # Convert to RGB if necessary (for JPEG compatibility)
-                if img.mode != 'RGB' and img.mode != 'RGBA':
-                    img = img.convert('RGB')
-                
-                img.save(png_filename, 'PNG')
-                image_inp_path.append(png_filename)
+                image_inp_path.append(f"{base_no_ext}_{i}.png")
                 images.append(img)
+
+                # Save each page as a separate PDF and append to pdf_input_paths
+                page_pdf_path = f"{base_no_ext}_{i}.pdf"
+                single_doc = fitz.open()  # create an empty PDF
+                single_doc.insert_pdf(doc, from_page=i, to_page=i)
+                single_doc.save(page_pdf_path)
+                single_doc.close()
+                pdf_input_paths.append(page_pdf_path)
 
                 # enhancer = ImageEnhance.Sharpness(img)
                 # img_sharp = enhancer.enhance(2)
@@ -1875,7 +1470,7 @@ async def ocr_processing_page():
                 # st.session_state["resultss"]=len(resultss)
                 st.image(img)
 
-    if uploaded_file and st.session_state["new_upload"]:
+    if selected_pdf and st.session_state.get("ocr_submitted", False) and st.session_state["new_upload"]:
         # OCR model selection (default model_a)
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
@@ -2388,7 +1983,7 @@ async def ocr_processing_page():
             
         st.session_state["new_upload"] = False
             
-    elif uploaded_file and not st.session_state["new_upload"]:
+    elif selected_pdf and st.session_state.get("ocr_submitted", False) and not st.session_state["new_upload"]:
         
         # with st.status("Extracting text", expanded=True) as status:
             # st.markdown(st.session_state["markdown"])
