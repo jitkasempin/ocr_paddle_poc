@@ -1977,8 +1977,8 @@ async def ocr_processing_page():
                             center_stream += "\n"
 
                     elif selected_ocr_model == "high_performance_ocr":
-                         for img_nn in image_inp_path:
-                            if (document_type == "Invoice") or (document_type == "Packing List") or (document_type == "Passport"):
+                        for img_nn in image_inp_path:
+                            if (document_type == "Invoice") or (document_type == "Packing List"):
                                 tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                 # if tmp_center_stream contain the word "Error"
                                 if "Error" in tmp_center_stream:
@@ -1990,6 +1990,10 @@ async def ocr_processing_page():
                                     # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
                                 center_stream += tmp_center_stream
+
+                            elif document_type == "Passport":
+                                center_stream = await model.parsing_mrz_passport(img_nn)
+                                # center_stream += tmp_center_stream
 
                             elif document_type == "Stock Shareholder BOJ5":
                                 tmp_center_stream = await model.docling_with_surya("document.pdf")
@@ -2015,7 +2019,7 @@ async def ocr_processing_page():
 
                                 center_stream += tmp_center_stream
                             
-                            center_stream += "\n"
+                            # center_stream += "\n"
                     
                     elif selected_ocr_model == "legacy_ocr":
                         for img_nn in image_inp_path:
@@ -2082,6 +2086,8 @@ async def ocr_processing_page():
             
             if document_type == "Stock Shareholder BOJ5":
                 st.text_area("Center Stream", center_stream, height=500)
+            elif document_type == "Passport":
+                st.json(center_stream)
             else:
                 center_md.markdown(center_stream)
                 

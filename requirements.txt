@@ -47,3 +47,4 @@ rapidfuzz
 langextract
 beautifulsoup4
 open-clip-torch>=3.1.0
+fastmrz

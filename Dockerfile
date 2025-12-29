@@ -9,8 +9,15 @@ COPY requirements.txt .
 RUN apt-get update \
  && apt-get install -y --no-install-recommends gcc poppler-utils \
     libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
-    libvips-dev libvips42 tesseract-ocr \
+    libvips-dev libvips42 tesseract-ocr libtesseract-dev wget \
  && rm -rf /var/lib/apt/lists/*
+
+# Download MRZ trained data for Tesseract (passport scanning)
+RUN TESSDATA_DIR=$(find /usr/share/tesseract-ocr -name "tessdata" -type d | head -1) \
+ && wget -O ${TESSDATA_DIR}/mrz.traineddata \
+    https://github.com/DoubangoTelecom/tesseractMRZ/raw/master/tessdata_best/mrz.traineddata
+
+ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
 # RUN python -m pip install paddlepaddle-gpu 
 # RUN python -m pip install "paddleocr[all]"
 

@@ -8,6 +8,9 @@ import re
 from olmocr.pipeline import build_page_query
 import httpx
 # from outlines import Generator, Template
+from fastmrz import FastMRZ
+# import json
+
 from google import genai
 import os
 # #region agent log
@@ -182,6 +185,8 @@ class OCR:
 
         self.q_client = Qwen3VLLMClient()
 
+        self.fast_mrz = FastMRZ()
+
         # genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         # self.ext_model = outlines.from_gemini(genai.Client(api_key="AIzaSyAaJcvCSi4s9FvVi5JGSzkEQ8uP_45tttw"), "gemini-2.0-flash")
 
@@ -315,6 +320,17 @@ class OCR:
 
 
         # pass
+    
+    async def parsing_mrz_passport(self, image_file_path):
+        passport_mrz = await asyncio.to_thread(self.fast_mrz.get_details, image_file_path)
+
+        print("JSON:")
+        print(json.dumps(passport_mrz, indent=4))
+
+        return passport_mrz
+
+
+
 
     async def numarkdown_runpod_predict(self, image_file_path):
 
@@ -422,7 +438,7 @@ class OCR:
                                 model = "typhoon-ocr-1-5" , 
                                 figure_language = "Thai" , 
                                 task_type="v1.5", 
-                                base_url='https://qvwpe0rure63j9-8000.proxy.runpod.net/v1', 
+                                base_url='https://lu652zpbhagtit-8000.proxy.runpod.net/v1', 
                                 api_key='0')
 # print(markdown)
 
