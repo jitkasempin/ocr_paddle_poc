@@ -1962,6 +1962,28 @@ async def ocr_processing_page():
         if not er["error_bool"]:
             ui_js("json_str")
 
+            # Write OCR processing time values to CSV file
+            try:
+                csv_output_dir = Path("/data/result_ocr")
+                csv_output_dir.mkdir(parents=True, exist_ok=True)
+
+                csv_filename = f"{st.session_state.get('selected_pdf_name', 'output')}.csv"
+                csv_filepath = csv_output_dir / csv_filename
+
+                csv_data = {
+                    'processing_time': [st.session_state.get('processing_time', 0)],
+                    'json_extract_time': [st.session_state.get('json_extract_time', 0)],
+                    'over_all_processing_time': [st.session_state.get('over_all_processing_time', 0)],
+                    'json_str': [st.session_state.get('json_str', '')]
+                }
+
+                df = pd.DataFrame(csv_data)
+                df.to_csv(csv_filepath, index=False, encoding='utf-8')
+
+                st.toast("SUCCEED", icon="✅")
+            except Exception as e:
+                st.toast("ERROR", icon="❌")
+
             if is_inv_delta:
                 if len(st.session_state["delta_item_array"]) > 0:
                     delta_items_ui()
