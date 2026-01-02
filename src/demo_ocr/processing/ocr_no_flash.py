@@ -9,8 +9,10 @@ from olmocr.pipeline import build_page_query
 import httpx
 # from outlines import Generator, Template
 from fastmrz import FastMRZ
+import mimetypes
+# import mimetypes
 # import json
-
+from typing import Optional, List, Dict, Any
 from google import genai
 import os
 # #region agent log
@@ -187,6 +189,8 @@ class OCR:
 
         self.fast_mrz = FastMRZ()
 
+        self.hunyuan_ocr = OpenAI(base_url="http://65.108.33.125:8000/v1", api_key="EMPTY", timeout=3600)
+
         # genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         # self.ext_model = outlines.from_gemini(genai.Client(api_key="AIzaSyAaJcvCSi4s9FvVi5JGSzkEQ8uP_45tttw"), "gemini-2.0-flash")
 
@@ -330,6 +334,109 @@ class OCR:
         return passport_mrz
 
 
+    def encode_image(self, image_path: str) -> str:
+        """
+        Encode image file to base64 string.
+        
+        Args:
+            image_path: Path to the image file
+            
+        Returns:
+            Base64 encoded string of the image
+        """
+        with open(image_path, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode('utf-8')
+
+    def create_chat_messages(self, image_path: str, prompt: str) -> List[Dict]:
+        """
+        Create chat messages with image and prompt.
+        
+        Args:
+            image_path: Path to the image file
+            prompt: Text prompt for the model
+            
+        Returns:
+            List of message dictionaries
+        """
+
+        # Detect MIME type (jpg/png/webp/etc)
+        mime, _ = mimetypes.guess_type(image_path)
+        if mime is None:
+            mime = "image/jpeg"  # fallback
+
+        return [
+            {"role": "system", "content": ""},
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image_url",
+                        "image_url": {
+                            "url": f"data:image/png;base64,{self.encode_image(image_path)}"
+                        }
+                    },
+                    {"type": "text", "text": prompt}
+                ]
+            }
+        ]
+
+    def process_single_item(self, data: Dict) -> Dict:
+        """
+        Process a single data item through the VLLM API.
+        
+        Args:
+            client: OpenAI client instance
+            data: Input data dictionary
+            
+        Returns:
+            Updated data dictionary with model response
+        """
+        # Extract image path and prompt
+        img_path = data['image_path']
+        prompt = data['question']
+        
+        # Create chat messages
+        messages = self.create_chat_messages(img_path, prompt)
+        
+        # Get model response
+        response = self.hunyuan_ocr.chat.completions.create(
+            model="tencent/HunyuanOCR",
+            messages=messages,
+            temperature=0.0,
+            top_p=0.95,
+            seed=1234,
+            stream=False,
+            extra_body={
+                "top_k": 1,
+                "repetition_penalty": 1.0
+            }
+        )
+        
+        # Update data with model response
+        data["vllm_answer"] = response.choices[0].message.content
+        return data
+
+
+
+    async def run_hunyuan_predict(self, image_file_path):
+        the_message = """
+            • Identify the formula in the image and represent it using LaTeX format.
+
+            • Parse the table in the image into HTML.
+
+            • Parse the chart in the image; use Mermaid format for flowcharts and Markdown for other charts.
+
+            • Extract all information from the main body of the document image and represent it in markdown format, ignoring headers and footers. Tables should be expressed in HTML format, formulas in the document should be represented using LaTeX format, and the parsing should be organized according to the reading order.
+        """
+
+        my_data : Dict = {
+            "image_path": image_file_path,
+            "question": the_message
+        }
+
+        result_text = await asyncio.to_thread(self.process_single_item, my_data)
+
+        return result_text["vllm_answer"]
 
 
     async def numarkdown_runpod_predict(self, image_file_path):

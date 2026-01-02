@@ -1580,7 +1580,7 @@ async def ocr_processing_page():
                                     if is_inv_delta:
                                         tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
                                     else:
-                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                        tmp_center_stream = await model.run_hunyuan_predict(img_nn)
                                 # else:
                                     # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
