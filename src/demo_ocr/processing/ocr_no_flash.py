@@ -189,7 +189,7 @@ class OCR:
 
         self.fast_mrz = FastMRZ()
 
-        self.hunyuan_ocr = OpenAI(base_url="http://65.108.33.125:8000/v1", api_key="EMPTY", timeout=3600)
+        self.hunyuan_ocr = OpenAI(base_url="http://86.38.238.11:8000/v1", api_key="EMPTY", timeout=3600)
 
         # genai.configure(api_key=os.environ["GEMINI_API_KEY"])
         # self.ext_model = outlines.from_gemini(genai.Client(api_key="AIzaSyAaJcvCSi4s9FvVi5JGSzkEQ8uP_45tttw"), "gemini-2.0-flash")
@@ -545,7 +545,7 @@ class OCR:
                                 model = "typhoon-ocr-1-5" , 
                                 figure_language = "Thai" , 
                                 task_type="v1.5", 
-                                base_url='https://lu652zpbhagtit-8000.proxy.runpod.net/v1', 
+                                base_url='https://2j36wilktdrkq2-8000.proxy.runpod.net/v1', 
                                 api_key='0')
 # print(markdown)
 

@@ -1578,9 +1578,10 @@ async def ocr_processing_page():
                                 # if tmp_center_stream contain the word "Error"
                                 if "Error" in tmp_center_stream:
                                     if is_inv_delta:
-                                        tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                     else:
-                                        tmp_center_stream = await model.run_hunyuan_predict(img_nn)
+                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
+                                        # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
                                 # else:
                                     # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
@@ -1591,7 +1592,8 @@ async def ocr_processing_page():
                                 # center_stream += tmp_center_stream
 
                             elif document_type == "Stock Shareholder BOJ5":
-                                tmp_center_stream = await model.docling_with_surya("document.pdf")
+                                # tmp_center_stream = await model.docling_with_surya("document.pdf")
+                                tmp_center_stream = await model.run_hunyuan_predict(img_nn)
 
                                 center_stream += tmp_center_stream
 
