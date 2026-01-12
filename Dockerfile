@@ -18,8 +18,8 @@ RUN TESSDATA_DIR=$(find /usr/share/tesseract-ocr -name "tessdata" -type d | head
     https://github.com/DoubangoTelecom/tesseractMRZ/raw/master/tessdata_best/mrz.traineddata
 
 ENV TESSDATA_PREFIX=/usr/share/tesseract-ocr/4.00/tessdata/
-# RUN python -m pip install paddlepaddle-gpu 
-# RUN python -m pip install "paddleocr[all]"
+RUN python -m pip install paddlepaddle-gpu 
+RUN python -m pip install "paddleocr[all]"
 
 # Python 3.12.3 virtual environment (run Streamlit from here)
 RUN conda create -y -n py312 python=3.12.3 pip \
@@ -43,5 +43,4 @@ WORKDIR /app
 COPY src/demo_ocr /app/src/demo_ocr
 
 ENV GRADIO_SERVER_NAME="0.0.0.0"
-ENV PYTHONPATH "/app/src"
-
+ENV PYTHONPATH="/app/src"

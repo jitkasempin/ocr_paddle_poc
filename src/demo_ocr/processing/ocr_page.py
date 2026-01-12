@@ -11,6 +11,7 @@ import io
 from pydantic import BaseModel, Field, model_validator, field_validator
 from ultralytics import YOLO
 from .ocr_no_flash import OCR
+from .invoice_integration import flag_repetitive_output
 
 from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes, extract_only_branch_code_number, extract_po_decimal
 from .hybrid_search import HybridSearch
@@ -23,6 +24,8 @@ import requests
 import time
 import json, re
 import pandas as pd
+
+import cv2
 import numpy as np
 from core.pdf2md.pdf2md import convert_to_markdown_stream
 import uuid
@@ -41,6 +44,50 @@ def load_centroids_dict(path: str) -> Dict[str, np.ndarray]:
     return centroids
 
 
+
+def preprocess_for_improve_ocr(image_path: str, output_path: str = None) -> np.ndarray: 
+    # Load image 
+    img = cv2.imread(image_path) 
+ 
+    # Convert to grayscale 
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) 
+
+    # Apply Gaussian blur to reduce noise 
+    blurred = cv2.GaussianBlur(gray, (5, 5), 0) 
+ 
+    # Adaptive thresholding (Gaussian) 
+    binary = cv2.adaptiveThreshold(blurred, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, 
+                                    cv2.THRESH_BINARY_INV, 11, 2) 
+
+    # Deskewing: detect angle and rotate 
+    coords = np.column_stack(np.where(binary > 0)) 
+    angle = cv2.minAreaRect(coords)[-1] 
+    if angle < -45: 
+        angle = -(90 + angle) 
+    else: 
+        angle = -angle 
+
+    (h, w) = gray.shape[:2] 
+    center = (w // 2, h // 2) 
+    M = cv2.getRotationMatrix2D(center, angle, 1.0) 
+    deskewed = cv2.warpAffine(binary, M, (w, h), flags=cv2.INTER_CUBIC, 
+                                borderMode=cv2.BORDER_REPLICATE) 
+
+    # Morphological operations to clean 
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2)) 
+    cleaned = cv2.morphologyEx(deskewed, cv2.MORPH_CLOSE, kernel) 
+
+    # Add border padding 
+    padded = cv2.copyMakeBorder(cleaned, 20, 20, 20, 20, 
+                                cv2.BORDER_CONSTANT, value=255) 
+
+    # Optional: resize for higher DPI simulation 
+    processed = cv2.resize(padded, None, fx=2, fy=2, interpolation=cv2.INTER_CUBIC)
+
+    if output_path: 
+        cv2.imwrite(output_path, processed)
+
+    return processed
 
 
 
@@ -1584,6 +1631,16 @@ async def ocr_processing_page():
                                         # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
                                 # else:
                                     # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+
+                                flag_repetition_result = flag_repetitive_output(tmp_center_stream)
+
+                                if flag_repetition_result["flagged"]:
+                                    print("Repetitive result detected. Switching to alternative OCR model.")
+                                    np_array_image_date = preprocess_for_improve_ocr(image_path=img_nn, output_path="improved_ocr_quality.png")
+
+                                    # retry doing the typhoon OCR with the improved image
+                                    tmp_center_stream = await model.typhoon_runpod_predict("improved_ocr_quality.png", "structure", 1)
+
 
                                 center_stream += tmp_center_stream
 
