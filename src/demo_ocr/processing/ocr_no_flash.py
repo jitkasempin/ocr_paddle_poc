@@ -545,7 +545,7 @@ class OCR:
                                 model = "typhoon-ocr-1-5" , 
                                 figure_language = "Thai" , 
                                 task_type="v1.5", 
-                                base_url='https://2j36wilktdrkq2-8000.proxy.runpod.net/v1', 
+                                base_url='https://05j4jhk4yupj58-8000.proxy.runpod.net/v1', 
                                 api_key='0')
 # print(markdown)
 

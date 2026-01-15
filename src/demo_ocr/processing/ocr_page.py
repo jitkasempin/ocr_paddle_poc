@@ -2063,7 +2063,7 @@ async def ocr_processing_page():
             
         st.session_state["new_upload"] = False
             
-    elif selected_pdf and st.session_state.get("ocr_submitted", False) and not st.session_state["new_upload"]:
+    elif st.session_state.get("ocr_submitted", False) and not st.session_state["new_upload"]:
         
         # with st.status("Extracting text", expanded=True) as status:
             # st.markdown(st.session_state["markdown"])

@@ -702,8 +702,9 @@ def ocr_document(pdf_or_image_path: str, task_type: str = "v1.5", target_image_d
         messages=messages,
         max_tokens=8000,
         extra_body={
-            "repetition_penalty": 1.1 if task_type == "v1.5" else 1.2,
-            "temperature": 0.01,
+            "repetition_penalty": 1.1 if task_type == "v1.5" else 1.1,
+            "temperature": 0,
+            "presence_penalty": 1.5,
             "top_p": 0.6,
         },
     )
