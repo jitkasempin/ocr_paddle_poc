@@ -1124,6 +1124,102 @@ def handle_delta_items_from_the_invoice():
 
     # pass
 
+def parse_markdown_pages(content: str) -> list[dict]:
+    """
+    Parse markdown content and split by <page_number>...</page_number> tags.
+    Returns a list of dicts with 'page_number' and 'content' keys.
+    """
+    # Pattern to match page_number tags
+    page_pattern = r'<page_number>(.*?)</page_number>'
+
+    # Find all page markers
+    page_markers = list(re.finditer(page_pattern, content))
+
+    if not page_markers:
+        # No page markers found, treat entire content as single page
+        return [{"page_number": "1", "content": content}]
+
+    pages = []
+    last_end = 0
+
+    for i, match in enumerate(page_markers):
+        page_num = match.group(1)
+        # Get content from last_end to current match start
+        page_content = content[last_end:match.start()].strip()
+
+        if page_content:
+            pages.append({
+                "page_number": page_num,
+                "content": page_content
+            })
+
+        last_end = match.end()
+
+    # Handle any remaining content after the last page marker
+    remaining_content = content[last_end:].strip()
+    if remaining_content:
+        # Assign to the last page number + 1 or use "final"
+        last_page = pages[-1]["page_number"] if pages else "1"
+        pages.append({
+            "page_number": f"After {last_page}",
+            "content": remaining_content
+        })
+
+    return pages if pages else [{"page_number": "1", "content": content}]
+
+
+def html_table_to_dataframe(html_table: str) -> pd.DataFrame:
+    """
+    Convert an HTML table string to a pandas DataFrame.
+    """
+    try:
+        # Use pandas read_html to parse the table
+        dfs = pd.read_html(html_table)
+        if dfs:
+            return dfs[0]
+    except Exception:
+        pass
+    return None
+
+
+def extract_and_render_content(content: str):
+    """
+    Extract HTML tables from content and render them as Streamlit tables.
+    Non-table content is rendered as text areas.
+    """
+    # Pattern to match HTML tables
+    table_pattern = r'<table>.*?</table>'
+
+    # Split content by tables
+    parts = re.split(table_pattern, content, flags=re.DOTALL)
+    tables = re.findall(table_pattern, content, flags=re.DOTALL)
+
+    table_idx = 0
+    for i, part in enumerate(parts):
+        # Render non-table text content
+        text_content = part.strip()
+        if text_content:
+            st.text_area(
+                f"Text Content",
+                value=text_content,
+                height=min(150, max(80, len(text_content) // 2)),
+                disabled=True,
+                label_visibility="collapsed",
+                key=f"text_{i}_{hash(text_content)}"
+            )
+
+        # Render table if exists at this position
+        if table_idx < len(tables):
+            df = html_table_to_dataframe(tables[table_idx])
+            if df is not None:
+                st.dataframe(df, use_container_width=True, hide_index=True)
+            else:
+                # Fallback: show raw HTML if parsing fails
+                st.code(tables[table_idx], language="html")
+            table_idx += 1
+
+
+
 def perform_chandra_ocr_online() -> list[tuple]:
     
     API_URL = "https://www.datalab.to/api/v1/marker"
@@ -1370,6 +1466,12 @@ async def ocr_processing_page():
 
     if "markdown" not in st.session_state:
         st.session_state["markdown"] = ""
+
+    if "markdown_content" not in st.session_state:
+        st.session_state.markdown_content = None
+
+    if "markdown_pages" not in st.session_state:
+        st.session_state.markdown_pages = []
         
     if "json_str" not in st.session_state:
         st.session_state["json_str"] = ""
@@ -1418,6 +1520,8 @@ async def ocr_processing_page():
         st.session_state["processing_time"] = 0
         st.session_state["only_not_approved_items"] = []
         st.session_state["refresh_page"] = False
+        st.session_state["markdown_content"] = None
+        st.session_state["markdown_pages"] = []
         st.rerun()
 
 
@@ -1425,7 +1529,7 @@ async def ocr_processing_page():
     with st.sidebar:
         document_type = st.radio(
             "Choose the document type",
-            options=["Invoice", "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD"],
+            options=["Invoice", "Book Bank Statement" , "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD"],
             index=0  # Default to "Invoice"
         )
 
@@ -1647,6 +1751,11 @@ async def ocr_processing_page():
                                 center_stream = await model.parsing_mrz_passport(img_nn)
                                 # center_stream += tmp_center_stream
 
+                            elif document_type == "Book Bank Statement":
+                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+
+                                center_stream += tmp_center_stream
+
                             elif document_type == "Stock Shareholder BOJ5":
                                 # tmp_center_stream = await model.docling_with_surya("document.pdf")
                                 tmp_center_stream = await model.run_hunyuan_predict(img_nn)
@@ -1741,6 +1850,10 @@ async def ocr_processing_page():
                 st.text_area("Center Stream", center_stream, height=500)
             elif document_type == "Passport":
                 st.json(center_stream)
+            elif document_type == "Book Bank Statement":
+                st.session_state.markdown_content = center_stream
+                st.session_state.markdown_pages = parse_markdown_pages(center_stream)
+
             else:
                 center_md.markdown(center_stream)
                 
@@ -1936,6 +2049,30 @@ async def ocr_processing_page():
 
         er={"error_bool":False,"error":""}
 
+        if document_type == "Book Bank Statement":
+
+            st.markdown("---")
+
+            if not st.session_state.markdown_pages:
+                st.warning("No markdown content loaded. Please upload a markdown file from the sidebar.")
+                return
+
+            # Display page count info
+            total_pages = len(st.session_state.markdown_pages)
+            st.info(f"Total pages found: {total_pages}")
+
+            # Render each page in an expander with its content
+            for idx, page in enumerate(st.session_state.markdown_pages):
+                page_num = page["page_number"]
+                page_content = page["content"]
+
+                with st.expander(f"Page {page_num}", expanded=(idx == 0)):
+                    extract_and_render_content(page_content)
+
+            st.markdown("---")
+
+            return
+
         with st.status("Extracting Invoice Data from OCR and Checking for LOGO and Signature", expanded=True) as status_json:
             right_md = st.empty()
             right_stream = ""
@@ -2097,3 +2234,5 @@ async def ocr_processing_page():
         st.session_state["json"] = {}
         st.session_state["payment_term"] = ""
         st.session_state["processing_time"] = 0
+        st.session_state["markdown_pages"] = []
+        st.session_state["markdown_content"] = None
