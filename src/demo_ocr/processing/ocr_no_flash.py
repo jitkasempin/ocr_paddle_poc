@@ -38,10 +38,19 @@ def _agent_log(hypothesis_id: str, location: str, message: str, data: dict) -> N
 # from typhoon_ocr import prepare_ocr_messages
 from openai import OpenAI, AsyncOpenAI
 import json
+import logging
 from PIL import Image
 from io import BytesIO
 import base64
 from dots_ocr.utils import dict_promptmode_to_prompt
+
+# Configure logging for token usage - outputs to stdout for Docker logs
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("typhoon_ocr")
 # from dots_ocr.model.inference import inference_with_vllm
 from dots_ocr.utils.image_utils import PILimage_to_base64
 # from typhoon_ocr import ocr_document
@@ -488,109 +497,78 @@ class OCR:
         # pass
 
     
-    async def typhoon_runpod_predict(self,orig_filename,
-            task_type,
-            page_number
-            ):
-        
+    async def typhoon_runpod_predict(self, orig_filename, task_type, page_number):
+        """
+        Run OCR prediction using Typhoon model deployed on RunPod via vLLM.
+        Logs token usage for monitoring.
 
+        Args:
+            orig_filename: Path to the PDF or image file
+            task_type: OCR task type (e.g., "v1.5")
+            page_number: Page number to process
 
-        # orig_filename = pdf_or_image_file.name
-    
-        # try:
-        #     # Use the new simplified function to prepare OCR messages with page number
-        #     messages = prepare_ocr_messages(
-        #         pdf_or_image_path=orig_filename,
-        #         task_type=task_type,
-        #         target_image_dim=1800,
-        #         target_text_length=8000,
-        #         page_num=page_number if page_number else 1
-        #     )
-            
-        #     # Extract the image from the message content for display
-        #     image_url = messages[0]["content"][1]["image_url"]["url"]
-        #     image_base64 = image_url.replace("data:image/png;base64,", "")
-        #     image_pil = Image.open(BytesIO(base64.b64decode(image_base64)))
-            
-        #     # Send messages to OpenAI compatible API
-        #     response = await self.my_openai.chat.completions.create(
-        #         model="scb10x/typhoon-ocr-7b",
-        #         messages=messages,
-        #         max_tokens=20000,
-        #         extra_body={
-        #             "repetition_penalty": 1.0,
-        #             "temperature": 0.1,
-        #             "top_p": 0.6,
-        #         },
-        #     )
-        #     text_output = response.choices[0].message.content
-            
-        #     # Try to parse the output assuming it is a Python dictionary containing 'natural_text'
-        #     try:
-        #         json_data = json.loads(text_output)
-        #         markdown_out = json_data.get('natural_text', "").replace("<figure>", "").replace("</figure>", "")
-        #     except Exception as e:
-        #         markdown_out = f"⚠️ Could not extract `natural_text` from output.\nError: {str(e)}"
-            
-        #     return markdown_out
-        
-        # except Exception as e:
-        #     return None, f"Error processing file: {str(e)}"
+        Returns:
+            Extracted markdown text from the document
+        """
+        # Prepare OCR messages using typhoon_ocr utility
+        messages = prepare_ocr_messages(
+            pdf_or_image_path=orig_filename,
+            task_type="v1.5",
+            target_image_dim=1800,
+            target_text_length=8000,
+            page_num=page_number if page_number else 1,
+            figure_language="Thai"
+        )
 
-            
-        # orig_filename = pdf_or_image_file.name
+        # Create async client for RunPod vLLM endpoint
+        typhoon_client = AsyncOpenAI(
+            base_url='https://05j4jhk4yupj58-8000.proxy.runpod.net/v1',
+            api_key='0'
+        )
 
-        # from typhoon_ocr import ocr_document
-        markdown = ocr_document(orig_filename, 
-                                model = "typhoon-ocr-1-5" , 
-                                figure_language = "Thai" , 
-                                task_type="v1.5", 
-                                base_url='https://05j4jhk4yupj58-8000.proxy.runpod.net/v1', 
-                                api_key='0')
-# print(markdown)
+        try:
+            # Send request to vLLM endpoint
+            response = await typhoon_client.chat.completions.create(
+                model="typhoon-ocr-1-5",
+                messages=messages,
+                max_tokens=8000,
+                extra_body={
+                    "repetition_penalty": 1.1,
+                    "temperature": 0,
+                    "presence_penalty": 1.5,
+                    "top_p": 0.6,
+                },
+            )
 
-        return markdown
-        # try:
-        #     # Use the new simplified function to prepare OCR messages with page number
-        #     messages = prepare_ocr_messages(
-        #         pdf_or_image_path=orig_filename,
-        #         task_type=task_type,
-        #         target_image_dim=1800,
-        #         target_text_length=8000,
-        #         page_num=page_number if page_number else 1
-        #     )
-            
-        #     # Extract the image from the message content for display
-        #     # image_url = messages[0]["content"][1]["image_url"]["url"]
-        #     # image_base64 = image_url.replace("data:image/png;base64,", "")
-        #     # image_pil = Image.open(BytesIO(base64.b64decode(image_base64)))
-            
-        #     # Send messages to OpenAI compatible API
-        #     response = await self.my_openai.chat.completions.create(
-        #         model="scb10x/typhoon-ocr-7b",
-        #         messages=messages,
-        #         max_tokens=32768,
-        #         extra_body={
-        #             "repetition_penalty": 1.02,
-        #             "temperature": 0.01,
-        #             "top_p": 0.6,
-        #         },
-        #     )
-        #     text_output = response.choices[0].message.content
-            
-        #     # Try to parse the output assuming it is a Python dictionary containing 'natural_text'
-        #     try:
-        #         json_data = json.loads(text_output)
-        #         markdown_out = json_data.get('natural_text', "").replace("<figure>", "").replace("</figure>", "")
-        #     except Exception as e:
-        #         markdown_out = f"Could not extract natural_text from output. Error: {str(e)}"
-            
-        #     return markdown_out
-        
-        # except Exception as e:
-        #     return f"Error processing file: {str(e)}"
+            # Log token usage for monitoring via Docker logs
+            if response.usage:
+                usage = response.usage
+                logger.info(
+                    f"[TYPHOON_OCR_TOKEN_USAGE] "
+                    f"file={orig_filename} | "
+                    f"prompt_tokens={usage.prompt_tokens} | "
+                    f"completion_tokens={usage.completion_tokens} | "
+                    f"total_tokens={usage.total_tokens}"
+                )
+                # Also print for immediate visibility in Docker logs
+                print(
+                    f"[TYPHOON_OCR_TOKEN_USAGE] "
+                    f"file={orig_filename} | "
+                    f"prompt_tokens={usage.prompt_tokens} | "
+                    f"completion_tokens={usage.completion_tokens} | "
+                    f"total_tokens={usage.total_tokens}",
+                    flush=True
+                )
+            else:
+                logger.warning(f"[TYPHOON_OCR_TOKEN_USAGE] No usage data returned for file={orig_filename}")
 
-            # pass
+            # Extract text content
+            text_output = response.choices[0].message.content
+            return text_output
+
+        except Exception as e:
+            logger.error(f"[TYPHOON_OCR_ERROR] file={orig_filename} | error={str(e)}")
+            raise
 
     def predict(self,image,
             max_new_tokens=8192,

@@ -1,4 +1,5 @@
 cache/
 paddlex/
 data/
+.claude/
 .env
