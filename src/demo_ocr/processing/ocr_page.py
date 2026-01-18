@@ -1182,7 +1182,7 @@ def html_table_to_dataframe(html_table: str) -> pd.DataFrame:
     return None
 
 
-def extract_and_render_content(content: str):
+def extract_and_render_content(content: str, *, key_prefix: str = ""):
     """
     Extract HTML tables from content and render them as Streamlit tables.
     Non-table content is rendered as text areas.
@@ -1199,13 +1199,15 @@ def extract_and_render_content(content: str):
         # Render non-table text content
         text_content = part.strip()
         if text_content:
+            text_key = f"{key_prefix}text_{i}_{hash(text_content)}"
+            print(f"[BookBank] text_area key={text_key} len={len(text_content)}")
             st.text_area(
                 f"Text Content",
                 value=text_content,
                 height=min(150, max(80, len(text_content) // 2)),
                 disabled=True,
                 label_visibility="collapsed",
-                key=f"text_{i}_{hash(text_content)}"
+                key=text_key
             )
 
         # Render table if exists at this position
@@ -2067,7 +2069,7 @@ async def ocr_processing_page():
                 page_content = page["content"]
 
                 with st.expander(f"Page {page_num}", expanded=(idx == 0)):
-                    extract_and_render_content(page_content)
+                    extract_and_render_content(page_content, key_prefix=f"page_{idx}_")
 
             st.markdown("---")
 
