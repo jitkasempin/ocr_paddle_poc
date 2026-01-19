@@ -39,7 +39,6 @@ types-requests
 pdf2image
 pytesseract
 sentencepiece
-olmocr==0.3.4
 surya-ocr
 docling
 qdrant-client==1.15.1

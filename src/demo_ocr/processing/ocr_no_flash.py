@@ -5,7 +5,7 @@ from datetime import datetime
 from langchain_ollama import ChatOllama
 # import outlines
 import re
-from olmocr.pipeline import build_page_query
+# from olmocr.pipeline import build_page_query
 import httpx
 # from outlines import Generator, Template
 from fastmrz import FastMRZ
@@ -190,7 +190,7 @@ class OCR:
 
         self.my_openai = AsyncOpenAI(base_url="https://veejutidvzi7xy-8000.proxy.runpod.net/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c", http_client=http_client)
         # self.my_openai = OpenAI(base_url="https://8000-01jv6gbqesg14ne3mavgm9acm7.cloudspaces.litng.ai/v1", api_key="api-key")
-        self.olm_ocr_openai = AsyncOpenAI(base_url="https://api.runpod.ai/v2/ajplyymntb6f54/openai/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c")
+        # self.olm_ocr_openai = AsyncOpenAI(base_url="https://api.runpod.ai/v2/ajplyymntb6f54/openai/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c")
 
         self.nanonet_client = AsyncOpenAI(base_url="https://ifp0ig0mslclt9-8000.proxy.runpod.net/v1", api_key="0")
 
@@ -222,12 +222,12 @@ class OCR:
         #     {{ message }}
         #     """
         # )
-    async def olmocr_runpod_predict(self, pdf_file_path, page_number):
-        query = await build_page_query(pdf_file_path, page=page_number, target_longest_image_dim=2048)
-        query['model'] = 'Adun/olmOCR-7B-thai-v3.2'
-        response = await self.olm_ocr_openai.chat.completions.create(**query) 
+    # async def olmocr_runpod_predict(self, pdf_file_path, page_number):
+    #     query = await build_page_query(pdf_file_path, page=page_number, target_longest_image_dim=2048)
+    #     query['model'] = 'Adun/olmOCR-7B-thai-v3.2'
+    #     response = await self.olm_ocr_openai.chat.completions.create(**query) 
 
-        return response.choices[0].message.content
+    #     return response.choices[0].message.content
 
 
     async def ocr_page_with_nanonets_s(self, img_file_path):
