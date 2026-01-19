@@ -12,6 +12,8 @@ from fastmrz import FastMRZ
 import mimetypes
 # import mimetypes
 # import json
+import threading
+import time
 from typing import Optional, List, Dict, Any
 from google import genai
 import os
@@ -569,6 +571,55 @@ class OCR:
         except Exception as e:
             logger.error(f"[TYPHOON_OCR_ERROR] file={orig_filename} | error={str(e)}")
             raise
+
+    def parallel_typhoon_ocr_prediction(self, list_of_image_files: List[str]):
+        def process_file(image_file: str) -> str:
+            messages = prepare_ocr_messages(
+                pdf_or_image_path=image_file,
+                task_type="v1.5",
+                target_image_dim=1800,
+                target_text_length=8000,
+                page_num=1,
+                figure_language="Thai"
+            )
+
+
+            # Create async client for RunPod vLLM endpoint
+            sync_typhoon_client = OpenAI(
+                base_url='https://05j4jhk4yupj58-8000.proxy.runpod.net/v1',
+                api_key='0'
+            )
+
+            response = sync_typhoon_client.chat.completions.create(
+                model="typhoon-ocr-1-5",
+                messages=messages,
+                max_tokens=8000,
+                extra_body={
+                    "repetition_penalty": 1.1,
+                    "temperature": 0,
+                    "presence_penalty": 1.5,
+                    "top_p": 0.6,
+                },
+            )
+
+            text_output = response.choices[0].message.content
+            return text_output
+
+        
+        # begin implementation
+
+        threads = [] 
+        
+        for individual_image_file in list_of_image_files:
+            t = threading.Thread(target=process_file, args=(individual_image_file,)) 
+            threads.append(t) 
+            t.start() 
+            time.sleep(0.1) 
+            
+        # Stagger slightly   
+        for t in threads: 
+            t.join()
+
 
     def predict(self,image,
             max_new_tokens=8192,
