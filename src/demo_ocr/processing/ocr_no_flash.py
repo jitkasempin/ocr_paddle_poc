@@ -12,6 +12,8 @@ from fastmrz import FastMRZ
 import mimetypes
 # import mimetypes
 # import json
+import threading
+import time
 from typing import Optional, List, Dict, Any
 from google import genai
 import os
@@ -602,6 +604,21 @@ class OCR:
 
             text_output = response.choices[0].message.content
             return text_output
+
+        
+        # begin implementation
+
+        threads = [] 
+        
+        for individual_image_file in list_of_image_files:
+            t = threading.Thread(target=process_file, args=(individual_image_file,)) 
+            threads.append(t) 
+            t.start() 
+            time.sleep(0.1) 
+            
+        # Stagger slightly   
+        for t in threads: 
+            t.join()
 
 
     def predict(self,image,

@@ -1726,66 +1726,75 @@ async def ocr_processing_page():
                             center_stream += "\n"
 
                     elif selected_ocr_model == "high_performance_ocr":
-                        for img_nn in image_inp_path:
-                            if (document_type == "Invoice") or (document_type == "Packing List"):
-                                tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                # if tmp_center_stream contain the word "Error"
-                                if "Error" in tmp_center_stream:
-                                    if is_inv_delta:
-                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                    else:
-                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
-                                        # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
-                                # else:
-                                    # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                        if seq_or_parallel == "sequencial":
+                            for img_nn in image_inp_path:
+                                if (document_type == "Invoice") or (document_type == "Packing List"):
+                                    tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    # if tmp_center_stream contain the word "Error"
+                                    if "Error" in tmp_center_stream:
+                                        if is_inv_delta:
+                                            tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                        else:
+                                            tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
+                                            # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
+                                    # else:
+                                        # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
-                                # flag_repetition_result = flag_repetitive_output(tmp_center_stream)
+                                    # flag_repetition_result = flag_repetitive_output(tmp_center_stream)
 
-                                # if flag_repetition_result["flagged"]:
-                                    # print("Repetitive result detected. Switching to alternative OCR model.")
-                                    # np_array_image_date = preprocess_for_improve_ocr(image_path=img_nn, output_path="improved_ocr_quality.png")
+                                    # if flag_repetition_result["flagged"]:
+                                        # print("Repetitive result detected. Switching to alternative OCR model.")
+                                        # np_array_image_date = preprocess_for_improve_ocr(image_path=img_nn, output_path="improved_ocr_quality.png")
 
-                                    # retry doing the typhoon OCR with the improved image
-                                    # tmp_center_stream = await model.typhoon_runpod_predict("improved_ocr_quality.png", "structure", 1)
-
-
-                                center_stream += tmp_center_stream
-
-                            elif document_type == "Passport":
-                                center_stream = await model.parsing_mrz_passport(img_nn)
-                                # center_stream += tmp_center_stream
-
-                            elif document_type == "Book Bank Statement":
-                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-
-                                center_stream += tmp_center_stream
-
-                            elif document_type == "Stock Shareholder BOJ5":
-                                # tmp_center_stream = await model.docling_with_surya("document.pdf")
-                                tmp_center_stream = await model.run_hunyuan_predict(img_nn)
-
-                                center_stream += tmp_center_stream
-
-                            elif document_type == "DBD":
-                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                # if tmp_center_stream contain the word "Error"
-
-                                center_stream += tmp_center_stream
-
-                                if "ออกให้" in tmp_center_stream:
-                                    break
-                                    # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                        # retry doing the typhoon OCR with the improved image
+                                        # tmp_center_stream = await model.typhoon_runpod_predict("improved_ocr_quality.png", "structure", 1)
 
 
-                            else:
-                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                # if tmp_center_stream contain the word "Error"
-                                if "Error" in tmp_center_stream:
-                                    tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                    center_stream += tmp_center_stream
 
-                                center_stream += tmp_center_stream
-                            
-                            # center_stream += "\n"
+                                elif document_type == "Passport":
+                                    center_stream = await model.parsing_mrz_passport(img_nn)
+                                    # center_stream += tmp_center_stream
+
+                                elif document_type == "Book Bank Statement":
+                                    tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+
+                                    center_stream += tmp_center_stream
+
+                                elif document_type == "Stock Shareholder BOJ5":
+                                    # tmp_center_stream = await model.docling_with_surya("document.pdf")
+                                    tmp_center_stream = await model.run_hunyuan_predict(img_nn)
+
+                                    center_stream += tmp_center_stream
+
+                                elif document_type == "DBD":
+                                    tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    # if tmp_center_stream contain the word "Error"
+
+                                    center_stream += tmp_center_stream
+
+                                    if "ออกให้" in tmp_center_stream:
+                                        break
+                                        # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+
+
+                                else:
+                                    tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    # if tmp_center_stream contain the word "Error"
+                                    if "Error" in tmp_center_stream:
+                                        tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+
+                                    center_stream += tmp_center_stream
+                                
+                                # center_stream += "\n"
+
+                        else:
+                            # If it is invoice
+                            # parallel processing
+                            if document_type == "Invoice":
+                                model.parallel_typhoon_ocr_prediction(image_inp_path)
+
+                        
                     
                     elif selected_ocr_model == "legacy_ocr":
                         for img_nn in image_inp_path:
