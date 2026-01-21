@@ -1546,6 +1546,13 @@ async def ocr_processing_page():
         )
         st.session_state["ocr_model"] = selected_ocr_model
 
+        model_vlm_using = st.radio(
+            "Use VLM model",
+            options=["typhoon", "lighton" , "dots_ocr"],
+            index=0,
+            horizontal=True
+        )
+
         uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
         if uploaded_file:
             # doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
@@ -1581,6 +1588,8 @@ async def ocr_processing_page():
                     single_doc.save(page_pdf_path)
                     single_doc.close()
                     pdf_input_paths.append(page_pdf_path)
+
+                    break # I want only 1 page exactly
                     
             elif file_extension in ["png", "jpg", "jpeg"]:
                 # Handle image file
@@ -1732,11 +1741,16 @@ async def ocr_processing_page():
                                     tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                     # if tmp_center_stream contain the word "Error"
                                     if "Error" in tmp_center_stream:
-                                        if is_inv_delta:
-                                            tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                        else:
-                                            tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
+                                        if model_vlm_using == "typhoon":
+                                            if is_inv_delta:
+                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                            else:
+                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
                                             # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
+                                        elif model_vlm_using == "lighton":
+                                            tmp_center_stream = model.lighton_verda_predict("document.pdf")
+                                        elif model_vlm_using == "dots_ocr":
+                                            tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
                                     # else:
                                         # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
@@ -1868,7 +1882,9 @@ async def ocr_processing_page():
                 st.session_state.markdown_pages = parse_markdown_pages(center_stream)
 
             else:
-                center_md.markdown(center_stream)
+                st.session_state.markdown_content = center_stream
+                st.session_state.markdown_pages = parse_markdown_pages(center_stream)
+                # center_md.markdown(center_stream)
                 
             st.session_state["markdown"] = center_stream
 
@@ -2062,7 +2078,7 @@ async def ocr_processing_page():
 
         er={"error_bool":False,"error":""}
 
-        if document_type == "Book Bank Statement":
+        if (document_type == "Book Bank Statement") or (document_type == "Invoice"):
 
             st.markdown("---")
 
@@ -2084,7 +2100,10 @@ async def ocr_processing_page():
 
             st.markdown("---")
 
-            return
+            if document_type == "Book Bank Statement":
+                return
+
+
 
         with st.status("Extracting Invoice Data from OCR and Checking for LOGO and Signature", expanded=True) as status_json:
             right_md = st.empty()

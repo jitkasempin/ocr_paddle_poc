@@ -4,6 +4,9 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from langchain_ollama import ChatOllama
 # import outlines
+
+import pypdfium2 as pdfium
+
 import re
 # from olmocr.pipeline import build_page_query
 import httpx
@@ -45,6 +48,9 @@ from PIL import Image
 from io import BytesIO
 import base64
 from dots_ocr.utils import dict_promptmode_to_prompt
+
+import requests
+
 
 # Configure logging for token usage - outputs to stdout for Docker logs
 logging.basicConfig(
@@ -267,7 +273,7 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://veejutidvzi7xy-8000.proxy.runpod.net/v1" 
+        addr = "https://ouc0jp11qpmbaf-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
@@ -572,6 +578,46 @@ class OCR:
             logger.error(f"[TYPHOON_OCR_ERROR] file={orig_filename} | error={str(e)}")
             raise
 
+    def lighton_verda_predict(self, pdf_file_path):
+
+        ENDPOINT = "http://86.38.238.53:8000/v1/chat/completions"
+        MODEL = "lightonai/LightOnOCR-2-1B"
+
+
+        # Open PDF from local file
+        pdf = pdfium.PdfDocument(pdf_file_path)
+        page = pdf[0]
+        # Render at 200 DPI (scale factor = 200/72 ≈ 2.77)
+        pil_image = page.render(scale=2.77).to_pil()
+
+        # Convert to base64
+        buffer = BytesIO()
+        pil_image.save(buffer, format="PNG")
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        # Make request
+        payload = {
+            "model": MODEL,
+            "messages": [{
+                "role": "user",
+                "content": [{
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{image_base64}"}
+                }]
+            }],
+            "max_tokens": 8192,
+            "temperature": 0.0,
+            "top_p": 0.9,
+        }
+
+        response = requests.post(ENDPOINT, json=payload)
+        text = response.json()['choices'][0]['message']['content']
+        print(text)
+
+        return text
+
+        # pass
+
     def parallel_typhoon_ocr_prediction(self, list_of_image_files: List[str]):
         def process_file(image_file: str) -> str:
             messages = prepare_ocr_messages(
@@ -603,6 +649,12 @@ class OCR:
             )
 
             text_output = response.choices[0].message.content
+            result_dir = "/data/result_ocr"
+            os.makedirs(result_dir, exist_ok=True)
+            base_name = os.path.splitext(os.path.basename(image_file))[0]
+            result_path = os.path.join(result_dir, f"{base_name}.md")
+            with open(result_path, "w", encoding="utf-8") as result_file:
+                result_file.write(text_output)
             return text_output
 
         

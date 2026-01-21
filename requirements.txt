@@ -37,6 +37,7 @@ tabulate
 tenacity
 types-requests
 pdf2image
+pypdfium2
 pytesseract
 sentencepiece
 surya-ocr
