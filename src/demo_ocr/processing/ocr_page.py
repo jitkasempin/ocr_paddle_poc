@@ -1502,8 +1502,14 @@ async def ocr_processing_page():
     if "only_not_approved_items" not in st.session_state:
         st.session_state["only_not_approved_items"] = []
 
+    if "selected_pdf_name" not in st.session_state:
+        st.session_state["selected_pdf_name"] = ""
+
     if "refresh_page" not in st.session_state:
         st.session_state["refresh_page"] = False
+
+    if "uploaded_markdown_text" not in st.session_state:
+        st.session_state["uploaded_markdown_text"] = ""
 
     # Check if page needs to be refreshed
     if st.session_state.get("refresh_page", False):
@@ -1523,7 +1529,9 @@ async def ocr_processing_page():
         st.session_state["only_not_approved_items"] = []
         st.session_state["refresh_page"] = False
         st.session_state["markdown_content"] = None
+        st.session_state["selected_pdf_name"] = ""
         st.session_state["markdown_pages"] = []
+        st.session_state["uploaded_markdown_text"] = ""
         st.rerun()
 
 
@@ -1531,7 +1539,7 @@ async def ocr_processing_page():
     with st.sidebar:
         document_type = st.radio(
             "Choose the document type",
-            options=["Invoice", "Book Bank Statement" , "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD"],
+            options=["Invoice", "Book Bank Statement" , "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD", "MarkDown"],
             index=0  # Default to "Invoice"
         )
 
@@ -1553,7 +1561,7 @@ async def ocr_processing_page():
             horizontal=True
         )
 
-        uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
+        uploaded_file = st.file_uploader("Upload a PDF, Image, or Markdown", type=["pdf", "png", "jpg", "jpeg", "md"])
         if uploaded_file:
             # doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
             images = []
@@ -1576,6 +1584,8 @@ async def ocr_processing_page():
                     img_bytes = pix.tobytes("png")
                     img = Image.open(io.BytesIO(img_bytes))
                     img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+
+                    st.session_state["selected_pdf_name"] = uploaded_file.name
 
                     image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
                     images.append(img)
@@ -1611,7 +1621,12 @@ async def ocr_processing_page():
                 # img_sharp = enhancer.enhance(2)
                 # contrast = ImageEnhance.Contrast(img_sharp)
                 # img_final = contrast.enhance(2)
-                
+
+            elif file_extension == "md":
+                # Handle Markdown file
+                markdown_content = uploaded_file.read().decode("utf-8")
+                st.session_state["uploaded_markdown_text"] = markdown_content
+
             st.markdown("### 📷 Preview")
 
             if image_inp_path:
@@ -1637,27 +1652,28 @@ async def ocr_processing_page():
         # OCR model selection (default model_a)
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
-            doc_category = model.check_if_it_invoice(image_inp_path[0])
-            # doc_category_md = st.empty()
+            if document_type != "MarkDown":
+                doc_category = model.check_if_it_invoice(image_inp_path[0])
+                # doc_category_md = st.empty()
 
-            if doc_category == "Invoice" or doc_category == "Quotation":
-                is_invoice_or_quotation = True
+                if doc_category == "Invoice" or doc_category == "Quotation":
+                    is_invoice_or_quotation = True
 
 
-            if doc_category == "Invoice":
-                status_check_invoice.update(
-                    label="This document is an invoice", state="complete", expanded=False
-                )
-            else:
-                status_check_invoice.update(
-                    label="This document is not an invoice", state="complete", expanded=False
-                )
+                if doc_category == "Invoice":
+                    status_check_invoice.update(
+                        label="This document is an invoice", state="complete", expanded=False
+                    )
+                else:
+                    status_check_invoice.update(
+                        label="This document is not an invoice", state="complete", expanded=False
+                    )
 
-                # doc_category_md.markdown("This document is an invoice")
-                # st.session_state["invoice_check_button_disabled"] = False
-            # else:
-                # doc_category_md.markdown(f"This document is not an invoice. It is {doc_category}")
-                # st.session_state["invoice_check_button_disabled"] = True
+                    # doc_category_md.markdown("This document is an invoice")
+                    # st.session_state["invoice_check_button_disabled"] = False
+                # else:
+                    # doc_category_md.markdown(f"This document is not an invoice. It is {doc_category}")
+                    # st.session_state["invoice_check_button_disabled"] = True
 
 
             
@@ -1665,20 +1681,21 @@ async def ocr_processing_page():
         
         with st.status("Checking if this invoice is from DELTA or not", expanded=True) as status_check_for_delta:
 
-            img_rgb = load_image_as_rgb_array(image_inp_path[0])
-            is_inv_delta = is_match_centroids(img_rgb)
-            if is_inv_delta:
-                status_check_for_delta.update(
-                    label="✅ This invoice is from DELTA", state="complete", expanded=False
-                )
-            else:
-                status_check_for_delta.update(
-                    label="❌ This invoice is not from DELTA", state="error", expanded=False
-                )
-            
-            # status_check_for_delta.update(
-                # label="Successfully check DELTA invoice", state="complete", expanded=False
-            # )
+            if document_type != "MarkDown":
+                img_rgb = load_image_as_rgb_array(image_inp_path[0])
+                is_inv_delta = is_match_centroids(img_rgb)
+                if is_inv_delta:
+                    status_check_for_delta.update(
+                        label="✅ This invoice is from DELTA", state="complete", expanded=False
+                    )
+                else:
+                    status_check_for_delta.update(
+                        label="❌ This invoice is not from DELTA", state="error", expanded=False
+                    )
+                
+                # status_check_for_delta.update(
+                    # label="Successfully check DELTA invoice", state="complete", expanded=False
+                # )
 
         # Check if is_inv_delta is True or False.
         # If it's True, then show the GREEN text ("This invoice is DELTA. Continue to extract the text from invoice") on the screen below the "Checking if this invoice is from DELTA or not" status and continue to extract the text.
@@ -1713,7 +1730,7 @@ async def ocr_processing_page():
             if len(image_inp_path) > 0:
                 start_time = time.time()
                 if True:
-                    if selected_ocr_model == "text_ocr":
+                    if selected_ocr_model == "text_ocr" or document_type == "MarkDown":
                         # output_path = Path("./output_markdown")
 
                         # for img_nn in image_inp_path:
@@ -1731,8 +1748,8 @@ async def ocr_processing_page():
 
                         #     markdown_texts = pd_pipeline.concatenate_markdown_pages(markdown_list)
 
-                            center_stream += ""
-                            center_stream += "\n"
+                            center_stream += st.session_state["uploaded_markdown_text"]
+                            # center_stream += "\n"
 
                     elif selected_ocr_model == "high_performance_ocr":
                         if seq_or_parallel == "sequencial":
@@ -2078,7 +2095,7 @@ async def ocr_processing_page():
 
         er={"error_bool":False,"error":""}
 
-        if (document_type == "Book Bank Statement") or (document_type == "Invoice"):
+        if (document_type == "Book Bank Statement") or (document_type == "Invoice") or (document_type == "MarkDown"):
 
             st.markdown("---")
 
@@ -2123,6 +2140,10 @@ async def ocr_processing_page():
                         right_stream = await model.structured_output(center_stream, Invoice)
 
                     right_md.markdown(right_stream)
+                elif document_type == "MarkDown":
+                    right_stream = await model.structured_output(center_stream, Invoice)
+                    right_md.markdown(right_stream)
+
                 elif document_type == "Passport":
                     right_stream = await model.structured_output(center_stream, PassPortData)
                     right_md.markdown(right_stream)
@@ -2268,3 +2289,5 @@ async def ocr_processing_page():
         st.session_state["processing_time"] = 0
         st.session_state["markdown_pages"] = []
         st.session_state["markdown_content"] = None
+        st.session_state["selected_pdf_name"] = ""
+        st.session_state["uploaded_markdown_text"] = ""
