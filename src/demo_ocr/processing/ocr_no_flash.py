@@ -572,6 +572,11 @@ class OCR:
 
             # Extract text content
             text_output = response.choices[0].message.content
+
+            logger.info(f"[TYPHOON_OCR_TEXT_OUTPUT] text_output={text_output}")
+            print(f"[TYPHOON_OCR_TEXT_OUTPUT] text_output={text_output}")
+
+
             return text_output
 
         except Exception as e:
@@ -580,7 +585,7 @@ class OCR:
 
     def lighton_verda_predict(self, pdf_file_path):
 
-        ENDPOINT = "http://86.38.238.53:8000/v1/chat/completions"
+        ENDPOINT = "http://65.108.33.89:8000/v1/chat/completions"
         MODEL = "lightonai/LightOnOCR-2-1B"
 
 
