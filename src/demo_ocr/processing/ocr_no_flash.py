@@ -530,7 +530,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://05j4jhk4yupj58-8000.proxy.runpod.net/v1',
+            base_url='https://0istnshlwdri2g-8000.proxy.runpod.net/v1',
             api_key='0'
         )
 
@@ -542,7 +542,7 @@ class OCR:
                 max_tokens=8000,
                 extra_body={
                     "repetition_penalty": 1.1,
-                    "temperature": 0,
+                    "temperature": 0.1,
                     "presence_penalty": 1.5,
                     "top_p": 0.6,
                 },
@@ -585,7 +585,7 @@ class OCR:
 
     def lighton_verda_predict(self, pdf_file_path):
 
-        ENDPOINT = "http://65.108.33.89:8000/v1/chat/completions"
+        ENDPOINT = "https://lln7mk0b351gfz-8000.proxy.runpod.net/v1/chat/completions"
         MODEL = "lightonai/LightOnOCR-2-1B"
 
 

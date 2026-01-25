@@ -439,6 +439,8 @@ class CompanyStock(BaseModel):
 
 class Certificate_DBD(BaseModel):
     company_name: str = Field(default="", description="ชื่อบริษัท ยกตัวอย่างเช่น 'บริษัท เฉิงหลัน เทคโนโลยี จำกัด'")
+    regis_number: str = Field(default="", description="ทะเบียนนิติบุคคลเลขที่")
+    list_of_holders: List[str] = Field(default_factory=list, description="รายชื่อกรรมการของบริษัท มีได้หลายคน")
     certificate_issued_date: str = Field(default="", description="วันที่ออกใบอนุญาต ยกตัวอย่างเช่น 'ออกให้ ณ วันที่ 5 เดือน เมษายน พ.ศ. 2567'")
 # class InvoicePaymentDate(BaseModel):
 #     payment_day: int = Field(
@@ -1539,7 +1541,7 @@ async def ocr_processing_page():
     with st.sidebar:
         document_type = st.radio(
             "Choose the document type",
-            options=["Invoice", "Book Bank Statement" , "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD", "MarkDown"],
+            options=["Stamp Detection", "Invoice", "Book Bank Statement" , "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD", "MarkDown"],
             index=0  # Default to "Invoice"
         )
 
@@ -1625,6 +1627,9 @@ async def ocr_processing_page():
             elif file_extension == "md":
                 # Handle Markdown file
                 markdown_content = uploaded_file.read().decode("utf-8")
+                b_name = uploaded_file.name.rsplit('.', 1)[0]
+                image_inp_path.append(b_name)
+                
                 st.session_state["uploaded_markdown_text"] = markdown_content
 
             st.markdown("### 📷 Preview")
@@ -1633,23 +1638,28 @@ async def ocr_processing_page():
                 st.text_input(label="Filename :",value=image_inp_path[0])
                         
             for img in images:
-                # results = signature.predict(np.array(img), conf=0.5)
-                # print(results)
-                # st.image(results[0].plot())
+                results = signature.predict(np.array(img), conf=0.5)
+                print(results)
+                st.image(results[0].plot())
 
-                # resultss=[]
-                # for result in results:
-                #     for box in result.boxes:
-                #         cls_id = int(box.cls[0]) 
-                #         class_name = signature.names[cls_id]
-                #         conf = float(box.conf[0])
-                #         resultss.append({"class_name":class_name,"score":conf,"class_id":cls_id})
+                resultss=[]
+                for result in results:
+                    for box in result.boxes:
+                        cls_id = int(box.cls[0]) 
+                        class_name = signature.names[cls_id]
+                        conf = float(box.conf[0])
+                        resultss.append({"class_name":class_name,"score":conf,"class_id":cls_id})
 
                 # st.session_state["resultss"]=len(resultss)
-                st.image(img)
+                # st.image(img)
 
     if uploaded_file and st.session_state["new_upload"]:
         # OCR model selection (default model_a)
+
+        if document_type == "Stamp Detection":
+            st.write("Do the stamp detection here")
+
+            return
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
             if document_type != "MarkDown":
@@ -1701,12 +1711,13 @@ async def ocr_processing_page():
         # If it's True, then show the GREEN text ("This invoice is DELTA. Continue to extract the text from invoice") on the screen below the "Checking if this invoice is from DELTA or not" status and continue to extract the text.
         # If it's False, then show the RED text ("Please upload DELTA invoice only") below "Checking if this invoice is from DELTA or not" status and do not continue to extract the text.
         
-        if is_inv_delta:
-            st.success("✅ This invoice is DELTA. Continue to extract the text from invoice")
-        else:
-            st.info("Process invoice parsing without pre-approval process")
-            # st.session_state["new_upload"] = False
-            # return
+        if document_type != "MarkDown":
+            if is_inv_delta:
+                st.success("✅ This invoice is DELTA. Continue to extract the text from invoice")
+            else:
+                st.info("Process invoice parsing without pre-approval process")
+                # st.session_state["new_upload"] = False
+                # return
 
         with st.status("Extracting text", expanded=True) as status:
             center_md = st.empty()
@@ -2135,9 +2146,9 @@ async def ocr_processing_page():
                 # if is_invoice_or_quotation == True:
                 if document_type == "Invoice":
                     if is_inv_delta:
-                        right_stream = await model.structured_output(center_stream, Invoice)
+                        right_stream = await model.structured_output(center_stream, Document)
                     else:
-                        right_stream = await model.structured_output(center_stream, Invoice)
+                        right_stream = await model.structured_output(center_stream, Document)
 
                     right_md.markdown(right_stream)
                 elif document_type == "MarkDown":
