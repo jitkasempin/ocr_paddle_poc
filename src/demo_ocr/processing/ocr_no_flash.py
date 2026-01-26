@@ -617,6 +617,9 @@ class OCR:
 
         # Send to RunPod Serverless endpoint
         endpoint_url = "https://api.runpod.ai/v2/ruagzglp7n78c1/run"
+
+        RUNPOD_STATUS_ENDPOINT = "https://api.runpod.ai/v2/ruagzglp7n78c1" 
+
         payload = {
             "input": {
                 "image_base64": image_base64
@@ -629,9 +632,69 @@ class OCR:
         }
         response = requests.post(endpoint_url, json=payload, headers=headers)
 
-        md_output = response.json()['text']
+        # md_output = response.json()['output']['text']
 
-        return md_output
+        # print("--------------------------------")
+        # print(json.dumps(response.json(), indent=4))
+        # print("--------------------------------")
+        md_text = ""
+
+
+        if response.status_code == 200:
+            result = response.json()
+            job_id = result.get("id")
+            status = result.get("status")
+            
+            # print(f"[DEBUG] Job queued with ID: {job_id}")
+            # print(f"[DEBUG] Initial status: {status}")
+            
+            # Poll for result
+            max_attempts = 300
+            attempt = 0
+            while attempt < max_attempts:
+                print(f"[DEBUG] Polling attempt {attempt + 1}/{max_attempts}...")
+                
+                status_response = requests.get(
+                    f"{RUNPOD_STATUS_ENDPOINT}/status/{job_id}",
+                    headers=headers
+                )
+                
+                if status_response.status_code == 200:
+                    status_result = status_response.json()
+                    current_status = status_result.get("status")
+                    
+                    print(f"[DEBUG] Current status: {current_status}")
+                    
+                    if current_status == "COMPLETED":
+                        print("[DEBUG] Job completed successfully!")
+                        # print("\nFull response:")
+                        # print(status_result)
+                        
+                        # Extract embeddings
+                        if "output" in status_result and "text" in status_result["output"]:
+                            md_text = status_result["output"]["text"]
+                            # print(f"\nEmbedding dimension: {len(embedding)}")
+                            # print(f"Embedding (first 10 values): {embedding[:10]}")
+                        break
+                    elif current_status == "FAILED":
+                        print(f"[ERROR] Job failed: {status_result}")
+                        break
+                    else:
+                        # Still processing
+                        time.sleep(1)
+                        attempt += 1
+                else:
+                    print(f"[ERROR] Status check failed: {status_response.status_code}")
+                    break
+            
+            if attempt >= max_attempts:
+                print("[ERROR] Timeout waiting for job completion")
+
+
+
+        return md_text
+        
+        # "md_output"
     
         #response.json()
 

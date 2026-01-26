@@ -1776,8 +1776,8 @@ async def ocr_processing_page():
                                                 tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
                                             
                                             
-                                            if "repeat_detected" in tmp_center_stream:
-                                                tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", 0)
+                                            # if "repeat_detected" in tmp_center_stream:
+                                            tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", 0)
                                             
                                             # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
                                         elif model_vlm_using == "lighton":
