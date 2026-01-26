@@ -275,6 +275,23 @@ class Document(BaseModel):
 
         return parsed_for_po
 
+    @model_validator(mode="after")
+    def _check_required_fields_not_empty(self):
+        empty_fields = []
+        if self.invoice_number == "":
+            empty_fields.append("invoice_number")
+        if self.po_number == "":
+            empty_fields.append("po_number")
+        if self.date == "" or self.date == "00.00.0000":
+            empty_fields.append("date")
+        if self.payment_terms == "":
+            empty_fields.append("payment_terms")
+
+        if empty_fields:
+            raise ValueError(f"The following fields must not be empty: {', '.join(empty_fields)}")
+
+        return self
+
 
 class SellerCompany(BaseModel):
     name: str = Field(
@@ -943,6 +960,22 @@ def ui_js(session="json_str"):
             # js["items"] = filtered_items
         
         st.session_state["json"] = js
+
+        # Create Document object from js dictionary
+        try:
+            document = Document(**js
+                # invoice_number=js.get("invoice_number", ""),
+                # po_number=js.get("po_number", ""),
+                # date=js.get("date", ""),
+                # document_name=js.get("document_name", ""),
+                # payment_due_date=js.get("payment_due_date", "0/0/0"),
+                # payment_terms=js.get("payment_terms", "")
+            )
+            # st.session_state["document"] = document
+        except Exception as e:
+            st.error(f"Failed to create Document object: {str(e)}")
+
+
 
         # st.session_state["payment_term"] = js["payment_term"]
 
