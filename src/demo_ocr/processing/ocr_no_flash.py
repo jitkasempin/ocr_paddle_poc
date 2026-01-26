@@ -570,18 +570,71 @@ class OCR:
             else:
                 logger.warning(f"[TYPHOON_OCR_TOKEN_USAGE] No usage data returned for file={orig_filename}")
 
+            # Extract and log finish_reason from vLLM response
+            finish_reason = response.choices[0].finish_reason if response.choices else None
+            logger.info(
+                f"[TYPHOON_OCR_FINISH_REASON] "
+                f"file={orig_filename} | "
+                f"finish_reason={finish_reason}"
+            )
+            print(
+                f"[TYPHOON_OCR_FINISH_REASON] "
+                f"file={orig_filename} | "
+                f"finish_reason={finish_reason}",
+                flush=True
+            )
+
             # Extract text content
             text_output = response.choices[0].message.content
 
             logger.info(f"[TYPHOON_OCR_TEXT_OUTPUT] text_output={text_output}")
             print(f"[TYPHOON_OCR_TEXT_OUTPUT] text_output={text_output}")
 
+            if finish_reason == "stop":
+                return text_output
+            elif finish_reason == "length":
+                return "repeat_detected"
 
-            return text_output
+
+            # return text_output
 
         except Exception as e:
             logger.error(f"[TYPHOON_OCR_ERROR] file={orig_filename} | error={str(e)}")
             raise
+
+    def call_runpod_serverless_sync(self, pdf_file_path, page_number):
+
+        # Open PDF from local file
+        pdf = pdfium.PdfDocument(pdf_file_path)
+        page = pdf[page_number]
+        # Render at 200 DPI (scale factor = 200/72 ≈ 2.77)
+        pil_image = page.render(scale=2.77).to_pil()
+
+        # Convert to base64
+        buffer = BytesIO()
+        pil_image.save(buffer, format="PNG")
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        # Send to RunPod Serverless endpoint
+        endpoint_url = "https://api.runpod.ai/v2/ruagzglp7n78c1/run"
+        payload = {
+            "input": {
+                "image_base64": image_base64
+            }
+        }
+
+        key = "rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
+        headers = {
+            "Authorization": f"Bearer {key}"
+        }
+        response = requests.post(endpoint_url, json=payload, headers=headers)
+
+        md_output = response.json()['text']
+
+        return md_output
+    
+        #response.json()
+
 
     def lighton_verda_predict(self, pdf_file_path):
 
