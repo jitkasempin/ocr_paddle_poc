@@ -701,7 +701,7 @@ class OCR:
 
     def lighton_verda_predict(self, pdf_file_path):
 
-        ENDPOINT = "https://lln7mk0b351gfz-8000.proxy.runpod.net/v1/chat/completions"
+        ENDPOINT = "http://135.181.63.138:8000/v1/chat/completions"
         MODEL = "lightonai/LightOnOCR-2-1B"
 
 
@@ -842,6 +842,28 @@ class OCR:
         # Single request with thinking mode
         response = await self.q_client.chat_completion([
             {"role": "system", "content": "You are a helpful assistant that converts Markdown to JSON format according to the given schema."},
+            {"role": "user", "content": prompt}
+        ])
+
+        return response
+
+
+    async def dbd_output(self,markdown:str):
+        prompt=f"""
+        ให้ทำการแกะข้อมูลดังต่อไปนี้ ออกจากข้อความที่กำหนดไว้ด้านล่างนี้:
+        - วันที่ออกเอกสาร (ให้ดึงวันที่ ที่อยู่หลังคำว่า 'ออกให้ ณ' เท่านั้น ถ้าไม่เจอ ให้ตอบว่า 'ไม่พบข้อมูล' เท่านั้น) 
+        ตัวอย่างข้อความ เช่น: ออกให้ ณ วันที่ 29 เดือน มกราคม พ.ศ. 2567
+        คุณจะต้องตอบว่า: '29 เดือน มกราคม พ.ศ. 2567'
+        คุณจะต้องใช้เฉพาะข้อมูลที่อยู่ในข้อความด้านล่างนี้เท่านั้น ในการตอบ และห้ามนำข้อมูลที่อยู่นอกเหนือจากข้อความด้านล่างนี้ มาตอบเด็ดขาด
+        
+        ข้อความ: {markdown}
+        วันที่ออกเอกสาร:
+        /no_think
+        """
+
+        # Single request with thinking mode
+        response = await self.q_client.chat_completion([
+            {"role": "system", "content": "คุณเป็นผู้เชี่ยวชาญในการแกะข้อมูลออกจากข้อความ"},
             {"role": "user", "content": prompt}
         ])
 
