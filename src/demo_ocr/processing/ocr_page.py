@@ -251,7 +251,11 @@ class Document(BaseModel):
     invoice_number: str = Field(
         default="", description="เลขที่ หรือ เลขที่ใบกำกับ หรือ เลขที่ใบกำกับภาษี หรือ invoice number หรือ invoice no หรือ inv no")
     po_number: str = Field(
-        default="", description="ใบสั่งซื้อ หรือ P/O NO หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ Purchase order number หรือ เลขที่ PO")
+        default="", description=(
+            "'ใบสั่งซื้อ', 'P/O NO', 'P.O. No', 'เลขที่ใบสั่งซื้อ', 'ใบสั่งซื้อเลขที่', 'PO NO', 'Purchase order number', 'เลขที่ PO'",
+            "ต้องไม่ใช่ค่าของ 'เลขที่ใบสั่งขาย' หรือ 'S.O. No' หรือ 'เลขที่ใบส่งของ'"
+        )
+    )
     date: str = Field(
         default="", description="วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
     document_name: str = Field(
@@ -300,16 +304,22 @@ class Document(BaseModel):
 class SellerCompany(BaseModel):
     name: str = Field(
         default="", description="Company name at the top of the invoice")
+        # default="", description="ชื่อของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     tax_id: str = Field(
         default="", description="เลขประจำตัวผู้เสียภาษี หรือ Tax ID")
+        # default="", description="เลขประจำตัวผู้เสียภาษี หรือ Tax ID ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     address: str = Field(
         default="", description="ที่อยู่ของบริษัท หรือที่ตั้งของสำนักงานใหญ่บริษัท")
+        # default="", description="ที่อยู่ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     contact: Optional[str] = Field(
         default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number")
+        # default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     branch_name: Optional[str] = Field(
         default=None, description="ชื่อสาขา หรือ branch name")
+        # default=None, description="ชื่อสาขา หรือ branch name ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     branch_code: Optional[str] = Field(
         default=None, description="สาขาที่ หรือ สาขา หรือ branch number")
+        # default=None, description="สาขาที่ หรือ สาขา หรือ branch number ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
 
 
 class CustomerCompany(BaseModel):
@@ -322,9 +332,9 @@ class CustomerCompany(BaseModel):
     contact: Optional[str] = Field(
         default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number")
     branch_name: Optional[str] = Field(
-        default=None, description="ชื่อสาขา หรือ branch name")
+        default=None, description="ชื่อสาขา / branch name (จะต้องลงท้ายด้วยคำว่า division หรือ div หรือ ดิวิชั่น เท่านั้น เช่น PHOSPHATE DIVISION หรือ ฟอสเฟต ดิวิชั่น หรือ PHOSPHATE DIV)")
     branch_code: Optional[str] = Field(
-        default=None, description="สาขาที่ หรือ สาขา หรือ branch number")
+        default=None, description="'สาขาที่', 'สาขา', 'branch no', 'branch code', 'branch number', 'branch #', 'branch :'")
 
     @field_validator("branch_code", mode="before")
     @classmethod
@@ -1552,6 +1562,9 @@ async def ocr_processing_page():
     if "uploaded_markdown_text" not in st.session_state:
         st.session_state["uploaded_markdown_text"] = ""
 
+    if "ocr_page_number" not in st.session_state:
+        st.session_state["ocr_page_number"] = 0
+
     # Check if page needs to be refreshed
     if st.session_state.get("refresh_page", False):
         # Reset all session state variables to initial state
@@ -1573,6 +1586,7 @@ async def ocr_processing_page():
         st.session_state["selected_pdf_name"] = ""
         st.session_state["markdown_pages"] = []
         st.session_state["uploaded_markdown_text"] = ""
+        st.session_state["ocr_page_number"] = 0
         st.rerun()
 
 
@@ -1597,9 +1611,18 @@ async def ocr_processing_page():
 
         model_vlm_using = st.radio(
             "Use VLM model",
-            options=["typhoon", "lighton" , "dots_ocr"],
+            options=["typhoon", "lighton" , "dots_ocr", "olmocr"],
             index=0,
             horizontal=True
+        )
+
+        # Page number selector
+        st.session_state["ocr_page_number"] = st.number_input(
+            "Page number:",
+            min_value=0,
+            max_value=20,
+            value=st.session_state["ocr_page_number"],
+            step=1
         )
 
         uploaded_file = st.file_uploader("Upload a PDF, Image, or Markdown", type=["pdf", "png", "jpg", "jpeg", "md"])
@@ -1640,28 +1663,43 @@ async def ocr_processing_page():
 
                 # len(resultss)
 
-                for i, page in enumerate(doc):
-                    # Page as image
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                    img_bytes = pix.tobytes("png")
-                    img = Image.open(io.BytesIO(img_bytes))
-                    img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+                if document_type != "Passport":
+                    for i, page in enumerate(doc):
+                        # Page as image
+                        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                        img_bytes = pix.tobytes("png")
+                        img = Image.open(io.BytesIO(img_bytes))
+                        img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
 
-                    st.session_state["selected_pdf_name"] = uploaded_file.name
+                        st.session_state["selected_pdf_name"] = uploaded_file.name
 
-                    image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
-                    images.append(img)
+                        image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+                        images.append(img)
 
-                    # Save each page as a separate PDF and append to pdf_input_paths
-                    base_no_ext = uploaded_file.name.rsplit('.', 1)[0]
-                    page_pdf_path = f"{base_no_ext}_{i}.pdf"
-                    single_doc = fitz.open()  # create an empty PDF
-                    single_doc.insert_pdf(doc, from_page=i, to_page=i)
-                    single_doc.save(page_pdf_path)
-                    single_doc.close()
-                    pdf_input_paths.append(page_pdf_path)
+                        # Save each page as a separate PDF and append to pdf_input_paths
+                        base_no_ext = uploaded_file.name.rsplit('.', 1)[0]
+                        page_pdf_path = f"{base_no_ext}_{i}.pdf"
+                        single_doc = fitz.open()  # create an empty PDF
+                        single_doc.insert_pdf(doc, from_page=i, to_page=i)
+                        single_doc.save(page_pdf_path)
+                        single_doc.close()
+                        pdf_input_paths.append(page_pdf_path)
 
-                    break 
+                        # break 
+                else:
+                    for i, page in enumerate(doc):
+                        if i == st.session_state["ocr_page_number"]:
+                            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                            img_bytes = pix.tobytes("png")
+                            img = Image.open(io.BytesIO(img_bytes))
+                            img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+
+                            st.session_state["selected_pdf_name"] = f"{uploaded_file.name.replace('.pdf', '')}_{i}.pdf"
+
+                            image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+                            images.append(img)
+
+                            break
                 
                 # I want only 1 page exactly
                     
@@ -1843,6 +1881,8 @@ async def ocr_processing_page():
                                             # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
                                         elif model_vlm_using == "lighton":
                                             tmp_center_stream = model.lighton_verda_predict("document.pdf")
+                                        elif model_vlm_using == "olmocr":
+                                            tmp_center_stream = await model.olmocr_runpod_predict("document.pdf", st.session_state["ocr_page_number"])
                                         elif model_vlm_using == "dots_ocr":
                                             tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
                                     # else:
@@ -1862,7 +1902,8 @@ async def ocr_processing_page():
 
                                 elif document_type == "Passport":
                                     # center_stream = await model.parsing_mrz_passport(img_nn)
-                                    center_stream = model.lighton_verda_predict("document.pdf")
+                                    center_stream = model.call_runpod_serverless_sync("document.pdf", st.session_state["ocr_page_number"])
+                                    # center_stream = model.lighton_verda_predict("document.pdf")
                                     # center_stream += tmp_center_stream
 
                                 elif document_type == "Book Bank Statement":
@@ -1871,13 +1912,24 @@ async def ocr_processing_page():
                                     center_stream += tmp_center_stream
 
                                 elif document_type == "Stock Shareholder BOJ5":
-                                    # tmp_center_stream = await model.docling_with_surya("document.pdf")
-                                    tmp_center_stream = await model.run_hunyuan_predict(img_nn)
+                                    tmp_center_stream = await model.docling_with_surya("document.pdf")
+                                    # if model_vlm_using == "lighton":
+                                    #     tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", st.session_state["ocr_page_number"])
+                                    # elif model_vlm_using == "olmocr":
+                                    #     tmp_center_stream = await model.olmocr_runpod_predict("document.pdf", st.session_state["ocr_page_number"])
+                                    # else:
+                                    #     tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
 
                                     center_stream += tmp_center_stream
 
                                 elif document_type == "DBD":
-                                    tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    if model_vlm_using == "typhoon":
+                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    elif model_vlm_using == "olmocr":
+                                        tmp_center_stream = await model.olmocr_runpod_predict("document.pdf", st.session_state["ocr_page_number"])
+                                    else:
+                                        tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", st.session_state["ocr_page_number"])
+
                                     # if tmp_center_stream contain the word "Error"
 
                                     center_stream += tmp_center_stream
@@ -1900,8 +1952,22 @@ async def ocr_processing_page():
                         else:
                             # If it is invoice
                             # parallel processing
-                            if document_type == "Invoice":
+                            if document_type == "Invoice" or document_type == "DBD":
                                 model.parallel_typhoon_ocr_prediction(image_inp_path)
+
+                                # Concat all markdown files from tmp_file folder, ordered by sequence number
+                                tmp_file_dir = Path("/data/result_ocr/tmp_file")
+                                md_files = sorted(
+                                    tmp_file_dir.glob("*.md"),
+                                    key=lambda f: int(re.search(r'_(\d+)\.md$', f.name).group(1))
+                                    if re.search(r'_(\d+)\.md$', f.name) else 0
+                                )
+                                center_stream = ""
+                                for md_file in md_files:
+                                    center_stream += md_file.read_text(encoding="utf-8")
+                                # Delete all markdown files after concatenation
+                                for md_file in md_files:
+                                    md_file.unlink()
 
                         
                     
@@ -2258,6 +2324,23 @@ async def ocr_processing_page():
                         # Remove <think>...</think> tags from right_stream
                         cleaned_stream = re.sub(r'<think>.*?</think>', '', right_stream, flags=re.DOTALL).strip()
                         st.session_state["json_str"] = json.dumps({"date_of_issue": cleaned_stream})
+                    elif document_type == "Passport":
+                        print("Passport")
+                        mrz_lines = [
+                            line for line in center_stream.splitlines()
+                            if '<' in line
+                            and len(line) > 20
+                            and line[0] != '<'
+                            and line == line.upper()
+                        ][-2:]
+
+                        old_json_str_data = re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1) 
+                        # Append the mrz_lines to the old_json_str_data
+                        new_json_str_data = json.loads(old_json_str_data)
+                        new_json_str_data["mrz_lines"] = mrz_lines
+                        st.session_state["json_str"] = json.dumps(new_json_str_data)
+
+                        # st.session_state["json_str"] = json.dumps({"mrz": mrz_lines})
                     else:
                         st.session_state["json_str"] = re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1)
                 else:

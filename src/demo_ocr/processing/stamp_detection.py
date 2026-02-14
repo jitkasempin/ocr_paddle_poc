@@ -8,7 +8,7 @@ from ultralytics import YOLO
 
 class StampDetection:
     
-    def __init__(self, model_path: str, confidence: float = 0.7):
+    def __init__(self, model_path: str, confidence: float = 0.2):
         self.model = YOLO(model_path)
         self.confidence = confidence
         self._results = None

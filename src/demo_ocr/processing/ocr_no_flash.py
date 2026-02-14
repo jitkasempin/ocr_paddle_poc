@@ -21,23 +21,23 @@ from typing import Optional, List, Dict, Any
 from google import genai
 import os
 # #region agent log
-def _agent_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
-    try:
-        import json, time
-        payload = {
-            "sessionId": "debug-session",
-            "runId": os.getenv("AGENT_RUN_ID", "pre-fix"),
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data,
-            "timestamp": int(time.time() * 1000),
-        }
-        os.makedirs("/home/jitkasem/.cursor", exist_ok=True)
-        with open("/home/jitkasem/.cursor/debug.log", "a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+# def _agent_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
+#     try:
+#         import json, time
+#         payload = {
+#             "sessionId": "debug-session",
+#             "runId": os.getenv("AGENT_RUN_ID", "pre-fix"),
+#             "hypothesisId": hypothesis_id,
+#             "location": location,
+#             "message": message,
+#             "data": data,
+#             "timestamp": int(time.time() * 1000),
+#         }
+#         os.makedirs("/home/jitkasem/.cursor", exist_ok=True)
+#         with open("/home/jitkasem/.cursor/debug.log", "a", encoding="utf-8") as f:
+#             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+#     except Exception:
+        # pass
 # #endregion
 
 # from typhoon_ocr import prepare_ocr_messages
@@ -66,56 +66,57 @@ from typhoon_ocr import ocr_document, prepare_ocr_messages
 import asyncio
 # Requires `pip install docling-surya`
 # See https://pypi.org/project/docling-surya/
-_agent_log(
-    "H1",
-    "processing/ocr_no_flash.py:docling_surya_import",
-    "Attempting import docling_surya",
-    {"pythonpath": os.getenv("PYTHONPATH")},
-)
-try:
-    from docling_surya import SuryaOcrOptions
-    _agent_log(
-        "H1",
-        "processing/ocr_no_flash.py:docling_surya_import",
-        "Imported docling_surya successfully",
-        {"has_docling_surya": True},
-    )
-except Exception as e:
-    import sys
-    try:
-        from importlib.metadata import PackageNotFoundError, version
-        try:
-            docling_surya_version = version("docling-surya")
-        except PackageNotFoundError:
-            docling_surya_version = None
-        try:
-            surya_ocr_version = version("surya-ocr")
-        except PackageNotFoundError:
-            surya_ocr_version = None
-        try:
-            docling_version = version("docling")
-        except PackageNotFoundError:
-            docling_version = None
-    except Exception:
-        docling_surya_version = None
-        surya_ocr_version = None
-        docling_version = None
+# _agent_log(
+#     "H1",
+#     "processing/ocr_no_flash.py:docling_surya_import",
+#     "Attempting import docling_surya",
+#     {"pythonpath": os.getenv("PYTHONPATH")},
+# )
+# try:
+#     from docling_surya import SuryaOcrOptions
+    # _agent_log(
+    #     "H1",
+    #     "processing/ocr_no_flash.py:docling_surya_import",
+    #     "Imported docling_surya successfully",
+    #     {"has_docling_surya": True},
+    # )
+# except Exception as e:
+#     import sys
+#     try:
+#         from importlib.metadata import PackageNotFoundError, version
+#         try:
+#             docling_surya_version = version("docling-surya")
+#         except PackageNotFoundError:
+#             docling_surya_version = None
+#         try:
+#             surya_ocr_version = version("surya-ocr")
+#         except PackageNotFoundError:
+#             surya_ocr_version = None
+#         try:
+#             docling_version = version("docling")
+#         except PackageNotFoundError:
+#             docling_version = None
+#     except Exception:
+#         docling_surya_version = None
+#         surya_ocr_version = None
+#         docling_version = None
 
-    _agent_log(
-        "H1",
-        "processing/ocr_no_flash.py:docling_surya_import",
-        "Failed to import docling_surya",
-        {
-            "error_repr": repr(e),
-            "python_version": sys.version,
-            "executable": sys.executable,
-            "docling_surya_version": docling_surya_version,
-            "surya_ocr_version": surya_ocr_version,
-            "docling_version": docling_version,
-            "sys_path_head": sys.path[:8],
-        },
-    )
-    raise
+#     _agent_log(
+#         "H1",
+#         "processing/ocr_no_flash.py:docling_surya_import",
+#         "Failed to import docling_surya",
+#         {
+#             "error_repr": repr(e),
+#             "python_version": sys.version,
+#             "executable": sys.executable,
+#             "docling_surya_version": docling_surya_version,
+#             "surya_ocr_version": surya_ocr_version,
+#             "docling_version": docling_version,
+#             "sys_path_head": sys.path[:8],
+#         },
+#     )
+#     raise
+from docling_surya import SuryaOcrOptions
 
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
@@ -129,6 +130,7 @@ os.environ["FLASH_ATTENTION_SKIP_CUDA_BUILD"] = "TRUE"
 from transformers import DonutProcessor, VisionEncoderDecoderModel
 import fitz  # PyMuPDF
 from .qwen_client import Qwen3VLLMClient
+from .schematron import SchematronClient
 
 # class InvoicePaymentDate(BaseModel):
     # payment_term_date: datetime = Field(
@@ -198,11 +200,13 @@ class OCR:
 
         self.my_openai = AsyncOpenAI(base_url="https://veejutidvzi7xy-8000.proxy.runpod.net/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c", http_client=http_client)
         # self.my_openai = OpenAI(base_url="https://8000-01jv6gbqesg14ne3mavgm9acm7.cloudspaces.litng.ai/v1", api_key="api-key")
-        # self.olm_ocr_openai = AsyncOpenAI(base_url="https://api.runpod.ai/v2/ajplyymntb6f54/openai/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c")
+        self.olm_ocr_openai = AsyncOpenAI(base_url="https://8s10af6pfitdsy-8000.proxy.runpod.net/v1", api_key="0")
 
         self.nanonet_client = AsyncOpenAI(base_url="https://ifp0ig0mslclt9-8000.proxy.runpod.net/v1", api_key="0")
 
         self.q_client = Qwen3VLLMClient()
+
+        self.schematron_client = SchematronClient()
 
         self.fast_mrz = FastMRZ()
 
@@ -230,12 +234,14 @@ class OCR:
         #     {{ message }}
         #     """
         # )
-    # async def olmocr_runpod_predict(self, pdf_file_path, page_number):
-    #     query = await build_page_query(pdf_file_path, page=page_number, target_longest_image_dim=2048)
-    #     query['model'] = 'Adun/olmOCR-7B-thai-v3.2'
-    #     response = await self.olm_ocr_openai.chat.completions.create(**query) 
+    async def olmocr_runpod_predict(self, pdf_file_path, page_number):
+        query = await build_page_query(pdf_file_path, page=page_number, target_longest_image_dim=2048)
+        # vllm serve  --max-model-len 16384
 
-    #     return response.choices[0].message.content
+        query['model'] = 'allenai/olmOCR-2-7B-1025'
+        response = await self.olm_ocr_openai.chat.completions.create(**query) 
+
+        return response.choices[0].message.content
 
 
     async def ocr_page_with_nanonets_s(self, img_file_path):
@@ -316,7 +322,7 @@ class OCR:
             do_ocr=True,
             ocr_model="suryaocr",
             allow_external_plugins=True,
-            ocr_options=SuryaOcrOptions(lang=["en"]),
+            ocr_options=SuryaOcrOptions(lang=["th"]),
         )
 
         converter = DocumentConverter(
@@ -530,7 +536,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://0istnshlwdri2g-8000.proxy.runpod.net/v1',
+            base_url='https://qjj3ng6akp8qmw-8000.proxy.runpod.net/v1',
             api_key='0'
         )
 
@@ -753,7 +759,7 @@ class OCR:
 
             # Create async client for RunPod vLLM endpoint
             sync_typhoon_client = OpenAI(
-                base_url='https://05j4jhk4yupj58-8000.proxy.runpod.net/v1',
+                base_url='https://qjj3ng6akp8qmw-8000.proxy.runpod.net/v1',
                 api_key='0'
             )
 
@@ -770,7 +776,7 @@ class OCR:
             )
 
             text_output = response.choices[0].message.content
-            result_dir = "/data/result_ocr"
+            result_dir = "/data/result_ocr/tmp_file"
             os.makedirs(result_dir, exist_ok=True)
             base_name = os.path.splitext(os.path.basename(image_file))[0]
             result_path = os.path.join(result_dir, f"{base_name}.md")
