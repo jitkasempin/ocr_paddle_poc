@@ -7,6 +7,9 @@ import fitz  # PyMuPDF
 from PIL import Image, ImageEnhance
 from typing import List, Dict, Any, Optional, Literal, Tuple
 from decimal import Decimal
+
+from pdf2image import convert_from_path
+
 from datetime import datetime
 from supabase import create_client, Client
 import io
@@ -456,17 +459,17 @@ class AllItemsInDelta(BaseModel):
 
 class StakeHolders(BaseModel):
     stakeholder_name: str = Field(default="", description="ชื่อผู้ถือหุ้น หรือ รายชื่อผู้ถือหุ้น (สามารถเป็นชื่อบุคคล หรือชื่อบริษัทก็ได้)")
-    stock_amount: Decimal = Field(default=Decimal("0.00"), description="จำนวนหุ้นที่ถือ")
+    stock_amount: Decimal = Field(default=Decimal("0.00"), description="จำนวนหุ้นที่ถือ (ต้องไม่ใช่หุ้นละ หรือราคาของหุ้น)")
     stakeholder_nationality: str = Field(default="", description="สัญชาติ")
 
 
 
 class CompanyStock(BaseModel):
     company_name: str = Field(default="", description="ชื่อบริษัทจำกัด")
-    register_number: str = Field(default="", description="ทะเบียนเลขที่")
+    # register_number: str = Field(default="", description="ทะเบียนเลขที่")
     company_stakeholders: List[StakeHolders] = Field(default_factory=list, description="รายชื่อผู้ถือหุ้นของบริษัท")
-    thai_stakeholders_number: str = Field(default="-", description="ผู้ถือหุ้น ไทย")
-    other_stakeholders_number: str = Field(default="-", description="หุ้น อื่นๆ")
+    thai_stakeholders_number: str = Field(default="-", description="ผู้ถือหุ้น ไทย (เอาเฉพาะจำนวนหุ้นที่เป็นตัวเลขเท่านั้น)")
+    other_stakeholders_number: str = Field(default="-", description="หุ้น อื่นๆ (เอาเฉพาะจำนวนหุ้นที่เป็นตัวเลขเท่านั้น)")
 
 class Certificate_DBD(BaseModel):
     company_name: str = Field(default="", description="ชื่อบริษัท ยกตัวอย่างเช่น 'บริษัท เฉิงหลัน เทคโนโลยี จำกัด'")
@@ -1272,6 +1275,110 @@ def extract_and_render_content(content: str, *, key_prefix: str = ""):
             table_idx += 1
 
 
+def remove_remnants_cc(img, min_text_h=8, max_text_h=80):
+    """
+    Post-morphological cleanup: remove thin elongated components
+    that are line remnants, not text characters.
+    """
+    if len(img.shape) == 3:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = img.copy()
+
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary, 8)
+    cleaned = binary.copy()
+
+    for i in range(1, num_labels):
+        x, y, w, h, area = (stats[i, j] for j in range(5))
+        min_dim = min(w, h)
+        max_dim = max(w, h)
+        aspect = w / max(h, 1)
+        fill = area / max(w * h, 1)
+
+        is_remnant = False
+
+        # Horizontal fragment: very wide, very thin
+        if aspect > 8 and min_dim <= 4 and max_dim > 20:
+            is_remnant = True
+        # Vertical fragment: very tall, very thin
+        if aspect < 0.125 and min_dim <= 4 and max_dim > 20:
+            is_remnant = True
+        # Tiny speck from intersection
+        if area < 10:
+            is_remnant = True
+        # Long thin line segment missed by morph pass
+        if min_dim <= 3 and max_dim > 50 and fill < 0.5:
+            is_remnant = True
+
+        # Protect actual text: characters have reasonable dimensions and fill
+        if (min_text_h <= h <= max_text_h and w >= 3
+                and fill > 0.15 and 0.15 < aspect < 7):
+            is_remnant = False
+        # Protect punctuation
+        if 0.3 < aspect < 3.0 and area > 10 and max_dim < max_text_h * 0.5:
+            is_remnant = False
+
+        if is_remnant:
+            cleaned[labels == i] = 0
+
+    result = cv2.bitwise_not(cleaned)
+    # Convert back to 3-channel BGR so downstream code can treat it as a color image
+    return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+
+
+
+def process_table_removal(pil_image):
+    # Convert PIL to OpenCV format
+    open_cv_image = np.array(pil_image.convert('RGB'))
+    img = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Threshold to get binary image
+    thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+    # Detect horizontal lines
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
+    detect_horizontal = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
+
+    # Detect vertical lines
+    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 33))
+    detect_vertical = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
+
+    # Combine detected lines
+    table_lines = cv2.addWeighted(detect_horizontal, 0.5, detect_vertical, 0.5, 0)
+    table_lines = cv2.threshold(table_lines, 0, 255, cv2.THRESH_BINARY)[1]
+
+    # Remove lines from original image
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    table_lines_dilated = cv2.dilate(table_lines, kernel, iterations=1)
+    
+    text_only = img.copy()
+    text_only[table_lines_dilated == 255] = [255, 255, 255]
+
+    result_final_back = remove_remnants_cc(text_only)
+
+    # --- STEP 7: Final morphological text repair ---
+    # _, final_bin = cv2.threshold(
+        # result_final_back if len(result_final_back.shape) == 2
+        # else cv2.cvtColor(result_final_back, cv2.COLOR_BGR2GRAY),
+        # 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    # )
+    # Reconnect broken text strokes
+    # final_bin = cv2.morphologyEx(
+        # final_bin, cv2.MORPH_CLOSE,
+        # cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    # )
+    # Remove noise specks
+    # final_bin = cv2.morphologyEx(
+    #     final_bin, cv2.MORPH_OPEN,
+    #     cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    # )
+    # final = cv2.bitwise_not(final_bin)
+    cv2.imwrite("resultback.png", result_final_back)
+
+    return img, result_final_back, table_lines
+
 
 def perform_chandra_ocr_online() -> list[tuple]:
     
@@ -1686,6 +1793,26 @@ async def ocr_processing_page():
                         pdf_input_paths.append(page_pdf_path)
 
                         # break 
+                    if document_type == "Stock Shareholder BOJ5":
+                        # boj5_image_path = image_inp_path[0]
+
+                        boj_images = convert_from_path("document.pdf", dpi=600, first_page=1, last_page=1)
+                        original_pil = boj_images[0]
+
+                        # Process Image
+                        original, text_only, lines_only = process_table_removal(original_pil)
+
+                        # --- PDF DOWNLOAD LOGIC ---
+                        # Convert OpenCV BGR back to RGB for PIL
+                        text_only_rgb = cv2.cvtColor(text_only, cv2.COLOR_BGR2RGB)
+                        final_pil = Image.fromarray(text_only_rgb)
+                        
+                        # Save to BytesIO object to make it downloadable
+                        pdf_buffer = io.BytesIO()
+                        final_pil.save(pdf_buffer, format="PDF")
+                        pdf_data = pdf_buffer.getvalue()
+                        with open("boj.pdf", "wb") as f:
+                            f.write(pdf_data)
                 else:
                     for i, page in enumerate(doc):
                         if i == st.session_state["ocr_page_number"]:
@@ -1912,13 +2039,13 @@ async def ocr_processing_page():
                                     center_stream += tmp_center_stream
 
                                 elif document_type == "Stock Shareholder BOJ5":
-                                    tmp_center_stream = await model.docling_with_surya("document.pdf")
-                                    # if model_vlm_using == "lighton":
-                                    #     tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", st.session_state["ocr_page_number"])
-                                    # elif model_vlm_using == "olmocr":
-                                    #     tmp_center_stream = await model.olmocr_runpod_predict("document.pdf", st.session_state["ocr_page_number"])
-                                    # else:
-                                    #     tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    # tmp_center_stream = 
+                                    if model_vlm_using == "lighton":
+                                        tmp_center_stream = model.call_runpod_serverless_sync("boj.pdf", st.session_state["ocr_page_number"])
+                                    elif model_vlm_using == "typhoon":
+                                        tmp_center_stream = await model.typhoon_runpod_predict("resultback.png", "structure", 1)
+                                    else:
+                                        tmp_center_stream = await model.docling_with_surya("boj.pdf")
 
                                     center_stream += tmp_center_stream
 

@@ -20,7 +20,7 @@ class Qwen3VLLMClient:
             model=self.model_name,
             messages=messages,
             temperature=0,
-            max_tokens=10000,
+            max_tokens=6000,
             # extra_body={
             #     "top_k": kwargs.get('top_k', 20),
                 # "repetition_penalty": 1.05,
