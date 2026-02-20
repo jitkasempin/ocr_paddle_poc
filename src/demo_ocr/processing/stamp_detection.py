@@ -14,7 +14,7 @@ class StampDetection:
         self._results = None
         self._images = []
 
-    def detect(self, pdf_path: str, dpi: int = 200, show: bool = False) -> dict:
+    def detect(self, pdf_path: str, dpi: int = 200, show: bool = True) -> dict:
         images = self._pdf_to_images(pdf_path, dpi)
         self._images = []
         details = []
@@ -43,6 +43,11 @@ class StampDetection:
                 if show:
                     img_with_boxes = self._draw_boxes(img.copy(), page_result)
                     self._images.append((page_num, img_with_boxes))
+
+                    tmp_dir = "/data/result_ocr/tmp_images"
+                    os.makedirs(tmp_dir, exist_ok=True)
+                    save_name = Path(pdf_path).stem + ".png"
+                    cv2.imwrite(os.path.join(tmp_dir, save_name), cv2.cvtColor(img_with_boxes, cv2.COLOR_RGB2BGR))
 
             details.append(page_result)
 

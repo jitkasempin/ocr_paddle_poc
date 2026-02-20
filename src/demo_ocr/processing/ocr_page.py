@@ -1796,23 +1796,40 @@ async def ocr_processing_page():
                     if document_type == "Stock Shareholder BOJ5":
                         # boj5_image_path = image_inp_path[0]
 
+                        # Clear all elements in the image_inp_path list variable
+                        image_inp_path = []
+
                         boj_images = convert_from_path("document.pdf", dpi=600, first_page=1, last_page=1)
-                        original_pil = boj_images[0]
 
-                        # Process Image
-                        original, text_only, lines_only = process_table_removal(original_pil)
+                        img_idx = 0
 
-                        # --- PDF DOWNLOAD LOGIC ---
-                        # Convert OpenCV BGR back to RGB for PIL
-                        text_only_rgb = cv2.cvtColor(text_only, cv2.COLOR_BGR2RGB)
-                        final_pil = Image.fromarray(text_only_rgb)
-                        
-                        # Save to BytesIO object to make it downloadable
-                        pdf_buffer = io.BytesIO()
-                        final_pil.save(pdf_buffer, format="PDF")
-                        pdf_data = pdf_buffer.getvalue()
-                        with open("boj.pdf", "wb") as f:
-                            f.write(pdf_data)
+                        for boj_img in boj_images:
+                            original_pil = boj_img
+
+                            # Process Image
+                            original, text_only, lines_only = process_table_removal(original_pil)
+
+                            # --- PDF DOWNLOAD LOGIC ---
+                            # Convert OpenCV BGR back to RGB for PIL
+                            text_only_rgb = cv2.cvtColor(text_only, cv2.COLOR_BGR2RGB)
+                            final_pil = Image.fromarray(text_only_rgb)
+                            
+                            # Save to BytesIO object to make it downloadable
+                            pdf_buffer = io.BytesIO()
+                            final_pil.save(pdf_buffer, format="PDF")
+                            pdf_data = pdf_buffer.getvalue()
+                            with open(f"boj_{img_idx}.pdf", "wb") as f:
+                                f.write(pdf_data)
+
+
+                            image_inp_path.append(f"boj_{img_idx}.pdf")
+
+                            img_idx += 1
+
+                            # images.append(final_pil)
+
+                            # pdf_input_paths.append(f"boj_{img_idx}.pdf")
+
                 else:
                     for i, page in enumerate(doc):
                         if i == st.session_state["ocr_page_number"]:
@@ -2043,7 +2060,7 @@ async def ocr_processing_page():
                                     if model_vlm_using == "lighton":
                                         tmp_center_stream = model.call_runpod_serverless_sync("boj.pdf", st.session_state["ocr_page_number"])
                                     elif model_vlm_using == "typhoon":
-                                        tmp_center_stream = await model.typhoon_runpod_predict("resultback.png", "structure", 1)
+                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                     else:
                                         tmp_center_stream = await model.docling_with_surya("boj.pdf")
 
