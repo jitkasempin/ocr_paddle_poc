@@ -1,3 +1,5 @@
+# from ocr_paddle_poc.src.demo_ocr.processing.ocr_no_flash import OCR
+from numpy import ndarray
 import random
 from unittest import result
 import streamlit as st
@@ -5,6 +7,9 @@ import fitz  # PyMuPDF
 from PIL import Image, ImageEnhance
 from typing import List, Dict, Any, Optional, Literal, Tuple
 from decimal import Decimal
+
+from pdf2image import convert_from_path
+
 from datetime import datetime
 from supabase import create_client, Client
 import io
@@ -15,6 +20,8 @@ from .invoice_integration import flag_repetitive_output
 
 from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes, extract_only_branch_code_number, extract_po_decimal
 from .hybrid_search import HybridSearch
+from .stamp_detection import StampDetection
+
 from pathlib import Path
 # from paddleocr import PPStructureV3
 from doc_classification.zero_shot import get_classifier,crop_top_percent
@@ -173,23 +180,23 @@ class PassPortData(BaseModel):
     passport_number: str = Field(..., description="Unique passport identifier")
     # document_type: PassportType = Field(default=PassportType.PASSPORT)
     issuing_country: str = Field(..., description="ISO 3166-1 alpha-3 country code")
-    issuing_authority: Optional[str] = Field(None, max_length=100)
+    # issuing_authority: Optional[str] = Field(None, max_length=100)
     
     # Personal Information
-    surname: str = Field(..., min_length=1, max_length=50, description="Last name/family name")
+    surname: str = Field(..., min_length=1, max_length=100, description="Last name/family name")
     given_names: str = Field(..., min_length=1, max_length=100, description="First and middle names")
-    nationality: str = Field(..., description="Nationality as ISO 3166-1 alpha-3 code")
+    # nationality: str = Field(..., description="Nationality as ISO 3166-1 alpha-3 code")
     
     # Birth Information
-    date_of_birth: str = Field(..., description="Date of birth")
-    place_of_birth: Optional[str] = Field(None, max_length=100)
-    country_of_birth: Optional[str] = None
+    # date_of_birth: str = Field(..., description="Date of birth")
+    # place_of_birth: Optional[str] = Field(None, max_length=100)
+    # country_of_birth: Optional[str] = None
     
     # Physical Characteristics
-    gender: str = Field(..., description="Gender marker")
+    # gender: str = Field(..., description="Gender marker")
     
     # Document Validity
-    date_of_issue: str = Field(..., description="Passport issue date")
+    # date_of_issue: str = Field(..., description="Passport issue date")
     date_of_expiry: str = Field(..., description="Passport expiry date")
     
 
@@ -247,7 +254,11 @@ class Document(BaseModel):
     invoice_number: str = Field(
         default="", description="เลขที่ หรือ เลขที่ใบกำกับ หรือ เลขที่ใบกำกับภาษี หรือ invoice number หรือ invoice no หรือ inv no")
     po_number: str = Field(
-        default="", description="ใบสั่งซื้อ หรือ P/O NO หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ Purchase order number หรือ เลขที่ PO")
+        default="", description=(
+            "'ใบสั่งซื้อ', 'P/O NO', 'P.O. No', 'เลขที่ใบสั่งซื้อ', 'ใบสั่งซื้อเลขที่', 'PO NO', 'Purchase order number', 'เลขที่ PO'"
+            "ต้องไม่ใช่ค่าของ 'เลขที่ใบสั่งขาย' หรือ 'S.O. No' หรือ 'เลขที่ใบส่งของ'"
+        )
+    )
     date: str = Field(
         default="", description="วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
     document_name: str = Field(
@@ -275,20 +286,43 @@ class Document(BaseModel):
 
         return parsed_for_po
 
+    @model_validator(mode="after")
+    def _check_required_fields_not_empty(self):
+        empty_fields = []
+        if self.invoice_number == "":
+            empty_fields.append("invoice_number")
+        if self.po_number == "":
+            empty_fields.append("po_number")
+        if self.date == "" or self.date == "00.00.0000":
+            empty_fields.append("date")
+        if self.payment_terms == "":
+            empty_fields.append("payment_terms")
+
+        if empty_fields:
+            raise ValueError(f"The following fields must not be empty: {', '.join(empty_fields)}")
+
+        return self
+
 
 class SellerCompany(BaseModel):
     name: str = Field(
         default="", description="Company name at the top of the invoice")
+        # default="", description="ชื่อของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     tax_id: str = Field(
         default="", description="เลขประจำตัวผู้เสียภาษี หรือ Tax ID")
+        # default="", description="เลขประจำตัวผู้เสียภาษี หรือ Tax ID ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     address: str = Field(
         default="", description="ที่อยู่ของบริษัท หรือที่ตั้งของสำนักงานใหญ่บริษัท")
+        # default="", description="ที่อยู่ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     contact: Optional[str] = Field(
         default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number")
+        # default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     branch_name: Optional[str] = Field(
         default=None, description="ชื่อสาขา หรือ branch name")
+        # default=None, description="ชื่อสาขา หรือ branch name ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
     branch_code: Optional[str] = Field(
         default=None, description="สาขาที่ หรือ สาขา หรือ branch number")
+        # default=None, description="สาขาที่ หรือ สาขา หรือ branch number ของบริษัทที่ขายของให้แก่ ADITYA BIRLA CHEMICALS (อดิตยา เบอร์ล่า เคมีคัลส์)")
 
 
 class CustomerCompany(BaseModel):
@@ -301,9 +335,9 @@ class CustomerCompany(BaseModel):
     contact: Optional[str] = Field(
         default=None, description="ข้อมูลการติดต่อ เช่น เบอร์โทรศัพท์ หรือ อีเมล หรือ Email หรือ phone number")
     branch_name: Optional[str] = Field(
-        default=None, description="ชื่อสาขา หรือ branch name")
+        default=None, description="ชื่อสาขา / branch name (จะต้องลงท้ายด้วยคำว่า division หรือ div หรือ ดิวิชั่น เท่านั้น เช่น PHOSPHATE DIVISION หรือ ฟอสเฟต ดิวิชั่น หรือ PHOSPHATE DIV)")
     branch_code: Optional[str] = Field(
-        default=None, description="สาขาที่ หรือ สาขา หรือ branch number")
+        default=None, description="'สาขาที่', 'สาขา', 'branch no', 'branch code', 'branch number', 'branch #', 'branch :'")
 
     @field_validator("branch_code", mode="before")
     @classmethod
@@ -320,7 +354,12 @@ class Item(BaseModel):
     unit_price: Decimal = Field(default=Decimal(
         "0.00"), description="ราคาต่อหน่วย หรือ หน่วยละ หรือ Unit Price")
     uom: str = Field(
-        default="", description="ข้อความที่บ่งบอกถึงรูปแบบการขายสินค้า มักจะอยู่คู่กับปริมาณหรือ quantity หรือข้อความที่อยู่ใน column unit หรือ column หน่วย")
+        default="", description=(
+            "คือ unit of material หรือ ข้อความที่บ่งบอกถึงรูปแบบการขายสินค้า มักจะอยู่คู่กับปริมาณหรือ quantity หรือข้อความที่อยู่ใน column unit หรือ column หน่วย"
+            "หาก uom เป็นภาษาไทย ให้ทำการตรวจสอบด้วย ว่าจะต้องเป็นคำที่มีความหมายเท่านั้น เช่น ใบ, คู่ เป็นต้น หากพบว่าเป็นคำที่ไม่มีความหมาย ให้แก้ไขเพื่อให้เป็นคำที่มีความหมายด้วย"
+            "หาก uom เป็นภาษาอังกฤษ ไม่ต้องทำการตรวจสอบ หรือแก้ไขใดๆ เพิ่มเติม"
+        )
+    )
     quantity: int = Field(
         default=0, description="จำนวน หรือ Quantity หรือ ปริมาณ")
     discount: Decimal = Field(default=Decimal(
@@ -425,20 +464,22 @@ class AllItemsInDelta(BaseModel):
 
 class StakeHolders(BaseModel):
     stakeholder_name: str = Field(default="", description="ชื่อผู้ถือหุ้น หรือ รายชื่อผู้ถือหุ้น (สามารถเป็นชื่อบุคคล หรือชื่อบริษัทก็ได้)")
-    stock_amount: Decimal = Field(default=Decimal("0.00"), description="จำนวนหุ้นที่ถือ")
+    stock_amount: Decimal = Field(default=Decimal("0.00"), description="จำนวนหุ้นที่ถือ (ต้องไม่ใช่หุ้นละ หรือราคาของหุ้น)")
     stakeholder_nationality: str = Field(default="", description="สัญชาติ")
 
 
 
 class CompanyStock(BaseModel):
     company_name: str = Field(default="", description="ชื่อบริษัทจำกัด")
-    register_number: str = Field(default="", description="ทะเบียนเลขที่")
+    # register_number: str = Field(default="", description="ทะเบียนเลขที่")
     company_stakeholders: List[StakeHolders] = Field(default_factory=list, description="รายชื่อผู้ถือหุ้นของบริษัท")
-    thai_stakeholders_number: str = Field(default="-", description="ผู้ถือหุ้น ไทย")
-    other_stakeholders_number: str = Field(default="-", description="หุ้น อื่นๆ")
+    thai_stakeholders_number: str = Field(default="-", description="ผู้ถือหุ้น ไทย (เอาเฉพาะจำนวนหุ้นที่เป็นตัวเลขเท่านั้น)")
+    other_stakeholders_number: str = Field(default="-", description="หุ้น อื่นๆ (เอาเฉพาะจำนวนหุ้นที่เป็นตัวเลขเท่านั้น)")
 
 class Certificate_DBD(BaseModel):
     company_name: str = Field(default="", description="ชื่อบริษัท ยกตัวอย่างเช่น 'บริษัท เฉิงหลัน เทคโนโลยี จำกัด'")
+    regis_number: str = Field(default="", description="ทะเบียนนิติบุคคลเลขที่")
+    list_of_holders: List[str] = Field(default_factory=list, description="รายชื่อกรรมการของบริษัท มีได้หลายคน")
     certificate_issued_date: str = Field(default="", description="วันที่ออกใบอนุญาต ยกตัวอย่างเช่น 'ออกให้ ณ วันที่ 5 เดือน เมษายน พ.ศ. 2567'")
 # class InvoicePaymentDate(BaseModel):
 #     payment_day: int = Field(
@@ -688,11 +729,13 @@ class FixedLangExtractProcessor:
 
 
 @st.cache_resource
-def load_model()->tuple[OCR, YOLO, Dict[str, np.ndarray]]:
+def load_model()->tuple[OCR, StampDetection, Dict[str, np.ndarray], HybridSearch]:
     # from .ocr import OCR
     x = OCR(ocr_model="FILM6912/typhoon-ocr-7b",llm_model="qwen3:14b", load_in_4bit=False)
     # signature=YOLO("C:\\Users\\User\\wb_project\\data\\yolo12l_27062568.pt")
-    signature=YOLO("/data/yolo12l_27062568.pt")
+    signature = StampDetection(model_path="/data/stamp_best.pt", confidence=0.7)
+    
+    # YOLO("/data/yolo12l_27062568.pt")
 
     OCR_CENTROIDS_PATH =  "/data/centroids_bank.npz"
 
@@ -941,6 +984,22 @@ def ui_js(session="json_str"):
             # js["items"] = filtered_items
         
         st.session_state["json"] = js
+
+        # Create Document object from js dictionary
+        try:
+            document = Document(**js
+                # invoice_number=js.get("invoice_number", ""),
+                # po_number=js.get("po_number", ""),
+                # date=js.get("date", ""),
+                # document_name=js.get("document_name", ""),
+                # payment_due_date=js.get("payment_due_date", "0/0/0"),
+                # payment_terms=js.get("payment_terms", "")
+            )
+            # st.session_state["document"] = document
+        except Exception as e:
+            st.error(f"Failed to create Document object: {str(e)}")
+
+
 
         # st.session_state["payment_term"] = js["payment_term"]
 
@@ -1220,6 +1279,110 @@ def extract_and_render_content(content: str, *, key_prefix: str = ""):
                 st.code(tables[table_idx], language="html")
             table_idx += 1
 
+
+def remove_remnants_cc(img, min_text_h=8, max_text_h=80):
+    """
+    Post-morphological cleanup: remove thin elongated components
+    that are line remnants, not text characters.
+    """
+    if len(img.shape) == 3:
+        gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    else:
+        gray = img.copy()
+
+    _, binary = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(binary, 8)
+    cleaned = binary.copy()
+
+    for i in range(1, num_labels):
+        x, y, w, h, area = (stats[i, j] for j in range(5))
+        min_dim = min(w, h)
+        max_dim = max(w, h)
+        aspect = w / max(h, 1)
+        fill = area / max(w * h, 1)
+
+        is_remnant = False
+
+        # Horizontal fragment: very wide, very thin
+        if aspect > 8 and min_dim <= 4 and max_dim > 20:
+            is_remnant = True
+        # Vertical fragment: very tall, very thin
+        if aspect < 0.125 and min_dim <= 4 and max_dim > 20:
+            is_remnant = True
+        # Tiny speck from intersection
+        if area < 10:
+            is_remnant = True
+        # Long thin line segment missed by morph pass
+        if min_dim <= 3 and max_dim > 50 and fill < 0.5:
+            is_remnant = True
+
+        # Protect actual text: characters have reasonable dimensions and fill
+        if (min_text_h <= h <= max_text_h and w >= 3
+                and fill > 0.15 and 0.15 < aspect < 7):
+            is_remnant = False
+        # Protect punctuation
+        if 0.3 < aspect < 3.0 and area > 10 and max_dim < max_text_h * 0.5:
+            is_remnant = False
+
+        if is_remnant:
+            cleaned[labels == i] = 0
+
+    result = cv2.bitwise_not(cleaned)
+    # Convert back to 3-channel BGR so downstream code can treat it as a color image
+    return cv2.cvtColor(result, cv2.COLOR_GRAY2BGR)
+
+
+
+def process_table_removal(pil_image):
+    # Convert PIL to OpenCV format
+    open_cv_image = np.array(pil_image.convert('RGB'))
+    img = cv2.cvtColor(open_cv_image, cv2.COLOR_RGB2BGR)
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    
+    # Threshold to get binary image
+    thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)[1]
+
+    # Detect horizontal lines
+    horizontal_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (40, 1))
+    detect_horizontal = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, horizontal_kernel, iterations=2)
+
+    # Detect vertical lines
+    vertical_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, 33))
+    detect_vertical = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, vertical_kernel, iterations=2)
+
+    # Combine detected lines
+    table_lines = cv2.addWeighted(detect_horizontal, 0.5, detect_vertical, 0.5, 0)
+    table_lines = cv2.threshold(table_lines, 0, 255, cv2.THRESH_BINARY)[1]
+
+    # Remove lines from original image
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (3,3))
+    table_lines_dilated = cv2.dilate(table_lines, kernel, iterations=1)
+    
+    text_only = img.copy()
+    text_only[table_lines_dilated == 255] = [255, 255, 255]
+
+    result_final_back = remove_remnants_cc(text_only)
+
+    # --- STEP 7: Final morphological text repair ---
+    # _, final_bin = cv2.threshold(
+        # result_final_back if len(result_final_back.shape) == 2
+        # else cv2.cvtColor(result_final_back, cv2.COLOR_BGR2GRAY),
+        # 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU
+    # )
+    # Reconnect broken text strokes
+    # final_bin = cv2.morphologyEx(
+        # final_bin, cv2.MORPH_CLOSE,
+        # cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    # )
+    # Remove noise specks
+    # final_bin = cv2.morphologyEx(
+    #     final_bin, cv2.MORPH_OPEN,
+    #     cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    # )
+    # final = cv2.bitwise_not(final_bin)
+    cv2.imwrite("resultback.png", result_final_back)
+
+    return img, result_final_back, table_lines
 
 
 def perform_chandra_ocr_online() -> list[tuple]:
@@ -1502,8 +1665,17 @@ async def ocr_processing_page():
     if "only_not_approved_items" not in st.session_state:
         st.session_state["only_not_approved_items"] = []
 
+    if "selected_pdf_name" not in st.session_state:
+        st.session_state["selected_pdf_name"] = ""
+
     if "refresh_page" not in st.session_state:
         st.session_state["refresh_page"] = False
+
+    if "uploaded_markdown_text" not in st.session_state:
+        st.session_state["uploaded_markdown_text"] = ""
+
+    if "ocr_page_number" not in st.session_state:
+        st.session_state["ocr_page_number"] = 0
 
     # Check if page needs to be refreshed
     if st.session_state.get("refresh_page", False):
@@ -1523,7 +1695,10 @@ async def ocr_processing_page():
         st.session_state["only_not_approved_items"] = []
         st.session_state["refresh_page"] = False
         st.session_state["markdown_content"] = None
+        st.session_state["selected_pdf_name"] = ""
         st.session_state["markdown_pages"] = []
+        st.session_state["uploaded_markdown_text"] = ""
+        st.session_state["ocr_page_number"] = 0
         st.rerun()
 
 
@@ -1531,20 +1706,38 @@ async def ocr_processing_page():
     with st.sidebar:
         document_type = st.radio(
             "Choose the document type",
-            options=["Invoice", "Book Bank Statement" , "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD"],
+            options=["Invoice", "Book Bank Statement" , "Packing List", "Passport", "Certificate", "Stock Shareholder BOJ5", "DBD", "MarkDown"],
             index=0  # Default to "Invoice"
         )
 
         selected_ocr_model = "high_performance_ocr"
-        # st.radio(
-        #     "Select OCR Model",
-        #     options=["text_ocr", "high_performance_ocr", "legacy_ocr"],
-        #     index=0,
-        #     horizontal=True
-        # )
+        
+        
+        seq_or_parallel = st.radio(
+            "Process sequencial or parallel",
+            options=["sequencial", "parallel"],
+            index=0,
+            horizontal=True
+        )
         st.session_state["ocr_model"] = selected_ocr_model
 
-        uploaded_file = st.file_uploader("Upload a PDF or Image", type=["pdf", "png", "jpg", "jpeg"])
+        model_vlm_using = st.radio(
+            "Use VLM model",
+            options=["typhoon", "lighton" , "dots_ocr", "olmocr"],
+            index=0,
+            horizontal=True
+        )
+
+        # Page number selector
+        st.session_state["ocr_page_number"] = st.number_input(
+            "Page number:",
+            min_value=0,
+            max_value=20,
+            value=st.session_state["ocr_page_number"],
+            step=1
+        )
+
+        uploaded_file = st.file_uploader("Upload a PDF, Image, or Markdown", type=["pdf", "png", "jpg", "jpeg", "md"])
         if uploaded_file:
             # doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
             images = []
@@ -1561,24 +1754,103 @@ async def ocr_processing_page():
                 doc = fitz.open(stream=uploaded_file.read(), filetype="pdf")
                 doc.save("document.pdf")
 
-                for i, page in enumerate(doc):
-                    # Page as image
-                    pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
-                    img_bytes = pix.tobytes("png")
-                    img = Image.open(io.BytesIO(img_bytes))
-                    img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+                # Detect the Stamp inside an PDF document
 
-                    image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
-                    images.append(img)
+                st.session_state["resultss"] = 0
 
-                    # Save each page as a separate PDF and append to pdf_input_paths
-                    base_no_ext = uploaded_file.name.rsplit('.', 1)[0]
-                    page_pdf_path = f"{base_no_ext}_{i}.pdf"
-                    single_doc = fitz.open()  # create an empty PDF
-                    single_doc.insert_pdf(doc, from_page=i, to_page=i)
-                    single_doc.save(page_pdf_path)
-                    single_doc.close()
-                    pdf_input_paths.append(page_pdf_path)
+                results = signature.detect("document.pdf")
+
+                temp_page_with_stmp = results.get("pages_with_stamp", 0)
+
+                if temp_page_with_stmp > 0:
+                    temp_conf_detail = results.get("details", [])
+
+                    if len(temp_conf_detail) > 0:
+                        temp_page_result_dic = temp_conf_detail[0]
+
+                        if len(temp_page_result_dic["confidences"]) > 0:
+                            st.session_state["resultss"] = temp_page_result_dic["confidences"][0]
+
+
+
+                # len(resultss)
+
+                if document_type != "Passport":
+                    for i, page in enumerate(doc):
+                        # Page as image
+                        pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                        img_bytes = pix.tobytes("png")
+                        img = Image.open(io.BytesIO(img_bytes))
+                        img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+
+                        st.session_state["selected_pdf_name"] = uploaded_file.name
+
+                        image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+                        images.append(img)
+
+                        # Save each page as a separate PDF and append to pdf_input_paths
+                        base_no_ext = uploaded_file.name.rsplit('.', 1)[0]
+                        page_pdf_path = f"{base_no_ext}_{i}.pdf"
+                        single_doc = fitz.open()  # create an empty PDF
+                        single_doc.insert_pdf(doc, from_page=i, to_page=i)
+                        single_doc.save(page_pdf_path)
+                        single_doc.close()
+                        pdf_input_paths.append(page_pdf_path)
+
+                        # break 
+                    if document_type == "Stock Shareholder BOJ5":
+                        # boj5_image_path = image_inp_path[0]
+
+                        # Clear all elements in the image_inp_path list variable
+                        image_inp_path = []
+
+                        boj_images = convert_from_path("document.pdf", dpi=600, first_page=1, last_page=1)
+
+                        img_idx = 0
+
+                        for boj_img in boj_images:
+                            original_pil = boj_img
+
+                            # Process Image
+                            original, text_only, lines_only = process_table_removal(original_pil)
+
+                            # --- PDF DOWNLOAD LOGIC ---
+                            # Convert OpenCV BGR back to RGB for PIL
+                            text_only_rgb = cv2.cvtColor(text_only, cv2.COLOR_BGR2RGB)
+                            final_pil = Image.fromarray(text_only_rgb)
+                            
+                            # Save to BytesIO object to make it downloadable
+                            pdf_buffer = io.BytesIO()
+                            final_pil.save(pdf_buffer, format="PDF")
+                            pdf_data = pdf_buffer.getvalue()
+                            with open(f"boj_{img_idx}.pdf", "wb") as f:
+                                f.write(pdf_data)
+
+
+                            image_inp_path.append(f"boj_{img_idx}.pdf")
+
+                            img_idx += 1
+
+                            # images.append(final_pil)
+
+                            # pdf_input_paths.append(f"boj_{img_idx}.pdf")
+
+                else:
+                    for i, page in enumerate(doc):
+                        if i == st.session_state["ocr_page_number"]:
+                            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                            img_bytes = pix.tobytes("png")
+                            img = Image.open(io.BytesIO(img_bytes))
+                            img.save(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+
+                            st.session_state["selected_pdf_name"] = f"{uploaded_file.name.replace('.pdf', '')}_{i}.pdf"
+
+                            image_inp_path.append(f"{uploaded_file.name.replace('.pdf', '')}_{i}.png")
+                            images.append(img)
+
+                            break
+                
+                # I want only 1 page exactly
                     
             elif file_extension in ["png", "jpg", "jpeg"]:
                 # Handle image file
@@ -1600,7 +1872,15 @@ async def ocr_processing_page():
                 # img_sharp = enhancer.enhance(2)
                 # contrast = ImageEnhance.Contrast(img_sharp)
                 # img_final = contrast.enhance(2)
+
+            elif file_extension == "md":
+                # Handle Markdown file
+                markdown_content = uploaded_file.read().decode("utf-8")
+                b_name = uploaded_file.name.rsplit('.', 1)[0]
+                image_inp_path.append(b_name)
                 
+                st.session_state["uploaded_markdown_text"] = markdown_content
+
             st.markdown("### 📷 Preview")
 
             if image_inp_path:
@@ -1624,29 +1904,34 @@ async def ocr_processing_page():
 
     if uploaded_file and st.session_state["new_upload"]:
         # OCR model selection (default model_a)
+
+        # if document_type == "Stamp Detection":
+            # st.write("Do the stamp detection here")
+            # return
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
-            doc_category = model.check_if_it_invoice(image_inp_path[0])
-            # doc_category_md = st.empty()
+            if document_type != "MarkDown":
+                doc_category = model.check_if_it_invoice(image_inp_path[0])
+                # doc_category_md = st.empty()
 
-            if doc_category == "Invoice" or doc_category == "Quotation":
-                is_invoice_or_quotation = True
+                if doc_category == "Invoice" or doc_category == "Quotation":
+                    is_invoice_or_quotation = True
 
 
-            if doc_category == "Invoice":
-                status_check_invoice.update(
-                    label="This document is an invoice", state="complete", expanded=False
-                )
-            else:
-                status_check_invoice.update(
-                    label="This document is not an invoice", state="complete", expanded=False
-                )
+                if doc_category == "Invoice":
+                    status_check_invoice.update(
+                        label="This document is an invoice", state="complete", expanded=False
+                    )
+                else:
+                    status_check_invoice.update(
+                        label="This document is not an invoice", state="complete", expanded=False
+                    )
 
-                # doc_category_md.markdown("This document is an invoice")
-                # st.session_state["invoice_check_button_disabled"] = False
-            # else:
-                # doc_category_md.markdown(f"This document is not an invoice. It is {doc_category}")
-                # st.session_state["invoice_check_button_disabled"] = True
+                    # doc_category_md.markdown("This document is an invoice")
+                    # st.session_state["invoice_check_button_disabled"] = False
+                # else:
+                    # doc_category_md.markdown(f"This document is not an invoice. It is {doc_category}")
+                    # st.session_state["invoice_check_button_disabled"] = True
 
 
             
@@ -1654,31 +1939,33 @@ async def ocr_processing_page():
         
         with st.status("Checking if this invoice is from DELTA or not", expanded=True) as status_check_for_delta:
 
-            img_rgb = load_image_as_rgb_array(image_inp_path[0])
-            is_inv_delta = is_match_centroids(img_rgb)
-            if is_inv_delta:
-                status_check_for_delta.update(
-                    label="✅ This invoice is from DELTA", state="complete", expanded=False
-                )
-            else:
-                status_check_for_delta.update(
-                    label="❌ This invoice is not from DELTA", state="error", expanded=False
-                )
-            
-            # status_check_for_delta.update(
-                # label="Successfully check DELTA invoice", state="complete", expanded=False
-            # )
+            if document_type != "MarkDown":
+                img_rgb = load_image_as_rgb_array(image_inp_path[0])
+                is_inv_delta = is_match_centroids(img_rgb)
+                if is_inv_delta:
+                    status_check_for_delta.update(
+                        label="✅ This invoice is from DELTA", state="complete", expanded=False
+                    )
+                else:
+                    status_check_for_delta.update(
+                        label="❌ This invoice is not from DELTA", state="error", expanded=False
+                    )
+                
+                # status_check_for_delta.update(
+                    # label="Successfully check DELTA invoice", state="complete", expanded=False
+                # )
 
         # Check if is_inv_delta is True or False.
         # If it's True, then show the GREEN text ("This invoice is DELTA. Continue to extract the text from invoice") on the screen below the "Checking if this invoice is from DELTA or not" status and continue to extract the text.
         # If it's False, then show the RED text ("Please upload DELTA invoice only") below "Checking if this invoice is from DELTA or not" status and do not continue to extract the text.
         
-        if is_inv_delta:
-            st.success("✅ This invoice is DELTA. Continue to extract the text from invoice")
-        else:
-            st.info("Process invoice parsing without pre-approval process")
-            # st.session_state["new_upload"] = False
-            # return
+        if document_type != "MarkDown":
+            if is_inv_delta:
+                st.success("✅ This invoice is DELTA. Continue to extract the text from invoice")
+            else:
+                st.info("Process invoice parsing without pre-approval process")
+                # st.session_state["new_upload"] = False
+                # return
 
         with st.status("Extracting text", expanded=True) as status:
             center_md = st.empty()
@@ -1702,7 +1989,7 @@ async def ocr_processing_page():
             if len(image_inp_path) > 0:
                 start_time = time.time()
                 if True:
-                    if selected_ocr_model == "text_ocr":
+                    if selected_ocr_model == "text_ocr" or document_type == "MarkDown":
                         # output_path = Path("./output_markdown")
 
                         # for img_nn in image_inp_path:
@@ -1720,70 +2007,120 @@ async def ocr_processing_page():
 
                         #     markdown_texts = pd_pipeline.concatenate_markdown_pages(markdown_list)
 
-                            center_stream += ""
-                            center_stream += "\n"
+                            center_stream += st.session_state["uploaded_markdown_text"]
+                            # center_stream += "\n"
 
                     elif selected_ocr_model == "high_performance_ocr":
-                        for img_nn in image_inp_path:
-                            if (document_type == "Invoice") or (document_type == "Packing List"):
-                                tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                # if tmp_center_stream contain the word "Error"
-                                if "Error" in tmp_center_stream:
-                                    if is_inv_delta:
+                        if seq_or_parallel == "sequencial":
+                            for img_nn in image_inp_path:
+                                if (document_type == "Invoice") or (document_type == "Packing List"):
+                                    tmp_center_stream = "Error" # await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    # if tmp_center_stream contain the word "Error"
+                                    if "Error" in tmp_center_stream:
+                                        if model_vlm_using == "typhoon":
+                                            if is_inv_delta:
+                                                # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "default", 1)
+                                            else:
+                                                # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "default", 1)
+                                            
+                                            
+                                            # if "repeat_detected" in tmp_center_stream:
+                                            # tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", 0)
+                                            
+                                            # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
+                                        elif model_vlm_using == "lighton":
+                                            tmp_center_stream = model.lighton_verda_predict("document.pdf")
+                                        elif model_vlm_using == "olmocr":
+                                            tmp_center_stream = await model.olmocr_runpod_predict("document.pdf", st.session_state["ocr_page_number"])
+                                        elif model_vlm_using == "dots_ocr":
+                                            tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                    # else:
+                                        # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+
+                                    # flag_repetition_result = flag_repetitive_output(tmp_center_stream)
+
+                                    # if flag_repetition_result["flagged"]:
+                                        # print("Repetitive result detected. Switching to alternative OCR model.")
+                                        # np_array_image_date = preprocess_for_improve_ocr(image_path=img_nn, output_path="improved_ocr_quality.png")
+
+                                        # retry doing the typhoon OCR with the improved image
+                                        # tmp_center_stream = await model.typhoon_runpod_predict("improved_ocr_quality.png", "structure", 1)
+
+
+                                    center_stream += tmp_center_stream
+
+                                elif document_type == "Passport":
+                                    # center_stream = await model.parsing_mrz_passport(img_nn)
+                                    center_stream = model.call_runpod_serverless_sync("document.pdf", st.session_state["ocr_page_number"])
+                                    # center_stream = model.lighton_verda_predict("document.pdf")
+                                    # center_stream += tmp_center_stream
+
+                                elif document_type == "Book Bank Statement":
+                                    tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+
+                                    center_stream += tmp_center_stream
+
+                                elif document_type == "Stock Shareholder BOJ5":
+                                    # tmp_center_stream = 
+                                    if model_vlm_using == "lighton":
+                                        tmp_center_stream = model.call_runpod_serverless_sync("boj.pdf", st.session_state["ocr_page_number"])
+                                    elif model_vlm_using == "typhoon":
                                         tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
                                     else:
-                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
-                                        # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
-                                # else:
-                                    # tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                        tmp_center_stream = await model.docling_with_surya("boj.pdf")
 
-                                # flag_repetition_result = flag_repetitive_output(tmp_center_stream)
+                                    center_stream += tmp_center_stream
 
-                                # if flag_repetition_result["flagged"]:
-                                    # print("Repetitive result detected. Switching to alternative OCR model.")
-                                    # np_array_image_date = preprocess_for_improve_ocr(image_path=img_nn, output_path="improved_ocr_quality.png")
+                                elif document_type == "DBD":
+                                    if model_vlm_using == "typhoon":
+                                        tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    elif model_vlm_using == "olmocr":
+                                        tmp_center_stream = await model.olmocr_runpod_predict("document.pdf", st.session_state["ocr_page_number"])
+                                    else:
+                                        tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", st.session_state["ocr_page_number"])
 
-                                    # retry doing the typhoon OCR with the improved image
-                                    # tmp_center_stream = await model.typhoon_runpod_predict("improved_ocr_quality.png", "structure", 1)
+                                    # if tmp_center_stream contain the word "Error"
 
+                                    center_stream += tmp_center_stream
 
-                                center_stream += tmp_center_stream
-
-                            elif document_type == "Passport":
-                                center_stream = await model.parsing_mrz_passport(img_nn)
-                                # center_stream += tmp_center_stream
-
-                            elif document_type == "Book Bank Statement":
-                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-
-                                center_stream += tmp_center_stream
-
-                            elif document_type == "Stock Shareholder BOJ5":
-                                # tmp_center_stream = await model.docling_with_surya("document.pdf")
-                                tmp_center_stream = await model.run_hunyuan_predict(img_nn)
-
-                                center_stream += tmp_center_stream
-
-                            elif document_type == "DBD":
-                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                # if tmp_center_stream contain the word "Error"
-
-                                center_stream += tmp_center_stream
-
-                                if "ออกให้" in tmp_center_stream:
-                                    break
-                                    # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                    # if "ออกให้" in tmp_center_stream:
+                                        # break
+                                        # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
 
 
-                            else:
-                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
-                                # if tmp_center_stream contain the word "Error"
-                                if "Error" in tmp_center_stream:
-                                    tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                else:
+                                    tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                    # if tmp_center_stream contain the word "Error"
+                                    if "Error" in tmp_center_stream:
+                                        tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
 
-                                center_stream += tmp_center_stream
-                            
-                            # center_stream += "\n"
+                                    center_stream += tmp_center_stream
+                                
+                                # center_stream += "\n"
+
+                        else:
+                            # If it is invoice
+                            # parallel processing
+                            if document_type == "Invoice" or document_type == "DBD":
+                                model.parallel_typhoon_ocr_prediction(image_inp_path)
+
+                                # Concat all markdown files from tmp_file folder, ordered by sequence number
+                                tmp_file_dir = Path("/data/result_ocr/tmp_file")
+                                md_files = sorted(
+                                    tmp_file_dir.glob("*.md"),
+                                    key=lambda f: int(re.search(r'_(\d+)\.md$', f.name).group(1))
+                                    if re.search(r'_(\d+)\.md$', f.name) else 0
+                                )
+                                center_stream = ""
+                                for md_file in md_files:
+                                    center_stream += md_file.read_text(encoding="utf-8")
+                                # Delete all markdown files after concatenation
+                                # for md_file in md_files:
+                                    # md_file.unlink()
+
+                        
                     
                     elif selected_ocr_model == "legacy_ocr":
                         for img_nn in image_inp_path:
@@ -1848,20 +2185,24 @@ async def ocr_processing_page():
                 processing_time = end_time - start_time
                 st.session_state["processing_time"] = processing_time
             
-            if document_type == "Stock Shareholder BOJ5":
+            if document_type == "Stock Shareholder BOJ5" or document_type == "DBD":
                 st.text_area("Center Stream", center_stream, height=500)
             elif document_type == "Passport":
-                st.json(center_stream)
+                # st.json(center_stream)
+                st.text_area("Center Stream", center_stream, height=500)
+                
             elif document_type == "Book Bank Statement":
                 st.session_state.markdown_content = center_stream
                 st.session_state.markdown_pages = parse_markdown_pages(center_stream)
 
             else:
-                center_md.markdown(center_stream)
+                st.session_state.markdown_content = center_stream
+                st.session_state.markdown_pages = parse_markdown_pages(center_stream)
+                # center_md.markdown(center_stream)
                 
             st.session_state["markdown"] = center_stream
 
-            if is_inv_delta:
+            if False:   #is_inv_delta:
                 # Extract chunk based on P.O. NO. markers
                 items_is_inside_html = False
                 po_start = center_stream.find('| P.O. NO.')
@@ -2051,7 +2392,7 @@ async def ocr_processing_page():
 
         er={"error_bool":False,"error":""}
 
-        if document_type == "Book Bank Statement":
+        if (document_type == "Book Bank Statement") or (document_type == "Invoice") or (document_type == "MarkDown"):
 
             st.markdown("---")
 
@@ -2073,7 +2414,10 @@ async def ocr_processing_page():
 
             st.markdown("---")
 
-            return
+            if document_type == "Book Bank Statement":
+                return
+
+
 
         with st.status("Extracting Invoice Data from OCR and Checking for LOGO and Signature", expanded=True) as status_json:
             right_md = st.empty()
@@ -2088,11 +2432,15 @@ async def ocr_processing_page():
                 # if is_invoice_or_quotation == True:
                 if document_type == "Invoice":
                     if is_inv_delta:
-                        right_stream = await model.structured_output(center_stream, DeltaInvoice)
+                        right_stream = await model.structured_output(center_stream, Invoice)
                     else:
                         right_stream = await model.structured_output(center_stream, Invoice)
 
                     right_md.markdown(right_stream)
+                elif document_type == "MarkDown":
+                    right_stream = await model.structured_output(center_stream, Invoice)
+                    right_md.markdown(right_stream)
+
                 elif document_type == "Passport":
                     right_stream = await model.structured_output(center_stream, PassPortData)
                     right_md.markdown(right_stream)
@@ -2102,7 +2450,8 @@ async def ocr_processing_page():
                     right_md.markdown(right_stream)
                 
                 elif document_type == "DBD":
-                    right_stream = await model.structured_output(center_stream, Certificate_DBD)
+                    # right_stream = await model.structured_output(center_stream, Certificate_DBD)
+                    right_stream = await model.dbd_output(center_stream)
                     right_md.markdown(right_stream)
                     
                 elif document_type == "Certificate":
@@ -2122,7 +2471,29 @@ async def ocr_processing_page():
                 st.session_state["over_all_processing_time"] = st.session_state["processing_time"] + processing_time_2
 
                 if document_type != "Certificate":
-                    st.session_state["json_str"] = re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1)
+                    if document_type == "DBD":
+                        # Remove <think>...</think> tags from right_stream
+                        cleaned_stream = re.sub(r'<think>.*?</think>', '', right_stream, flags=re.DOTALL).strip()
+                        st.session_state["json_str"] = json.dumps({"date_of_issue": cleaned_stream})
+                    elif document_type == "Passport":
+                        print("Passport")
+                        mrz_lines = [
+                            line for line in center_stream.splitlines()
+                            if '<' in line
+                            and len(line) > 20
+                            and line[0] != '<'
+                            and line == line.upper()
+                        ][-2:]
+
+                        old_json_str_data = re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1) 
+                        # Append the mrz_lines to the old_json_str_data
+                        new_json_str_data = json.loads(old_json_str_data)
+                        new_json_str_data["mrz_lines"] = mrz_lines
+                        st.session_state["json_str"] = json.dumps(new_json_str_data)
+
+                        # st.session_state["json_str"] = json.dumps({"mrz": mrz_lines})
+                    else:
+                        st.session_state["json_str"] = re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1)
                 else:
                     # Convert meta_certificate from Dict into Json String
                     st.session_state["json_str"] = json.dumps(meta_certificate)
@@ -2147,7 +2518,10 @@ async def ocr_processing_page():
                     label="Error occurred", state="error", expanded=True
                 )
             
-        # st.text_input(label="signature",value=st.session_state["resultss"])
+        if st.session_state["resultss"] > 0.1:
+            st.text_input(label="Found the Stamp in This document with confidence score: ",value=st.session_state["resultss"])
+        else:
+            st.text_input(label="No Stamp found in This document",value="")
 
         if "processing_time" in st.session_state and st.session_state["processing_time"] > 0:
             st.metric(label="OCR Processing Time", value=f"{st.session_state['processing_time']:.2f} seconds")
@@ -2167,12 +2541,23 @@ async def ocr_processing_page():
                 csv_filename = f"{st.session_state.get('selected_pdf_name', 'output')}.csv"
                 csv_filepath = csv_output_dir / csv_filename
 
-                csv_data = {
-                    'processing_time': [st.session_state.get('processing_time', 0)],
-                    'json_extract_time': [st.session_state.get('json_extract_time', 0)],
-                    'over_all_processing_time': [st.session_state.get('over_all_processing_time', 0)],
-                    'json_str': [st.session_state.get('json_str', '')]
-                }
+                if document_type == "DBD":
+                    csv_data = {
+                        'processing_time': [st.session_state.get('processing_time', 0)],
+                        'json_extract_time': [st.session_state.get('json_extract_time', 0)],
+                        'over_all_processing_time': [st.session_state.get('over_all_processing_time', 0)],
+                        'json_str': [st.session_state.get('json_str', '')],
+                        'stamp_confidence':[st.session_state.get('resultss',0)]
+                    }
+
+                    # print("OK")
+                else:
+                    csv_data = {
+                        'processing_time': [st.session_state.get('processing_time', 0)],
+                        'json_extract_time': [st.session_state.get('json_extract_time', 0)],
+                        'over_all_processing_time': [st.session_state.get('over_all_processing_time', 0)],
+                        'json_str': [st.session_state.get('json_str', '')]
+                    }
 
                 df = pd.DataFrame(csv_data)
                 df.to_csv(csv_filepath, index=False, encoding='utf-8')
@@ -2181,7 +2566,7 @@ async def ocr_processing_page():
             except Exception as e:
                 st.toast("ERROR", icon="❌")
 
-            if is_inv_delta:
+            if False:                   #is_inv_delta:
                 if len(st.session_state["delta_item_array"]) > 0:
                     delta_items_ui()
                 else:
@@ -2221,6 +2606,12 @@ async def ocr_processing_page():
             
 
         # st.text_input(label="signature",value=st.session_state["resultss"])
+
+        if st.session_state["resultss"] > 0.1:
+            st.text_input(label="Found the Stamp in This document with confidence score: ",value=st.session_state["resultss"])
+        else:
+            st.text_input(label="No Stamp found in This document",value="")
+
         ui_js("json")
         
         # st.button("Send OCR data to database", use_container_width=True, on_click=handle_json_button_click)
@@ -2230,6 +2621,7 @@ async def ocr_processing_page():
         st.session_state["new_upload"] = True
         st.session_state["markdown"] = ""
         st.session_state["delta_item_array"] = []
+        st.session_state["resultss"] = 0
 
         st.session_state["delta_item_list_of_dict"] = []
         st.session_state["json_str"] = ""
@@ -2238,3 +2630,5 @@ async def ocr_processing_page():
         st.session_state["processing_time"] = 0
         st.session_state["markdown_pages"] = []
         st.session_state["markdown_content"] = None
+        st.session_state["selected_pdf_name"] = ""
+        st.session_state["uploaded_markdown_text"] = ""

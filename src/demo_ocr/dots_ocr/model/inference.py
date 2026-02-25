@@ -1,8 +1,3 @@
-import json
-import io
-import base64
-import math
-from PIL import Image
 import requests
 from dots_ocr.utils.image_utils import PILimage_to_base64
 from openai import OpenAI
@@ -12,17 +7,21 @@ import os
 def inference_with_vllm(
         image,
         prompt, 
+        protocol="http",
         ip="localhost",
         port=8000,
-        temperature=0.001,
+        temperature=0.1,
         top_p=0.9,
         max_completion_tokens=32768,
-        model_name='model',
+        model_name='rednote-hilab/dots.ocr',
+        system_prompt=None,
         ):
     
-    addr = f"https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
+    addr = f"{protocol}://{ip}:{port}/v1"
     client = OpenAI(api_key="{}".format(os.environ.get("API_KEY", "0")), base_url=addr)
     messages = []
+    if system_prompt:
+        messages.append({"role": "system", "content": system_prompt})
     messages.append(
         {
             "role": "user",
