@@ -255,7 +255,7 @@ class Document(BaseModel):
         default="", description="เลขที่ หรือ เลขที่ใบกำกับ หรือ เลขที่ใบกำกับภาษี หรือ invoice number หรือ invoice no หรือ inv no")
     po_number: str = Field(
         default="", description=(
-            "'ใบสั่งซื้อ', 'P/O NO', 'P.O. No', 'เลขที่ใบสั่งซื้อ', 'ใบสั่งซื้อเลขที่', 'PO NO', 'Purchase order number', 'เลขที่ PO'",
+            "'ใบสั่งซื้อ', 'P/O NO', 'P.O. No', 'เลขที่ใบสั่งซื้อ', 'ใบสั่งซื้อเลขที่', 'PO NO', 'Purchase order number', 'เลขที่ PO'"
             "ต้องไม่ใช่ค่าของ 'เลขที่ใบสั่งขาย' หรือ 'S.O. No' หรือ 'เลขที่ใบส่งของ'"
         )
     )
@@ -354,7 +354,12 @@ class Item(BaseModel):
     unit_price: Decimal = Field(default=Decimal(
         "0.00"), description="ราคาต่อหน่วย หรือ หน่วยละ หรือ Unit Price")
     uom: str = Field(
-        default="", description="ข้อความที่บ่งบอกถึงรูปแบบการขายสินค้า มักจะอยู่คู่กับปริมาณหรือ quantity หรือข้อความที่อยู่ใน column unit หรือ column หน่วย")
+        default="", description=(
+            "คือ unit of material หรือ ข้อความที่บ่งบอกถึงรูปแบบการขายสินค้า มักจะอยู่คู่กับปริมาณหรือ quantity หรือข้อความที่อยู่ใน column unit หรือ column หน่วย"
+            "หาก uom เป็นภาษาไทย ให้ทำการตรวจสอบด้วย ว่าจะต้องเป็นคำที่มีความหมายเท่านั้น เช่น ใบ, คู่ เป็นต้น หากพบว่าเป็นคำที่ไม่มีความหมาย ให้แก้ไขเพื่อให้เป็นคำที่มีความหมายด้วย"
+            "หาก uom เป็นภาษาอังกฤษ ไม่ต้องทำการตรวจสอบ หรือแก้ไขใดๆ เพิ่มเติม"
+        )
+    )
     quantity: int = Field(
         default=0, description="จำนวน หรือ Quantity หรือ ปริมาณ")
     discount: Decimal = Field(default=Decimal(
@@ -2014,9 +2019,11 @@ async def ocr_processing_page():
                                     if "Error" in tmp_center_stream:
                                         if model_vlm_using == "typhoon":
                                             if is_inv_delta:
-                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1)
+                                                # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "default", 1)
                                             else:
-                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "structure", 1) 
+                                                # tmp_center_stream = await model.dotsocr_runpod_predict(img_nn)
+                                                tmp_center_stream = await model.typhoon_runpod_predict(img_nn, "default", 1)
                                             
                                             
                                             # if "repeat_detected" in tmp_center_stream:
@@ -2110,8 +2117,8 @@ async def ocr_processing_page():
                                 for md_file in md_files:
                                     center_stream += md_file.read_text(encoding="utf-8")
                                 # Delete all markdown files after concatenation
-                                for md_file in md_files:
-                                    md_file.unlink()
+                                # for md_file in md_files:
+                                    # md_file.unlink()
 
                         
                     

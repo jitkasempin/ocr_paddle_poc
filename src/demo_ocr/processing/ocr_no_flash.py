@@ -279,12 +279,13 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://ouc0jp11qpmbaf-8000.proxy.runpod.net/v1" 
+        addr = "https://osfee0i4rmfm7k-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
         dots_ocr_client = AsyncOpenAI(api_key="{}".format(os.environ.get("API_KEY", "0")), base_url=addr)
         messages = []
+
         messages.append(
             {
                 "role": "user",
@@ -300,17 +301,43 @@ class OCR:
         try:
             response = await dots_ocr_client.chat.completions.create(
                 messages=messages, 
-                model="rednote-hilab/dots.ocr", 
-                max_completion_tokens=8000,
-                temperature=0,
+                model="model", 
+                max_completion_tokens=10000,
+                temperature=0.1,
                 top_p=0.9)
-            
             response = response.choices[0].message.content
             return response
-
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             print(f"request error: {e}")
             return None
+
+
+        # messages.append(
+            # {
+        #         "role": "user",
+        #         "content": [
+        #             {
+        #                 "type": "image_url",
+        #                 "image_url": {"url":  PILimage_to_base64(image)},
+        #             },
+        #             {"type": "text", "text": f"<|img|><|imgpad|><|endofimg|>{prompt}"}  # if no "<|img|><|imgpad|><|endofimg|>" here,vllm v1 will add "\n" here
+        #         ],
+        #     }
+        # )
+        # try:
+        #     response = await dots_ocr_client.chat.completions.create(
+        #         messages=messages, 
+        #         model="rednote-hilab/dots.ocr", 
+        #         max_completion_tokens=8000,
+        #         temperature=0,
+        #         top_p=0.9)
+            
+        #     response = response.choices[0].message.content
+        #     return response
+
+        # except Exception as e:
+        #     print(f"request error: {e}")
+        #     return None
 
 
         # pass
