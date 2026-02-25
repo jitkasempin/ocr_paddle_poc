@@ -1,4 +1,11 @@
 cache/
 paddlex/
 data/
+.claude/
+.claude-flow/
+.swarm/
 .env
+.mcp.json
+package-lock.json
+package.json
+node_modules/
