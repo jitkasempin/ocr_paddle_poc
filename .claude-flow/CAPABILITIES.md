@@ -1,5 +1,5 @@
 # Claude Flow V3 - Complete Capabilities Reference
-> Generated: 2026-01-25T04:13:25.788Z
+> Generated: 2026-02-28T07:46:00.628Z
 > Full documentation: https://github.com/ruvnet/claude-flow
 
 ## 📋 Table of Contents
@@ -34,6 +34,9 @@ Claude Flow V3 is a domain-driven design architecture for multi-agent AI coordin
 | Memory Backend | hybrid |
 | HNSW Indexing | Enabled |
 | Neural Learning | Enabled |
+| LearningBridge | Enabled (SONA + ReasoningBank) |
+| Knowledge Graph | Enabled (PageRank + Communities) |
+| Agent Scopes | Enabled (project/local/user) |
 
 ---
 
@@ -234,6 +237,25 @@ npx @claude-flow/cli@latest doctor --fix
 3. **DISTILL** - LoRA learning extraction
 4. **CONSOLIDATE** - EWC++ preservation
 
+### Self-Learning Memory (ADR-049)
+
+| Component | Status | Description |
+|-----------|--------|-------------|
+| **LearningBridge** | ✅ Enabled | Connects insights to SONA/ReasoningBank neural pipeline |
+| **MemoryGraph** | ✅ Enabled | PageRank knowledge graph + community detection |
+| **AgentMemoryScope** | ✅ Enabled | 3-scope agent memory (project/local/user) |
+
+**LearningBridge** - Insights trigger learning trajectories. Confidence evolves: +0.03 on access, -0.005/hour decay. Consolidation runs the JUDGE/DISTILL/CONSOLIDATE pipeline.
+
+**MemoryGraph** - Builds a knowledge graph from entry references. PageRank identifies influential insights. Communities group related knowledge. Graph-aware ranking blends vector + structural scores.
+
+**AgentMemoryScope** - Maps Claude Code 3-scope directories:
+- `project`: `<gitRoot>/.claude/agent-memory/<agent>/`
+- `local`: `<gitRoot>/.claude/agent-memory-local/<agent>/`
+- `user`: `~/.claude/agent-memory/<agent>/`
+
+High-confidence insights (>0.8) can transfer between agents.
+
 ### Memory Commands
 ```bash
 # Store pattern
@@ -300,6 +322,11 @@ npx @claude-flow/cli@latest hive-mind consensus --propose "task"
 | MCP Response | <100ms | ✅ Achieved |
 | CLI Startup | <500ms | ✅ Achieved |
 | SONA Adaptation | <0.05ms | 🔄 In Progress |
+| Graph Build (1k) | <200ms | ✅ 2.78ms (71.9x headroom) |
+| PageRank (1k) | <100ms | ✅ 12.21ms (8.2x headroom) |
+| Insight Recording | <5ms/each | ✅ 0.12ms (41x headroom) |
+| Consolidation | <500ms | ✅ 0.26ms (1,955x headroom) |
+| Knowledge Transfer | <100ms | ✅ 1.25ms (80x headroom) |
 
 ---
 
@@ -308,8 +335,8 @@ npx @claude-flow/cli@latest hive-mind consensus --propose "task"
 ### Integrated Packages
 | Package | Version | Purpose |
 |---------|---------|---------|
-| agentic-flow | 2.0.1-alpha | Core coordination |
-| agentdb | 2.0.0-alpha.3.4 | Vector database |
+| agentic-flow | 3.0.0-alpha.1 | Core coordination + ReasoningBank + Router |
+| agentdb | 3.0.0-alpha.10 | Vector database + 8 controllers |
 | @ruvector/attention | 0.1.3 | Flash attention |
 | @ruvector/sona | 0.1.5 | Neural learning |
 

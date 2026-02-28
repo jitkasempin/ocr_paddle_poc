@@ -6,35 +6,37 @@ from pydantic import BaseModel
 
 
 class Qwen3VLLMClient:
-    def __init__(self, base_url="https://api.runpod.ai/v2/em2h41xp8ytr67/openai/v1"):
-        # print("Runpod API Key")
-        # print(default_config.runpod_api_key)
+    def __init__(self, base_url="https://6ehtamg1x510yj-8000.proxy.runpod.net/v1"):
         self.client = AsyncOpenAI(
             base_url=base_url,
-            # api_key="0"
-            api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
+            api_key="EMPTY"
         )
-        self.model_name = "Qwen/Qwen3-14B" # "./Qwen3-14B-FP8-Dynamic"
+        self.model_name = "Qwen/Qwen3.5-27B-FP8"
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0
         self.total_tokens = 0
         self.request_count = 0
 
     async def chat_completion(self, messages: List[Dict[str, str]], js_schema: BaseModel) -> str:
-        """Async chat completion with Qwen3-14B"""
+        """Async chat completion with Qwen3.5-27B-FP8 via SGLang OpenAI-compatible API"""
         response = await self.client.chat.completions.create(
             model=self.model_name,
             messages=messages,
             temperature=0.1,
             max_tokens=7000,
+            response_format={
+                "type": "json_schema",
+                "json_schema": {
+                    "name": "structured_output",
+                    "schema": js_schema.model_json_schema(),
+                },
+            },
             extra_body={
                 "top_k": 20,
                 "top_p": 0.8,
-                # "repetition_penalty": 1.05,
                 "chat_template_kwargs": {
                     "enable_thinking": False
                 },
-                "guided_json": js_schema.model_json_schema()
             }
         )
 
@@ -50,7 +52,7 @@ class Qwen3VLLMClient:
             self.request_count += 1
 
             logger.info(
-                f"[Qwen3-14B] Token usage — "
+                f"[Qwen3.5-27B-FP8] Token usage — "
                 f"prompt: {prompt_tokens}, "
                 f"completion: {completion_tokens}, "
                 f"total: {total} | "
