@@ -2493,7 +2493,9 @@ async def ocr_processing_page():
 
                         # st.session_state["json_str"] = json.dumps({"mrz": mrz_lines})
                     else:
-                        st.session_state["json_str"] = re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1)
+                        st.session_state["json_str"] = json.dumps(right_stream)
+                        
+                        # re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1)
                 else:
                     # Convert meta_certificate from Dict into Json String
                     st.session_state["json_str"] = json.dumps(meta_certificate)

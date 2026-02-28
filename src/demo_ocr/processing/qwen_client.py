@@ -1,6 +1,7 @@
 from openai import AsyncOpenAI
 from typing import List, Dict
 from loguru import logger
+from pydantic import BaseModel
 # from app.config import default_config
 
 
@@ -19,20 +20,22 @@ class Qwen3VLLMClient:
         self.total_tokens = 0
         self.request_count = 0
 
-    async def chat_completion(self, messages: List[Dict[str, str]]) -> str:
+    async def chat_completion(self, messages: List[Dict[str, str]], js_schema: BaseModel) -> str:
         """Async chat completion with Qwen3-14B"""
         response = await self.client.chat.completions.create(
             model=self.model_name,
             messages=messages,
-            temperature=0,
-            max_tokens=6000,
-            # extra_body={
-            #     "top_k": kwargs.get('top_k', 20),
+            temperature=0.1,
+            max_tokens=7000,
+            extra_body={
+                "top_k": 20,
+                "top_p": 0.8,
                 # "repetition_penalty": 1.05,
-                # "chat_template_kwargs": {
-                    # "enable_thinking": False
-                # }
-            # }
+                "chat_template_kwargs": {
+                    "enable_thinking": False
+                },
+                "guided_json": js_schema.model_json_schema()
+            }
         )
 
         # Track token usage

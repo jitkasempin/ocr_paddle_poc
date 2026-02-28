@@ -279,7 +279,7 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://osfee0i4rmfm7k-8000.proxy.runpod.net/v1" 
+        addr = "https://tlz65m72euft52-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
@@ -563,7 +563,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://qjj3ng6akp8qmw-8000.proxy.runpod.net/v1',
+            base_url='https://kvl0f640wepv32-8000.proxy.runpod.net/v1',
             api_key='0'
         )
 
@@ -786,7 +786,7 @@ class OCR:
 
             # Create async client for RunPod vLLM endpoint
             sync_typhoon_client = OpenAI(
-                base_url='https://qjj3ng6akp8qmw-8000.proxy.runpod.net/v1',
+                base_url='https://kvl0f640wepv32-8000.proxy.runpod.net/v1',
                 api_key='0'
             )
 
@@ -864,8 +864,7 @@ class OCR:
 
     async def structured_output(self,markdown:str,schema:BaseModel):
         prompt=f"""
-        Convert the given markdown text into JSON that align with the following schema:\n {schema.model_json_schema()} 
-        Wrap the output in `json` tags. Do not hallucinate. Do not use any information that is not in the markdown text.
+        Convert the given markdown text into JSON. Do not hallucinate. Do not use any information that is not in the markdown text.
         If the information is not available, use empty string.
 
         Markdown text: {markdown}
@@ -876,7 +875,7 @@ class OCR:
         response = await self.q_client.chat_completion([
             {"role": "system", "content": "You are a helpful assistant that converts Markdown to JSON format according to the given schema."},
             {"role": "user", "content": prompt}
-        ])
+        ], schema)
 
         return response
 
