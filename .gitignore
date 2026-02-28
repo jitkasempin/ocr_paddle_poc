@@ -1,8 +1,0 @@
-cache/
-paddlex/
-data/
-.env
-.claude/
-.claude-flow/
-node_modules/
-.swarm/

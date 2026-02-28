@@ -4,44 +4,61 @@ from pydantic import BaseModel, Field
 from datetime import datetime
 from langchain_ollama import ChatOllama
 # import outlines
+
+import pypdfium2 as pdfium
+
 import re
-from olmocr.pipeline import build_page_query
+# from olmocr.pipeline import build_page_query
 import httpx
 # from outlines import Generator, Template
 from fastmrz import FastMRZ
 import mimetypes
 # import mimetypes
 # import json
+import threading
+import time
 from typing import Optional, List, Dict, Any
 from google import genai
 import os
 # #region agent log
-def _agent_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
-    try:
-        import json, time
-        payload = {
-            "sessionId": "debug-session",
-            "runId": os.getenv("AGENT_RUN_ID", "pre-fix"),
-            "hypothesisId": hypothesis_id,
-            "location": location,
-            "message": message,
-            "data": data,
-            "timestamp": int(time.time() * 1000),
-        }
-        os.makedirs("/home/jitkasem/.cursor", exist_ok=True)
-        with open("/home/jitkasem/.cursor/debug.log", "a", encoding="utf-8") as f:
-            f.write(json.dumps(payload, ensure_ascii=False) + "\n")
-    except Exception:
-        pass
+# def _agent_log(hypothesis_id: str, location: str, message: str, data: dict) -> None:
+#     try:
+#         import json, time
+#         payload = {
+#             "sessionId": "debug-session",
+#             "runId": os.getenv("AGENT_RUN_ID", "pre-fix"),
+#             "hypothesisId": hypothesis_id,
+#             "location": location,
+#             "message": message,
+#             "data": data,
+#             "timestamp": int(time.time() * 1000),
+#         }
+#         os.makedirs("/home/jitkasem/.cursor", exist_ok=True)
+#         with open("/home/jitkasem/.cursor/debug.log", "a", encoding="utf-8") as f:
+#             f.write(json.dumps(payload, ensure_ascii=False) + "\n")
+#     except Exception:
+        # pass
 # #endregion
 
 # from typhoon_ocr import prepare_ocr_messages
 from openai import OpenAI, AsyncOpenAI
 import json
+import logging
 from PIL import Image
 from io import BytesIO
 import base64
 from dots_ocr.utils import dict_promptmode_to_prompt
+
+import requests
+
+
+# Configure logging for token usage - outputs to stdout for Docker logs
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger("typhoon_ocr")
 # from dots_ocr.model.inference import inference_with_vllm
 from dots_ocr.utils.image_utils import PILimage_to_base64
 # from typhoon_ocr import ocr_document
@@ -49,56 +66,57 @@ from typhoon_ocr import ocr_document, prepare_ocr_messages
 import asyncio
 # Requires `pip install docling-surya`
 # See https://pypi.org/project/docling-surya/
-_agent_log(
-    "H1",
-    "processing/ocr_no_flash.py:docling_surya_import",
-    "Attempting import docling_surya",
-    {"pythonpath": os.getenv("PYTHONPATH")},
-)
-try:
-    from docling_surya import SuryaOcrOptions
-    _agent_log(
-        "H1",
-        "processing/ocr_no_flash.py:docling_surya_import",
-        "Imported docling_surya successfully",
-        {"has_docling_surya": True},
-    )
-except Exception as e:
-    import sys
-    try:
-        from importlib.metadata import PackageNotFoundError, version
-        try:
-            docling_surya_version = version("docling-surya")
-        except PackageNotFoundError:
-            docling_surya_version = None
-        try:
-            surya_ocr_version = version("surya-ocr")
-        except PackageNotFoundError:
-            surya_ocr_version = None
-        try:
-            docling_version = version("docling")
-        except PackageNotFoundError:
-            docling_version = None
-    except Exception:
-        docling_surya_version = None
-        surya_ocr_version = None
-        docling_version = None
+# _agent_log(
+#     "H1",
+#     "processing/ocr_no_flash.py:docling_surya_import",
+#     "Attempting import docling_surya",
+#     {"pythonpath": os.getenv("PYTHONPATH")},
+# )
+# try:
+#     from docling_surya import SuryaOcrOptions
+    # _agent_log(
+    #     "H1",
+    #     "processing/ocr_no_flash.py:docling_surya_import",
+    #     "Imported docling_surya successfully",
+    #     {"has_docling_surya": True},
+    # )
+# except Exception as e:
+#     import sys
+#     try:
+#         from importlib.metadata import PackageNotFoundError, version
+#         try:
+#             docling_surya_version = version("docling-surya")
+#         except PackageNotFoundError:
+#             docling_surya_version = None
+#         try:
+#             surya_ocr_version = version("surya-ocr")
+#         except PackageNotFoundError:
+#             surya_ocr_version = None
+#         try:
+#             docling_version = version("docling")
+#         except PackageNotFoundError:
+#             docling_version = None
+#     except Exception:
+#         docling_surya_version = None
+#         surya_ocr_version = None
+#         docling_version = None
 
-    _agent_log(
-        "H1",
-        "processing/ocr_no_flash.py:docling_surya_import",
-        "Failed to import docling_surya",
-        {
-            "error_repr": repr(e),
-            "python_version": sys.version,
-            "executable": sys.executable,
-            "docling_surya_version": docling_surya_version,
-            "surya_ocr_version": surya_ocr_version,
-            "docling_version": docling_version,
-            "sys_path_head": sys.path[:8],
-        },
-    )
-    raise
+#     _agent_log(
+#         "H1",
+#         "processing/ocr_no_flash.py:docling_surya_import",
+#         "Failed to import docling_surya",
+#         {
+#             "error_repr": repr(e),
+#             "python_version": sys.version,
+#             "executable": sys.executable,
+#             "docling_surya_version": docling_surya_version,
+#             "surya_ocr_version": surya_ocr_version,
+#             "docling_version": docling_version,
+#             "sys_path_head": sys.path[:8],
+#         },
+#     )
+#     raise
+from docling_surya import SuryaOcrOptions
 
 from docling.datamodel.base_models import InputFormat
 from docling.datamodel.pipeline_options import PdfPipelineOptions
@@ -112,6 +130,7 @@ os.environ["FLASH_ATTENTION_SKIP_CUDA_BUILD"] = "TRUE"
 from transformers import DonutProcessor, VisionEncoderDecoderModel
 import fitz  # PyMuPDF
 from .qwen_client import Qwen3VLLMClient
+from .schematron import SchematronClient
 
 # class InvoicePaymentDate(BaseModel):
     # payment_term_date: datetime = Field(
@@ -181,11 +200,13 @@ class OCR:
 
         self.my_openai = AsyncOpenAI(base_url="https://veejutidvzi7xy-8000.proxy.runpod.net/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c", http_client=http_client)
         # self.my_openai = OpenAI(base_url="https://8000-01jv6gbqesg14ne3mavgm9acm7.cloudspaces.litng.ai/v1", api_key="api-key")
-        self.olm_ocr_openai = AsyncOpenAI(base_url="https://api.runpod.ai/v2/ajplyymntb6f54/openai/v1", api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c")
+        self.olm_ocr_openai = AsyncOpenAI(base_url="https://8s10af6pfitdsy-8000.proxy.runpod.net/v1", api_key="0")
 
         self.nanonet_client = AsyncOpenAI(base_url="https://ifp0ig0mslclt9-8000.proxy.runpod.net/v1", api_key="0")
 
         self.q_client = Qwen3VLLMClient()
+
+        self.schematron_client = SchematronClient()
 
         self.fast_mrz = FastMRZ()
 
@@ -215,7 +236,9 @@ class OCR:
         # )
     async def olmocr_runpod_predict(self, pdf_file_path, page_number):
         query = await build_page_query(pdf_file_path, page=page_number, target_longest_image_dim=2048)
-        query['model'] = 'Adun/olmOCR-7B-thai-v3.2'
+        # vllm serve  --max-model-len 16384
+
+        query['model'] = 'allenai/olmOCR-2-7B-1025'
         response = await self.olm_ocr_openai.chat.completions.create(**query) 
 
         return response.choices[0].message.content
@@ -256,12 +279,13 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://veejutidvzi7xy-8000.proxy.runpod.net/v1" 
+        addr = "https://tlz65m72euft52-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
         dots_ocr_client = AsyncOpenAI(api_key="{}".format(os.environ.get("API_KEY", "0")), base_url=addr)
         messages = []
+
         messages.append(
             {
                 "role": "user",
@@ -277,17 +301,43 @@ class OCR:
         try:
             response = await dots_ocr_client.chat.completions.create(
                 messages=messages, 
-                model="rednote-hilab/dots.ocr", 
-                max_completion_tokens=8000,
-                temperature=0,
+                model="model", 
+                max_completion_tokens=10000,
+                temperature=0.1,
                 top_p=0.9)
-            
             response = response.choices[0].message.content
             return response
-
-        except Exception as e:
+        except requests.exceptions.RequestException as e:
             print(f"request error: {e}")
             return None
+
+
+        # messages.append(
+            # {
+        #         "role": "user",
+        #         "content": [
+        #             {
+        #                 "type": "image_url",
+        #                 "image_url": {"url":  PILimage_to_base64(image)},
+        #             },
+        #             {"type": "text", "text": f"<|img|><|imgpad|><|endofimg|>{prompt}"}  # if no "<|img|><|imgpad|><|endofimg|>" here,vllm v1 will add "\n" here
+        #         ],
+        #     }
+        # )
+        # try:
+        #     response = await dots_ocr_client.chat.completions.create(
+        #         messages=messages, 
+        #         model="rednote-hilab/dots.ocr", 
+        #         max_completion_tokens=8000,
+        #         temperature=0,
+        #         top_p=0.9)
+            
+        #     response = response.choices[0].message.content
+        #     return response
+
+        # except Exception as e:
+        #     print(f"request error: {e}")
+        #     return None
 
 
         # pass
@@ -299,7 +349,7 @@ class OCR:
             do_ocr=True,
             ocr_model="suryaocr",
             allow_external_plugins=True,
-            ocr_options=SuryaOcrOptions(lang=["en"]),
+            ocr_options=SuryaOcrOptions(lang=["th"]),
         )
 
         converter = DocumentConverter(
@@ -488,109 +538,294 @@ class OCR:
         # pass
 
     
-    async def typhoon_runpod_predict(self,orig_filename,
-            task_type,
-            page_number
-            ):
+    async def typhoon_runpod_predict(self, orig_filename, task_type, page_number):
+        """
+        Run OCR prediction using Typhoon model deployed on RunPod via vLLM.
+        Logs token usage for monitoring.
+
+        Args:
+            orig_filename: Path to the PDF or image file
+            task_type: OCR task type (e.g., "v1.5")
+            page_number: Page number to process
+
+        Returns:
+            Extracted markdown text from the document
+        """
+        # Prepare OCR messages using typhoon_ocr utility
+        messages = prepare_ocr_messages(
+            pdf_or_image_path=orig_filename,
+            task_type="v1.5",
+            target_image_dim=1800,
+            target_text_length=8000,
+            page_num=page_number if page_number else 1,
+            figure_language="Thai"
+        )
+
+        # Create async client for RunPod vLLM endpoint
+        typhoon_client = AsyncOpenAI(
+            base_url='https://kvl0f640wepv32-8000.proxy.runpod.net/v1',
+            api_key='0'
+        )
+
+        try:
+            # Send request to vLLM endpoint
+            response = await typhoon_client.chat.completions.create(
+                model="typhoon-ocr-1-5",
+                messages=messages,
+                max_tokens=8000,
+                extra_body={
+                    "repetition_penalty": 1.1,
+                    "temperature": 0.1,
+                    "presence_penalty": 1.5,
+                    "top_p": 0.6,
+                },
+            )
+
+            # Log token usage for monitoring via Docker logs
+            if response.usage:
+                usage = response.usage
+                logger.info(
+                    f"[TYPHOON_OCR_TOKEN_USAGE] "
+                    f"file={orig_filename} | "
+                    f"prompt_tokens={usage.prompt_tokens} | "
+                    f"completion_tokens={usage.completion_tokens} | "
+                    f"total_tokens={usage.total_tokens}"
+                )
+                # Also print for immediate visibility in Docker logs
+                print(
+                    f"[TYPHOON_OCR_TOKEN_USAGE] "
+                    f"file={orig_filename} | "
+                    f"prompt_tokens={usage.prompt_tokens} | "
+                    f"completion_tokens={usage.completion_tokens} | "
+                    f"total_tokens={usage.total_tokens}",
+                    flush=True
+                )
+            else:
+                logger.warning(f"[TYPHOON_OCR_TOKEN_USAGE] No usage data returned for file={orig_filename}")
+
+            # Extract and log finish_reason from vLLM response
+            finish_reason = response.choices[0].finish_reason if response.choices else None
+            logger.info(
+                f"[TYPHOON_OCR_FINISH_REASON] "
+                f"file={orig_filename} | "
+                f"finish_reason={finish_reason}"
+            )
+            print(
+                f"[TYPHOON_OCR_FINISH_REASON] "
+                f"file={orig_filename} | "
+                f"finish_reason={finish_reason}",
+                flush=True
+            )
+
+            # Extract text content
+            text_output = response.choices[0].message.content
+
+            logger.info(f"[TYPHOON_OCR_TEXT_OUTPUT] text_output={text_output}")
+            print(f"[TYPHOON_OCR_TEXT_OUTPUT] text_output={text_output}")
+
+            if finish_reason == "stop":
+                return text_output
+            elif finish_reason == "length":
+                return "repeat_detected"
+
+
+            # return text_output
+
+        except Exception as e:
+            logger.error(f"[TYPHOON_OCR_ERROR] file={orig_filename} | error={str(e)}")
+            raise
+
+    def call_runpod_serverless_sync(self, pdf_file_path, page_number):
+
+        # Open PDF from local file
+        pdf = pdfium.PdfDocument(pdf_file_path)
+        page = pdf[page_number]
+        # Render at 200 DPI (scale factor = 200/72 ≈ 2.77)
+        pil_image = page.render(scale=2.77).to_pil()
+
+        # Convert to base64
+        buffer = BytesIO()
+        pil_image.save(buffer, format="PNG")
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        # Send to RunPod Serverless endpoint
+        endpoint_url = "https://api.runpod.ai/v2/ruagzglp7n78c1/run"
+
+        RUNPOD_STATUS_ENDPOINT = "https://api.runpod.ai/v2/ruagzglp7n78c1" 
+
+        payload = {
+            "input": {
+                "image_base64": image_base64
+            }
+        }
+
+        key = "rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
+        headers = {
+            "Authorization": f"Bearer {key}"
+        }
+        response = requests.post(endpoint_url, json=payload, headers=headers)
+
+        # md_output = response.json()['output']['text']
+
+        # print("--------------------------------")
+        # print(json.dumps(response.json(), indent=4))
+        # print("--------------------------------")
+        md_text = ""
+
+
+        if response.status_code == 200:
+            result = response.json()
+            job_id = result.get("id")
+            status = result.get("status")
+            
+            # print(f"[DEBUG] Job queued with ID: {job_id}")
+            # print(f"[DEBUG] Initial status: {status}")
+            
+            # Poll for result
+            max_attempts = 300
+            attempt = 0
+            while attempt < max_attempts:
+                print(f"[DEBUG] Polling attempt {attempt + 1}/{max_attempts}...")
+                
+                status_response = requests.get(
+                    f"{RUNPOD_STATUS_ENDPOINT}/status/{job_id}",
+                    headers=headers
+                )
+                
+                if status_response.status_code == 200:
+                    status_result = status_response.json()
+                    current_status = status_result.get("status")
+                    
+                    print(f"[DEBUG] Current status: {current_status}")
+                    
+                    if current_status == "COMPLETED":
+                        print("[DEBUG] Job completed successfully!")
+                        # print("\nFull response:")
+                        # print(status_result)
+                        
+                        # Extract embeddings
+                        if "output" in status_result and "text" in status_result["output"]:
+                            md_text = status_result["output"]["text"]
+                            # print(f"\nEmbedding dimension: {len(embedding)}")
+                            # print(f"Embedding (first 10 values): {embedding[:10]}")
+                        break
+                    elif current_status == "FAILED":
+                        print(f"[ERROR] Job failed: {status_result}")
+                        break
+                    else:
+                        # Still processing
+                        time.sleep(1)
+                        attempt += 1
+                else:
+                    print(f"[ERROR] Status check failed: {status_response.status_code}")
+                    break
+            
+            if attempt >= max_attempts:
+                print("[ERROR] Timeout waiting for job completion")
+
+
+
+        return md_text
         
-
-
-        # orig_filename = pdf_or_image_file.name
+        # "md_output"
     
-        # try:
-        #     # Use the new simplified function to prepare OCR messages with page number
-        #     messages = prepare_ocr_messages(
-        #         pdf_or_image_path=orig_filename,
-        #         task_type=task_type,
-        #         target_image_dim=1800,
-        #         target_text_length=8000,
-        #         page_num=page_number if page_number else 1
-        #     )
-            
-        #     # Extract the image from the message content for display
-        #     image_url = messages[0]["content"][1]["image_url"]["url"]
-        #     image_base64 = image_url.replace("data:image/png;base64,", "")
-        #     image_pil = Image.open(BytesIO(base64.b64decode(image_base64)))
-            
-        #     # Send messages to OpenAI compatible API
-        #     response = await self.my_openai.chat.completions.create(
-        #         model="scb10x/typhoon-ocr-7b",
-        #         messages=messages,
-        #         max_tokens=20000,
-        #         extra_body={
-        #             "repetition_penalty": 1.0,
-        #             "temperature": 0.1,
-        #             "top_p": 0.6,
-        #         },
-        #     )
-        #     text_output = response.choices[0].message.content
-            
-        #     # Try to parse the output assuming it is a Python dictionary containing 'natural_text'
-        #     try:
-        #         json_data = json.loads(text_output)
-        #         markdown_out = json_data.get('natural_text', "").replace("<figure>", "").replace("</figure>", "")
-        #     except Exception as e:
-        #         markdown_out = f"⚠️ Could not extract `natural_text` from output.\nError: {str(e)}"
-            
-        #     return markdown_out
+        #response.json()
+
+
+    def lighton_verda_predict(self, pdf_file_path):
+
+        ENDPOINT = "http://135.181.63.138:8000/v1/chat/completions"
+        MODEL = "lightonai/LightOnOCR-2-1B"
+
+
+        # Open PDF from local file
+        pdf = pdfium.PdfDocument(pdf_file_path)
+        page = pdf[0]
+        # Render at 200 DPI (scale factor = 200/72 ≈ 2.77)
+        pil_image = page.render(scale=2.77).to_pil()
+
+        # Convert to base64
+        buffer = BytesIO()
+        pil_image.save(buffer, format="PNG")
+        image_base64 = base64.b64encode(buffer.getvalue()).decode('utf-8')
+
+        # Make request
+        payload = {
+            "model": MODEL,
+            "messages": [{
+                "role": "user",
+                "content": [{
+                    "type": "image_url",
+                    "image_url": {"url": f"data:image/png;base64,{image_base64}"}
+                }]
+            }],
+            "max_tokens": 8192,
+            "temperature": 0.0,
+            "top_p": 0.9,
+        }
+
+        response = requests.post(ENDPOINT, json=payload)
+        text = response.json()['choices'][0]['message']['content']
+        print(text)
+
+        return text
+
+        # pass
+
+    def parallel_typhoon_ocr_prediction(self, list_of_image_files: List[str]):
+        def process_file(image_file: str) -> str:
+            messages = prepare_ocr_messages(
+                pdf_or_image_path=image_file,
+                task_type="v1.5",
+                target_image_dim=1800,
+                target_text_length=8000,
+                page_num=1,
+                figure_language="Thai"
+            )
+
+
+            # Create async client for RunPod vLLM endpoint
+            sync_typhoon_client = OpenAI(
+                base_url='https://kvl0f640wepv32-8000.proxy.runpod.net/v1',
+                api_key='0'
+            )
+
+            response = sync_typhoon_client.chat.completions.create(
+                model="typhoon-ocr-1-5",
+                messages=messages,
+                max_tokens=8000,
+                extra_body={
+                    "repetition_penalty": 1.1,
+                    "temperature": 0,
+                    "presence_penalty": 1.5,
+                    "top_p": 0.6,
+                },
+            )
+
+            text_output = response.choices[0].message.content
+            result_dir = "/data/result_ocr/tmp_file"
+            os.makedirs(result_dir, exist_ok=True)
+            base_name = os.path.splitext(os.path.basename(image_file))[0]
+            result_path = os.path.join(result_dir, f"{base_name}.md")
+            with open(result_path, "w", encoding="utf-8") as result_file:
+                result_file.write(text_output)
+            return text_output
+
         
-        # except Exception as e:
-        #     return None, f"Error processing file: {str(e)}"
+        # begin implementation
 
-            
-        # orig_filename = pdf_or_image_file.name
-
-        # from typhoon_ocr import ocr_document
-        markdown = ocr_document(orig_filename, 
-                                model = "typhoon-ocr-1-5" , 
-                                figure_language = "Thai" , 
-                                task_type="v1.5", 
-                                base_url='https://05j4jhk4yupj58-8000.proxy.runpod.net/v1', 
-                                api_key='0')
-# print(markdown)
-
-        return markdown
-        # try:
-        #     # Use the new simplified function to prepare OCR messages with page number
-        #     messages = prepare_ocr_messages(
-        #         pdf_or_image_path=orig_filename,
-        #         task_type=task_type,
-        #         target_image_dim=1800,
-        #         target_text_length=8000,
-        #         page_num=page_number if page_number else 1
-        #     )
-            
-        #     # Extract the image from the message content for display
-        #     # image_url = messages[0]["content"][1]["image_url"]["url"]
-        #     # image_base64 = image_url.replace("data:image/png;base64,", "")
-        #     # image_pil = Image.open(BytesIO(base64.b64decode(image_base64)))
-            
-        #     # Send messages to OpenAI compatible API
-        #     response = await self.my_openai.chat.completions.create(
-        #         model="scb10x/typhoon-ocr-7b",
-        #         messages=messages,
-        #         max_tokens=32768,
-        #         extra_body={
-        #             "repetition_penalty": 1.02,
-        #             "temperature": 0.01,
-        #             "top_p": 0.6,
-        #         },
-        #     )
-        #     text_output = response.choices[0].message.content
-            
-        #     # Try to parse the output assuming it is a Python dictionary containing 'natural_text'
-        #     try:
-        #         json_data = json.loads(text_output)
-        #         markdown_out = json_data.get('natural_text', "").replace("<figure>", "").replace("</figure>", "")
-        #     except Exception as e:
-        #         markdown_out = f"Could not extract natural_text from output. Error: {str(e)}"
-            
-        #     return markdown_out
+        threads = [] 
         
-        # except Exception as e:
-        #     return f"Error processing file: {str(e)}"
+        for individual_image_file in list_of_image_files:
+            t = threading.Thread(target=process_file, args=(individual_image_file,)) 
+            threads.append(t) 
+            t.start() 
+            time.sleep(0.1) 
+            
+        # Stagger slightly   
+        for t in threads: 
+            t.join()
 
-            # pass
 
     def predict(self,image,
             max_new_tokens=8192,
@@ -629,8 +864,7 @@ class OCR:
 
     async def structured_output(self,markdown:str,schema:BaseModel):
         prompt=f"""
-        Convert the given markdown text into JSON that align with the following schema:\n {schema.model_json_schema()} 
-        Wrap the output in `json` tags. Do not hallucinate. Do not use any information that is not in the markdown text.
+        Convert the given markdown text into JSON. Do not hallucinate. Do not use any information that is not in the markdown text.
         If the information is not available, use empty string.
 
         Markdown text: {markdown}
@@ -640,6 +874,28 @@ class OCR:
         # Single request with thinking mode
         response = await self.q_client.chat_completion([
             {"role": "system", "content": "You are a helpful assistant that converts Markdown to JSON format according to the given schema."},
+            {"role": "user", "content": prompt}
+        ], schema)
+
+        return response
+
+
+    async def dbd_output(self,markdown:str):
+        prompt=f"""
+        ให้ทำการแกะข้อมูลดังต่อไปนี้ ออกจากข้อความที่กำหนดไว้ด้านล่างนี้:
+        - วันที่ออกเอกสาร (ให้ดึงวันที่ ที่อยู่หลังคำว่า 'ออกให้ ณ' เท่านั้น ถ้าไม่เจอ ให้ตอบว่า 'ไม่พบข้อมูล' เท่านั้น) 
+        ตัวอย่างข้อความ เช่น: ออกให้ ณ วันที่ 29 เดือน มกราคม พ.ศ. 2567
+        คุณจะต้องตอบว่า: '29 เดือน มกราคม พ.ศ. 2567'
+        คุณจะต้องใช้เฉพาะข้อมูลที่อยู่ในข้อความด้านล่างนี้เท่านั้น ในการตอบ และห้ามนำข้อมูลที่อยู่นอกเหนือจากข้อความด้านล่างนี้ มาตอบเด็ดขาด
+        
+        ข้อความ: {markdown}
+        วันที่ออกเอกสาร:
+        /no_think
+        """
+
+        # Single request with thinking mode
+        response = await self.q_client.chat_completion([
+            {"role": "system", "content": "คุณเป็นผู้เชี่ยวชาญในการแกะข้อมูลออกจากข้อความ"},
             {"role": "user", "content": prompt}
         ])
 
