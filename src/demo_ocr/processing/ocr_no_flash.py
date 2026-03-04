@@ -305,9 +305,10 @@ class OCR:
                 max_completion_tokens=10000,
                 temperature=0.1,
                 top_p=0.9)
-            response_text = response.choices[0].message.content or ""
-            response = re.sub(r"[^A-Za-z\u0E00-\u0E7F0-9\s]", "", response_text)
-            return response
+
+            response_text = response.choices[0].message.content # or ""
+            # response = re.sub(r"[^A-Za-z\u0E00-\u0E7F0-9\s]", "", response_text)
+            return response_text
         except requests.exceptions.RequestException as e:
             print(f"request error: {e}")
             return None
