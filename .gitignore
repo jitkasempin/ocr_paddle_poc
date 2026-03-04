@@ -1,3 +1,7 @@
 .claude/
 .claude-flow/
 .swarm/
+cache/
+.env
+data/
+paddlex/

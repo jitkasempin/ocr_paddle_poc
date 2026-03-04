@@ -2185,8 +2185,8 @@ async def ocr_processing_page():
                 processing_time = end_time - start_time
                 st.session_state["processing_time"] = processing_time
             
-            if document_type == "Stock Shareholder BOJ5" or document_type == "DBD":
-                st.text_area("Center Stream", center_stream, height=500)
+            if document_type == "Stock Shareholder BOJ5" or document_type == "DBD" or document_type == "Invoice":
+                st.text_area("Center Stream", center_stream, height=800)
             elif document_type == "Passport":
                 # st.json(center_stream)
                 st.text_area("Center Stream", center_stream, height=500)
@@ -2392,7 +2392,7 @@ async def ocr_processing_page():
 
         er={"error_bool":False,"error":""}
 
-        if (document_type == "Book Bank Statement") or (document_type == "Invoice") or (document_type == "MarkDown"):
+        if (document_type == "Book Bank Statement") or (document_type == "MarkDown"):
 
             st.markdown("---")
 
@@ -2429,6 +2429,31 @@ async def ocr_processing_page():
 
                 meta_certificate = {}
 
+                def _normalize_to_json_payload(raw_output: Any) -> Any:
+                    """Normalize structured output into JSON-serializable payload for Streamlit UI."""
+                    if isinstance(raw_output, (dict, list)):
+                        return raw_output
+
+                    if isinstance(raw_output, BaseModel):
+                        return raw_output.model_dump()
+
+                    if isinstance(raw_output, str):
+                        cleaned = raw_output.strip()
+
+                        # Prefer content inside fenced json block if present
+                        fenced_match = re.search(r"```json\s*(\{.*?\}|\[.*?\])\s*```", cleaned, re.DOTALL)
+                        if fenced_match:
+                            cleaned = fenced_match.group(1).strip()
+                        else:
+                            cleaned = re.sub(r"^```(?:json)?\s*|\s*```$", "", cleaned, flags=re.DOTALL).strip()
+
+                        try:
+                            return json.loads(cleaned)
+                        except Exception:
+                            return {"raw_output": raw_output}
+
+                    return {"raw_output": str(raw_output)}
+
                 # if is_invoice_or_quotation == True:
                 if document_type == "Invoice":
                     if is_inv_delta:
@@ -2436,31 +2461,31 @@ async def ocr_processing_page():
                     else:
                         right_stream = await model.structured_output(center_stream, Invoice)
 
-                    right_md.markdown(right_stream)
+                    right_md.json(_normalize_to_json_payload(right_stream))
                 elif document_type == "MarkDown":
                     right_stream = await model.structured_output(center_stream, Invoice)
-                    right_md.markdown(right_stream)
+                    right_md.json(_normalize_to_json_payload(right_stream))
 
                 elif document_type == "Passport":
                     right_stream = await model.structured_output(center_stream, PassPortData)
-                    right_md.markdown(right_stream)
+                    right_md.json(_normalize_to_json_payload(right_stream))
                     
                 elif document_type == "Stock Shareholder BOJ5":
                     right_stream = await model.structured_output(center_stream, CompanyStock)
-                    right_md.markdown(right_stream)
+                    right_md.json(_normalize_to_json_payload(right_stream))
                 
                 elif document_type == "DBD":
                     # right_stream = await model.structured_output(center_stream, Certificate_DBD)
                     right_stream = await model.dbd_output(center_stream)
-                    right_md.markdown(right_stream)
+                    right_md.json(_normalize_to_json_payload(right_stream))
                     
                 elif document_type == "Certificate":
                     print("Processing certificate")
                     meta_certificate = lang_extract_model.extract_metadata(center_stream)
-                    right_md.markdown("###See the in result below tab")
+                    right_md.json(_normalize_to_json_payload(meta_certificate))
                 else:
                     right_stream = await model.structured_output(center_stream, PackingList)
-                    right_md.markdown(right_stream)
+                    right_md.json(_normalize_to_json_payload(right_stream))
 
 
                 end_time_2 = time.time()
@@ -2493,7 +2518,7 @@ async def ocr_processing_page():
 
                         # st.session_state["json_str"] = json.dumps({"mrz": mrz_lines})
                     else:
-                        st.session_state["json_str"] = json.dumps(right_stream)
+                        st.session_state["json"] = right_stream
                         
                         # re.search(r'```json\s*(\{.*?\})\s*```', right_stream, re.DOTALL).group(1)
                 else:
@@ -2533,7 +2558,10 @@ async def ocr_processing_page():
 
         # if is_invoice_or_quotation == True:
         if not er["error_bool"]:
-            ui_js("json_str")
+            # if document_type != "Invoice":
+                # ui_js("json_str")
+            # else:
+                # ui_js("json")
 
             # Write OCR processing time values to CSV file
             try:

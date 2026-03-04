@@ -276,7 +276,7 @@ class OCR:
 
 
     async def dotsocr_runpod_predict(self, f_path):
-        prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
+        prompt = dict_promptmode_to_prompt["prompt_ocr"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
         addr = "https://tlz65m72euft52-8000.proxy.runpod.net/v1" 
@@ -305,7 +305,8 @@ class OCR:
                 max_completion_tokens=10000,
                 temperature=0.1,
                 top_p=0.9)
-            response = response.choices[0].message.content
+            response_text = response.choices[0].message.content or ""
+            response = re.sub(r"[^A-Za-z\u0E00-\u0E7F0-9\s]", "", response_text)
             return response
         except requests.exceptions.RequestException as e:
             print(f"request error: {e}")
@@ -563,7 +564,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://kvl0f640wepv32-8000.proxy.runpod.net/v1',
+            base_url='https://0b2bo95syogl8s-8000.proxy.runpod.net/v1',
             api_key='0'
         )
 
@@ -864,10 +865,11 @@ class OCR:
 
     async def structured_output(self,markdown:str,schema:BaseModel):
         prompt=f"""
-        Convert the given markdown text into JSON. Do not hallucinate. Do not use any information that is not in the markdown text.
+        Convert the given markdown text into JSON that conforms to the following schema: {schema.model_json_schema()}.
+        You must ignore the coordinate (x1, y1, x2, y2) of the bbox and do not hallucinate. Do not use any information that is not in the markdown text.
         If the information is not available, use empty string.
 
-        Markdown text: {markdown}
+        Given markdown text: {markdown}
         /no_think
         """
 

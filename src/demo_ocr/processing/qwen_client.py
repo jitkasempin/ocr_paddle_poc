@@ -6,12 +6,12 @@ from pydantic import BaseModel
 
 
 class Qwen3VLLMClient:
-    def __init__(self, base_url="https://6ehtamg1x510yj-8000.proxy.runpod.net/v1"):
+    def __init__(self, base_url="https://api.runpod.ai/v2/em2h41xp8ytr67/openai/v1"):
         self.client = AsyncOpenAI(
             base_url=base_url,
-            api_key="EMPTY"
+            api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
         )
-        self.model_name = "Qwen/Qwen3.5-27B-FP8"
+        self.model_name = "Qwen/Qwen3-14B"
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0
         self.total_tokens = 0
@@ -24,19 +24,23 @@ class Qwen3VLLMClient:
             messages=messages,
             temperature=0.1,
             max_tokens=7000,
-            response_format={
-                "type": "json_schema",
-                "json_schema": {
-                    "name": "structured_output",
-                    "schema": js_schema.model_json_schema(),
-                },
-            },
+            # response_format={
+            #     "type": "json_schema",
+            #     "json_schema": {
+            #         "name": "structured_output",
+            #         "schema": js_schema.model_json_schema(),
+            #     },
+            # },
             extra_body={
                 "top_k": 20,
                 "top_p": 0.8,
+                # "presence_penalty": 1.5,
+                # "repetition_penalty": 1.0,
+                # "min_p": 0.0,
                 "chat_template_kwargs": {
                     "enable_thinking": False
                 },
+                "structured_outputs": {"json": js_schema.model_json_schema()}
             }
         )
 
@@ -50,6 +54,10 @@ class Qwen3VLLMClient:
             self.total_completion_tokens += completion_tokens
             self.total_tokens += total
             self.request_count += 1
+
+            logger.info("The return data below: ")
+
+            logger.info(response.choices[0].message.content)
 
             logger.info(
                 f"[Qwen3.5-27B-FP8] Token usage — "
