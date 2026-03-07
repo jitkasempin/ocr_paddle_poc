@@ -2186,7 +2186,7 @@ async def ocr_processing_page():
                 st.session_state["processing_time"] = processing_time
             
             if document_type == "Stock Shareholder BOJ5" or document_type == "DBD" or document_type == "Invoice":
-                st.text_area("Center Stream", center_stream, height=800)
+                st.json(center_stream)
             elif document_type == "Passport":
                 # st.json(center_stream)
                 st.text_area("Center Stream", center_stream, height=500)
@@ -2456,6 +2456,11 @@ async def ocr_processing_page():
 
                 # if is_invoice_or_quotation == True:
                 if document_type == "Invoice":
+
+                    if not isinstance(center_stream, str):
+                        center_stream = json.dumps(center_stream.strip())
+
+
                     if is_inv_delta:
                         right_stream = await model.structured_output(center_stream, Invoice)
                     else:

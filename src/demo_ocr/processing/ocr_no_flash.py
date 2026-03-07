@@ -276,10 +276,10 @@ class OCR:
 
 
     async def dotsocr_runpod_predict(self, f_path):
-        prompt = dict_promptmode_to_prompt["prompt_ocr"]
+        prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://tlz65m72euft52-8000.proxy.runpod.net/v1" 
+        addr = "https://glkzo9mqhhvd7s-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
@@ -565,7 +565,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://0b2bo95syogl8s-8000.proxy.runpod.net/v1',
+            base_url='https://2hbs2zk547t20c-8000.proxy.runpod.net/v1',
             api_key='0'
         )
 
@@ -866,17 +866,17 @@ class OCR:
 
     async def structured_output(self,markdown:str,schema:BaseModel):
         prompt=f"""
-        Convert the given markdown text into JSON that conforms to the following schema: {schema.model_json_schema()}.
-        You must ignore the coordinate (x1, y1, x2, y2) of the bbox and do not hallucinate. Do not use any information that is not in the markdown text.
+        Convert the given JSON text into JSON Object that conforms to the following schema: {schema.model_json_schema()}.
+        You must ignore the value of 'bbox' key. Do not hallucinate and do not use any information that is not in the JSON text.
         If the information is not available, use empty string.
 
-        Given markdown text: {markdown}
+        Given JSON text: {markdown}
         /no_think
         """
 
         # Single request with thinking mode
         response = await self.q_client.chat_completion([
-            {"role": "system", "content": "You are a helpful assistant that converts Markdown to JSON format according to the given schema."},
+            {"role": "system", "content": "You are a helpful assistant that converts JSON text into JSON Object according to the given schema."},
             {"role": "user", "content": prompt}
         ], schema)
 
