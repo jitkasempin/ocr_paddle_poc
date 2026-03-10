@@ -348,7 +348,11 @@ class CustomerCompany(BaseModel):
 
 
 class Item(BaseModel):
-    code: str = Field(default="", description="Product code")
+    code: str = Field(default="", description=(
+        "คือค่าของ 'ลำดับ', 'item', 'item code', 'item no', 'item number', 'item #', 'code' เท่านั้น"
+        "ห้ามใช้ค่าของ 'customer code', 'customer no', 'customer number', 'customer #', 'รหัสลูกค้า'"
+        )
+    )
     description: str = Field(
         default="", description="description ของสินค้า หรือ รายการสินค้า หรือ รายการ หรือ รายละเอียด หรือ รายละเอียดสินค้า")
     unit_price: Decimal = Field(default=Decimal(
@@ -2186,7 +2190,7 @@ async def ocr_processing_page():
                 st.session_state["processing_time"] = processing_time
             
             if document_type == "Stock Shareholder BOJ5" or document_type == "DBD" or document_type == "Invoice":
-                st.json(center_stream)
+                st.text_area("Center Stream", center_stream, height=500)
             elif document_type == "Passport":
                 # st.json(center_stream)
                 st.text_area("Center Stream", center_stream, height=500)

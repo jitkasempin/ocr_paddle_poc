@@ -6,12 +6,14 @@ from pydantic import BaseModel
 
 
 class Qwen3VLLMClient:
-    def __init__(self, base_url="https://api.runpod.ai/v2/em2h41xp8ytr67/openai/v1"):
+    def __init__(self, base_url="https://9trsuv1opxh8oh-8000.proxy.runpod.net/v1"):
         self.client = AsyncOpenAI(
             base_url=base_url,
-            api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
+            api_key="0"
+            # api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
         )
-        self.model_name = "Qwen/Qwen3-14B"
+        self.model_name = "Qwen/Qwen3.5-9B"
+        # self.model_name = "Qwen/Qwen3-14B"
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0
         self.total_tokens = 0
@@ -22,24 +24,14 @@ class Qwen3VLLMClient:
         response = await self.client.chat.completions.create(
             model=self.model_name,
             messages=messages,
-            temperature=0.7,
-            max_tokens=10000,
-            # response_format={
-            #     "type": "json_schema",
-            #     "json_schema": {
-            #         "name": "structured_output",
-            #         "schema": js_schema.model_json_schema(),
-            #     },
-            # },
+            temperature=0.6,
+            # max_tokens=10000,
             extra_body={
                 "top_k": 20,
-                "top_p": 0.8,
-                # "presence_penalty": 1.5,
-                # "repetition_penalty": 1.0,
+                "top_p": 0.95,
+                "presence_penalty": 1.5,
+                "repetition_penalty": 1.0,
                 "min_p": 0.0,
-                "chat_template_kwargs": {
-                    "enable_thinking": False
-                },
                 "structured_outputs": {"json": js_schema.model_json_schema()}
             }
         )

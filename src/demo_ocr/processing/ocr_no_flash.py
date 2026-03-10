@@ -276,10 +276,10 @@ class OCR:
 
 
     async def dotsocr_runpod_predict(self, f_path):
-        prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
+        prompt = dict_promptmode_to_prompt["prompt_ocr"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://glkzo9mqhhvd7s-8000.proxy.runpod.net/v1" 
+        addr = "https://pxaz7hoowz9ku8-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
@@ -866,17 +866,15 @@ class OCR:
 
     async def structured_output(self,markdown:str,schema:BaseModel):
         prompt=f"""
-        Convert the given JSON text into JSON Object that conforms to the following schema: {schema.model_json_schema()}.
-        You must ignore the value of 'bbox' key. Do not hallucinate and do not use any information that is not in the JSON text.
+        Convert the given markdown text into JSON Object that conforms to the following schema: {schema.model_json_schema()}.
+        Do not hallucinate and do not use any information that is not in the markdown text.
         If the information is not available, use empty string.
 
-        Given JSON text: {markdown}
-        /no_think
+        Given markdown text: {markdown}
         """
 
         # Single request with thinking mode
         response = await self.q_client.chat_completion([
-            {"role": "system", "content": "You are a helpful assistant that converts JSON text into JSON Object according to the given schema."},
             {"role": "user", "content": prompt}
         ], schema)
 
