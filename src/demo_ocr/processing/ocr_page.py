@@ -1716,6 +1716,10 @@ async def ocr_processing_page():
 
         selected_ocr_model = "high_performance_ocr"
         
+        using_qwen_new_one = st.toggle(
+            "Using Qwen new version?",
+            value=True
+        )
         
         seq_or_parallel = st.radio(
             "Process sequencial or parallel",
@@ -2035,7 +2039,7 @@ async def ocr_processing_page():
                                             
                                             # tmp_center_stream = await model.run_hunyuan_predict(img_nn)
                                         elif model_vlm_using == "lighton":
-                                            tmp_center_stream = model.lighton_verda_predict("document.pdf")
+                                            tmp_center_stream = model.call_runpod_serverless_sync("document.pdf", st.session_state["ocr_page_number"])
                                         elif model_vlm_using == "olmocr":
                                             tmp_center_stream = await model.olmocr_runpod_predict("document.pdf", st.session_state["ocr_page_number"])
                                         elif model_vlm_using == "dots_ocr":
@@ -2466,21 +2470,21 @@ async def ocr_processing_page():
 
 
                     if is_inv_delta:
-                        right_stream = await model.structured_output(center_stream, Invoice)
+                        right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
                     else:
-                        right_stream = await model.structured_output(center_stream, Invoice)
+                        right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
 
                     right_md.json(_normalize_to_json_payload(right_stream))
                 elif document_type == "MarkDown":
-                    right_stream = await model.structured_output(center_stream, Invoice)
+                    right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
                     right_md.json(_normalize_to_json_payload(right_stream))
 
                 elif document_type == "Passport":
-                    right_stream = await model.structured_output(center_stream, PassPortData)
+                    right_stream = await model.structured_output(center_stream, PassPortData, using_qwen_new_one)
                     right_md.json(_normalize_to_json_payload(right_stream))
                     
                 elif document_type == "Stock Shareholder BOJ5":
-                    right_stream = await model.structured_output(center_stream, CompanyStock)
+                    right_stream = await model.structured_output(center_stream, CompanyStock, using_qwen_new_one)
                     right_md.json(_normalize_to_json_payload(right_stream))
                 
                 elif document_type == "DBD":
@@ -2493,7 +2497,7 @@ async def ocr_processing_page():
                     meta_certificate = lang_extract_model.extract_metadata(center_stream)
                     right_md.json(_normalize_to_json_payload(meta_certificate))
                 else:
-                    right_stream = await model.structured_output(center_stream, PackingList)
+                    right_stream = await model.structured_output(center_stream, PackingList, using_qwen_new_one)
                     right_md.json(_normalize_to_json_payload(right_stream))
 
 
