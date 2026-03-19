@@ -864,19 +864,25 @@ class OCR:
                     yield buffer
                     buffer = ""
 
-    async def structured_output(self,markdown:str,schema:BaseModel):
+    async def structured_output(self,markdown:str,schema:BaseModel,qwen_new_model=False):
         prompt=f"""
-        Convert the given markdown text into JSON Object that conforms to the following schema: {schema.model_json_schema()}.
-        Do not hallucinate and do not use any information that is not in the markdown text.
+        Convert the given text into JSON Object that conforms to the following schema: {schema.model_json_schema()}.
+        Do not hallucinate and do not use any information that is not in the text.
         If the information is not available, use empty string.
 
-        Given markdown text: {markdown}
+        Given text: {markdown}
+        /no_think
         """
 
         # Single request with thinking mode
-        response = await self.q_client.chat_completion([
-            {"role": "user", "content": prompt}
-        ], schema)
+        if qwen_new_model:
+            response = await self.q_client.chat_completion([
+                {"role": "user", "content": prompt}
+            ], schema)
+        else:
+            response = await self.q_client.chat_completion_old([
+                {"role": "user", "content": prompt}
+            ], schema)
 
         return response
 
