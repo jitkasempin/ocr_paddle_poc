@@ -20,6 +20,12 @@ div[role="radiogroup"] input[type="radio"] {
     height: 0;
 }
 
+/* Sidebar background color */
+section[data-testid="stSidebar"] {
+    background-color: green;
+}
+
+
 /* 3. Style the label (which contains the text and will act as the button) */
 div[role="radiogroup"] label {
     /* The label is the element that the user clicks */

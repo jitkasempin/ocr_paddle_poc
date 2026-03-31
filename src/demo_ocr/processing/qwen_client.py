@@ -89,7 +89,7 @@ class Qwen3VLLMClient:
                 # "min_p": 0.0,
                 # vLLM's OpenAI-compatible API uses chat_template_kwargs
                 # to control Qwen thinking mode at request time.
-                "chat_template_kwargs": {"enable_thinking": False},
+                # "chat_template_kwargs": {"enable_thinking": False},
                 "structured_outputs": {"json": js_schema.model_json_schema()}
             }
         )

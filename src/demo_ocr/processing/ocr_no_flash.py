@@ -276,10 +276,10 @@ class OCR:
 
 
     async def dotsocr_runpod_predict(self, f_path):
-        prompt = dict_promptmode_to_prompt["prompt_ocr"]
+        prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://pxaz7hoowz9ku8-8000.proxy.runpod.net/v1" 
+        addr = "https://vn1jl6ii8vqacv-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"

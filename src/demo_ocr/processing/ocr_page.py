@@ -260,7 +260,7 @@ class Document(BaseModel):
         )
     )
     date: str = Field(
-        default="", description="วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
+        default="", description="date หรือ date: หรือ วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
     document_name: str = Field(
         default="", description="ชื่อเอกสาร สามารถมีค่าต่างๆ ได้เช่น ต้นฉบับใบกำกับภาษี TAX INVOICE หรือ ต้นฉบับใบแจ้งหนี้ หรือ ใบกำกับภาษี หรือ Original Invoice หรือ ต้นฉบับใบเสร็จรับเงิน หรือ ใบแจ้งหนี้")
     payment_due_date: str = Field(
@@ -272,6 +272,8 @@ class Document(BaseModel):
     @classmethod
     def _heal_all_dates(cls, v):
         parsed_dated = parse_thai_date(v)
+        print(f"parsed_dated: {parsed_dated}")
+        print(f"v: {v}")
         if parsed_dated is None:
             parsed_dated = "00.00.0000"
 
@@ -300,6 +302,10 @@ class Document(BaseModel):
 
         if empty_fields:
             raise ValueError(f"The following fields must not be empty: {', '.join(empty_fields)}")
+
+        self.date = parse_thai_date(self.date)
+        if self.date is None:
+            self.date = "00.00.0000"
 
         return self
 
