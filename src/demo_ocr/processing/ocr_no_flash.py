@@ -279,7 +279,7 @@ class OCR:
         prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://vn1jl6ii8vqacv-8000.proxy.runpod.net/v1" 
+        addr = "https://ht15lqc8wzyfem-8000.proxy.runpod.net/v1" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
@@ -565,7 +565,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://2hbs2zk547t20c-8000.proxy.runpod.net/v1',
+            base_url='https://vd7kgirklhmt3h-8000.proxy.runpod.net/v1',
             api_key='0'
         )
 

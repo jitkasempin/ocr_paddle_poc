@@ -18,6 +18,8 @@ from ultralytics import YOLO
 from .ocr_no_flash import OCR
 from .invoice_integration import flag_repetitive_output
 
+from .po_schema import PurchaseOrder
+
 from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes, extract_only_branch_code_number, extract_po_decimal
 from .hybrid_search import HybridSearch
 from .stamp_detection import StampDetection
@@ -168,12 +170,12 @@ class PackingListItem(BaseModel):
     # price: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ ราคาของสินค้า")
 
 
-class PoItem(BaseModel):
-    description: str = Field("", description="Description หรือ รายละเอียด หรือ รหัสสินค้า หรือ รายการ หรือ Description of goods")
-    quantity: float = Field(0, description="จำนวน หรือ Quantity หรือ Qty หรือ Order Quantity")
-    uom: str = Field("", description="UOM หรือ Unit of Measure")
-    unit_price: float = Field(0, description="ราคาต่อหน่วย หรือ ราคา/หน่วย หรือ หน่วยละ หรือ Unit Price หรือ Unit")
-    amount: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ Total หรือ Total Amount หรือ Total Price")
+# class PoItem(BaseModel):
+    # description: str = Field("", description="Description หรือ รายละเอียด หรือ รหัสสินค้า หรือ รายการ หรือ Description of goods")
+    # quantity: float = Field(0, description="จำนวน หรือ Quantity หรือ Qty หรือ Order Quantity")
+    # uom: str = Field("", description="UOM หรือ Unit of Measure")
+    # unit_price: float = Field(0, description="ราคาต่อหน่วย หรือ ราคา/หน่วย หรือ หน่วยละ หรือ Unit Price หรือ Unit")
+    # amount: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ Total หรือ Total Amount หรือ Total Price")
 
 
 class PassPortData(BaseModel):
@@ -213,13 +215,13 @@ class PackingList(BaseModel):
     table: list[PackingListItem] = Field(description="รายการสินค้ารวมถึงปริมาณที่อยู่ใน Packling List")
 
 
-class PurchaseOrder(BaseModel):
-    purchase_order_number: str = Field(default="", description="Purchase Order Number หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ P/O No หรือ ใบสั่งซื้อเลขที่")
-    date: str = Field(default="", description="Purchase Order Date หรือ PO Date หรือ วันที่")
-    credit_term: str = Field(default="", description="เครดิต หรือ credit term หรือ payment term หรือ การชำระเงิน หรือ เงื่อนไข")
-    company_name: str = Field(default="", description="Company name at the top of the invoice. The company name must not be 'THAI KK INDUSTRY' or 'ไทย เคเค อุตสาหกรรม'")
-    tax_id: str = Field(default="", description="เลขประจำตัวผู้เสียภาษี หรือ เลขประจำตัวผู้เสียภาษีอากร หรือ TAX ID หรือ VAT Registration No")
-    items_list: list[PoItem] = Field(description="List of items in the Purchase Order. Each item should have description, quantity, unit price, and amount")
+# class PurchaseOrder(BaseModel):
+    # purchase_order_number: str = Field(default="", description="Purchase Order Number หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ P/O No หรือ ใบสั่งซื้อเลขที่")
+    # date: str = Field(default="", description="Purchase Order Date หรือ PO Date หรือ วันที่")
+    # credit_term: str = Field(default="", description="เครดิต หรือ credit term หรือ payment term หรือ การชำระเงิน หรือ เงื่อนไข")
+    # company_name: str = Field(default="", description="Company name at the top of the invoice. The company name must not be 'THAI KK INDUSTRY' or 'ไทย เคเค อุตสาหกรรม'")
+    # tax_id: str = Field(default="", description="เลขประจำตัวผู้เสียภาษี หรือ เลขประจำตัวผู้เสียภาษีอากร หรือ TAX ID หรือ VAT Registration No")
+    # items_list: list[PoItem] = Field(description="List of items in the Purchase Order. Each item should have description, quantity, unit price, and amount")
     # email_address: str = Field(default="", description="Email Address of Contact Person in the Purchase Order.")
 
 class AnalysisReport(BaseModel):
@@ -1925,7 +1927,8 @@ async def ocr_processing_page():
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
             if document_type != "MarkDown":
-                doc_category = model.check_if_it_invoice(image_inp_path[0])
+                doc_category = "Invoice" 
+                # model.check_if_it_invoice(image_inp_path[0])
                 # doc_category_md = st.empty()
 
                 if doc_category == "Invoice" or doc_category == "Quotation":
@@ -2476,13 +2479,13 @@ async def ocr_processing_page():
 
 
                     if is_inv_delta:
-                        right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
+                        right_stream = await model.structured_output(center_stream, PurchaseOrder, using_qwen_new_one)
                     else:
-                        right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
+                        right_stream = await model.structured_output(center_stream, PurchaseOrder, using_qwen_new_one)
 
                     right_md.json(_normalize_to_json_payload(right_stream))
                 elif document_type == "MarkDown":
-                    right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
+                    right_stream = await model.structured_output(center_stream, PurchaseOrder, using_qwen_new_one)
                     right_md.json(_normalize_to_json_payload(right_stream))
 
                 elif document_type == "Passport":

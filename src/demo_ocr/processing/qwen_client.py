@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 
 class Qwen3VLLMClient:
-    def __init__(self, base_url="https://p2wnc6w1w3eocd-8000.proxy.runpod.net/v1"):
+    def __init__(self, base_url="https://vd7kgirklhmt3h-8010.proxy.runpod.net/v1"):
         self.client = AsyncOpenAI(
             base_url=base_url,
             api_key="0"
@@ -34,7 +34,7 @@ class Qwen3VLLMClient:
             max_tokens=10000,
             extra_body={
                 "top_k": 20,
-                "top_p": 0.8,
+                "top_p": 0.95,
                 "presence_penalty": 1.5,
                 "repetition_penalty": 1.0,
                 "min_p": 0.0,
@@ -79,7 +79,7 @@ class Qwen3VLLMClient:
         response = await self.client_old.chat.completions.create(
             model=self.model_name_old,
             messages=messages,
-            temperature=0.1,
+            temperature=0,
             max_tokens=10000,
             extra_body={
                 "top_k": 20,
