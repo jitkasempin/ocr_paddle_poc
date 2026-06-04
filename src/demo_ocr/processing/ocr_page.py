@@ -2479,13 +2479,13 @@ async def ocr_processing_page():
 
 
                     if is_inv_delta:
-                        right_stream = await model.structured_output(center_stream, PurchaseOrder, using_qwen_new_one)
+                        right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
                     else:
-                        right_stream = await model.structured_output(center_stream, PurchaseOrder, using_qwen_new_one)
+                        right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
 
                     right_md.json(_normalize_to_json_payload(right_stream))
                 elif document_type == "MarkDown":
-                    right_stream = await model.structured_output(center_stream, PurchaseOrder, using_qwen_new_one)
+                    right_stream = await model.structured_output(center_stream, Invoice, using_qwen_new_one)
                     right_md.json(_normalize_to_json_payload(right_stream))
 
                 elif document_type == "Passport":

@@ -6,10 +6,10 @@ from pydantic import BaseModel
 
 
 class Qwen3VLLMClient:
-    def __init__(self, base_url="https://vd7kgirklhmt3h-8010.proxy.runpod.net/v1"):
+    def __init__(self, base_url="https://api.runpod.ai/v2/427soi5i9u6f1i/openai/v1"):
         self.client = AsyncOpenAI(
             base_url=base_url,
-            api_key="0"
+            api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
             # api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
         )
 
@@ -18,7 +18,7 @@ class Qwen3VLLMClient:
             # api_key="0"
             api_key="rpa_FPEGQAATGI03GTAQJ94I7I7V1X21UXY3UDXSL7OE610y7c"
         )
-        self.model_name = "Qwen/Qwen3.5-9B"
+        self.model_name = "qwen/qwen3.5-9b"
         self.model_name_old = "Qwen/Qwen3-14B"
         self.total_prompt_tokens = 0
         self.total_completion_tokens = 0

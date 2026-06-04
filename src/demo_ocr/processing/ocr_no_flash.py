@@ -276,10 +276,10 @@ class OCR:
 
 
     async def dotsocr_runpod_predict(self, f_path):
-        prompt = dict_promptmode_to_prompt["prompt_layout_all_en"]
+        prompt = dict_promptmode_to_prompt["prompt_ocr"]
         image = Image.open(f_path)
         # https://vjavkcdqrgqyq5-8000.proxy.runpod.net/
-        addr = "https://ht15lqc8wzyfem-8000.proxy.runpod.net/v1" 
+        addr = "https://wb3090.vm.weaverbase.io/v1/" 
         
         # "https://en3mvx70t92s25-8000.proxy.runpod.net/v1"
         # "https://vjavkcdqrgqyq5-8000.proxy.runpod.net/v1"
@@ -301,7 +301,7 @@ class OCR:
         try:
             response = await dots_ocr_client.chat.completions.create(
                 messages=messages, 
-                model="model", 
+                model="/models/dots_mocr", 
                 max_completion_tokens=10000,
                 temperature=0.1,
                 top_p=0.9)
@@ -565,7 +565,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://vd7kgirklhmt3h-8000.proxy.runpod.net/v1',
+            base_url='https://hzjlf20x9hv23z-8000.proxy.runpod.net/v1',
             api_key='0'
         )
 
@@ -788,7 +788,7 @@ class OCR:
 
             # Create async client for RunPod vLLM endpoint
             sync_typhoon_client = OpenAI(
-                base_url='https://kvl0f640wepv32-8000.proxy.runpod.net/v1',
+                base_url='http://157.85.107.33:8010/v1',
                 api_key='0'
             )
 
