@@ -18,6 +18,8 @@ from ultralytics import YOLO
 from .ocr_no_flash import OCR
 from .invoice_integration import flag_repetitive_output
 
+from .po_schema import PurchaseOrder
+
 from .schema_helper import parse_decimal_like, parse_thai_date, extract_code, extract_all_codes, extract_only_branch_code_number, extract_po_decimal
 from .hybrid_search import HybridSearch
 from .stamp_detection import StampDetection
@@ -168,12 +170,12 @@ class PackingListItem(BaseModel):
     # price: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ ราคาของสินค้า")
 
 
-class PoItem(BaseModel):
-    description: str = Field("", description="Description หรือ รายละเอียด หรือ รหัสสินค้า หรือ รายการ หรือ Description of goods")
-    quantity: float = Field(0, description="จำนวน หรือ Quantity หรือ Qty หรือ Order Quantity")
-    uom: str = Field("", description="UOM หรือ Unit of Measure")
-    unit_price: float = Field(0, description="ราคาต่อหน่วย หรือ ราคา/หน่วย หรือ หน่วยละ หรือ Unit Price หรือ Unit")
-    amount: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ Total หรือ Total Amount หรือ Total Price")
+# class PoItem(BaseModel):
+    # description: str = Field("", description="Description หรือ รายละเอียด หรือ รหัสสินค้า หรือ รายการ หรือ Description of goods")
+    # quantity: float = Field(0, description="จำนวน หรือ Quantity หรือ Qty หรือ Order Quantity")
+    # uom: str = Field("", description="UOM หรือ Unit of Measure")
+    # unit_price: float = Field(0, description="ราคาต่อหน่วย หรือ ราคา/หน่วย หรือ หน่วยละ หรือ Unit Price หรือ Unit")
+    # amount: float = Field(0, description="จำนวนเงิน หรือ Amount หรือ Total หรือ Total Amount หรือ Total Price")
 
 
 class PassPortData(BaseModel):
@@ -213,13 +215,13 @@ class PackingList(BaseModel):
     table: list[PackingListItem] = Field(description="รายการสินค้ารวมถึงปริมาณที่อยู่ใน Packling List")
 
 
-class PurchaseOrder(BaseModel):
-    purchase_order_number: str = Field(default="", description="Purchase Order Number หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ P/O No หรือ ใบสั่งซื้อเลขที่")
-    date: str = Field(default="", description="Purchase Order Date หรือ PO Date หรือ วันที่")
-    credit_term: str = Field(default="", description="เครดิต หรือ credit term หรือ payment term หรือ การชำระเงิน หรือ เงื่อนไข")
-    company_name: str = Field(default="", description="Company name at the top of the invoice. The company name must not be 'THAI KK INDUSTRY' or 'ไทย เคเค อุตสาหกรรม'")
-    tax_id: str = Field(default="", description="เลขประจำตัวผู้เสียภาษี หรือ เลขประจำตัวผู้เสียภาษีอากร หรือ TAX ID หรือ VAT Registration No")
-    items_list: list[PoItem] = Field(description="List of items in the Purchase Order. Each item should have description, quantity, unit price, and amount")
+# class PurchaseOrder(BaseModel):
+    # purchase_order_number: str = Field(default="", description="Purchase Order Number หรือ เลขที่ใบสั่งซื้อ หรือ PO NO หรือ P/O No หรือ ใบสั่งซื้อเลขที่")
+    # date: str = Field(default="", description="Purchase Order Date หรือ PO Date หรือ วันที่")
+    # credit_term: str = Field(default="", description="เครดิต หรือ credit term หรือ payment term หรือ การชำระเงิน หรือ เงื่อนไข")
+    # company_name: str = Field(default="", description="Company name at the top of the invoice. The company name must not be 'THAI KK INDUSTRY' or 'ไทย เคเค อุตสาหกรรม'")
+    # tax_id: str = Field(default="", description="เลขประจำตัวผู้เสียภาษี หรือ เลขประจำตัวผู้เสียภาษีอากร หรือ TAX ID หรือ VAT Registration No")
+    # items_list: list[PoItem] = Field(description="List of items in the Purchase Order. Each item should have description, quantity, unit price, and amount")
     # email_address: str = Field(default="", description="Email Address of Contact Person in the Purchase Order.")
 
 class AnalysisReport(BaseModel):
@@ -260,7 +262,7 @@ class Document(BaseModel):
         )
     )
     date: str = Field(
-        default="", description="วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
+        default="", description="date หรือ date: หรือ วันที่ออกใบแจ้งหนี้ หรือวันที่ ที่ได้เขียนไว้บน Invoice")
     document_name: str = Field(
         default="", description="ชื่อเอกสาร สามารถมีค่าต่างๆ ได้เช่น ต้นฉบับใบกำกับภาษี TAX INVOICE หรือ ต้นฉบับใบแจ้งหนี้ หรือ ใบกำกับภาษี หรือ Original Invoice หรือ ต้นฉบับใบเสร็จรับเงิน หรือ ใบแจ้งหนี้")
     payment_due_date: str = Field(
@@ -272,6 +274,8 @@ class Document(BaseModel):
     @classmethod
     def _heal_all_dates(cls, v):
         parsed_dated = parse_thai_date(v)
+        print(f"parsed_dated: {parsed_dated}")
+        print(f"v: {v}")
         if parsed_dated is None:
             parsed_dated = "00.00.0000"
 
@@ -300,6 +304,10 @@ class Document(BaseModel):
 
         if empty_fields:
             raise ValueError(f"The following fields must not be empty: {', '.join(empty_fields)}")
+
+        self.date = parse_thai_date(self.date)
+        if self.date is None:
+            self.date = "00.00.0000"
 
         return self
 
@@ -1919,7 +1927,8 @@ async def ocr_processing_page():
         
         with st.status("Checking if this document is invoice or not", expanded=True) as status_check_invoice:
             if document_type != "MarkDown":
-                doc_category = model.check_if_it_invoice(image_inp_path[0])
+                doc_category = "Invoice" 
+                # model.check_if_it_invoice(image_inp_path[0])
                 # doc_category_md = st.empty()
 
                 if doc_category == "Invoice" or doc_category == "Quotation":
