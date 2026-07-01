@@ -565,7 +565,7 @@ class OCR:
 
         # Create async client for RunPod vLLM endpoint
         typhoon_client = AsyncOpenAI(
-            base_url='https://hzjlf20x9hv23z-8000.proxy.runpod.net/v1',
+            base_url='http://157.85.107.32:8000/typhoon/v1',
             api_key='0'
         )
 
