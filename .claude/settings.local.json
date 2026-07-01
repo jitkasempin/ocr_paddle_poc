@@ -3,7 +3,15 @@
     "allow": [
       "WebFetch(domain:arxiv.org)",
       "WebFetch(domain:github.com)",
-      "WebFetch(domain:www.nvidia.com)"
+      "WebFetch(domain:www.nvidia.com)",
+      "Bash(grep -v '^\\\\s*$')",
+      "Bash(python3 -m pip install -q pydantic openai loguru python-dateutil)",
+      "Bash(python3 -m venv .venv)",
+      "Bash(.venv/bin/pip install *)",
+      "Bash(.venv/bin/python -c \"import pydantic, openai, loguru; print\\('deps OK'\\)\")",
+      "Bash(cd *)",
+      "Bash(../../.venv/bin/python -m processing.test_cli)",
+      "Bash(../../.venv/bin/python -m processing.cli --help)"
     ]
   },
   "disabledMcpjsonServers": [

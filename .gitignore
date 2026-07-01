@@ -4,5 +4,6 @@
 .swarm/
 cache/
 .env
+.venv/
 data/
 paddlex/
