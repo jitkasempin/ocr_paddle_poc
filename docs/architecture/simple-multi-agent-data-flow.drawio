@@ -1,0 +1,114 @@
+<mxfile host="app.diagrams.net" modified="2026-07-16T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="multi-agent-data-flow" name="Multi-Agent Data Flow">
+    <mxGraphModel dx="1600" dy="950" grid="1" gridSize="8" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="950" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="&lt;b&gt;Multi-Agent AI System — Simple Data Flow Diagram&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;Enterprise data stays behind governed connectors; specialist agents retrieve only the information needed for each task.&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=24;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="930" height="56" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="zone-enterprise" value="&lt;b&gt;People &amp;amp; Enterprise Sources&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Authoritative systems of record&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#f8fffb;strokeColor=#86efac;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="125" width="290" height="700" as="geometry"/>
+        </mxCell>
+        <mxCell id="zone-ai" value="&lt;b&gt;Multi-Agent AI System&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Governed orchestration, specialist agents, shared context&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#f8fbff;strokeColor=#93c5fd;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="360" y="125" width="840" height="700" as="geometry"/>
+        </mxCell>
+        <mxCell id="zone-tools" value="&lt;b&gt;External Tools&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Internet and partner services&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#fffaf5;strokeColor=#fdba74;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="125" width="330" height="700" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="user" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;EXTERNAL ACTOR&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;User / Business App&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;question, task, or workflow&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#64748b;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="75" y="215" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="digital-hr" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;ENTERPRISE SYSTEM&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Digital HR System&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;employees · organization&lt;br&gt;leave · payroll · policy&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#ecfdf5;strokeColor=#059669;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="75" y="400" width="220" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dms" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;ENTERPRISE SYSTEM&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;DMS&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;Data Source Management System&lt;br&gt;documents · metadata · records&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#ecfdf5;strokeColor=#059669;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="75" y="590" width="220" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="gateway" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;ENTRY POINT&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Interaction Gateway&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;authentication · session&lt;br&gt;input / output validation&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#2563eb;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="230" width="220" height="95" as="geometry"/>
+        </mxCell>
+        <mxCell id="orchestrator" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;SUPERVISOR&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Orchestrator Agent&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;plans · delegates · combines results&lt;br&gt;selects the right specialist&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#eff6ff;strokeColor=#2563eb;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="670" y="230" width="260" height="95" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="agents-label" value="&lt;b&gt;Specialist Agents&lt;/b&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="400" y="375" width="130" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="hr-agent" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;SPECIALIST&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;HR Agent&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;employee and HR questions&lt;br&gt;approved HR permissions&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f3ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="400" y="420" width="210" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="dms-agent" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;SPECIALIST&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;DMS Knowledge Agent&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;retrieval and document context&lt;br&gt;citations and metadata&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f3ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="660" y="420" width="210" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="research-agent" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;SPECIALIST&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Research / Tool Agent&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;web research and API calls&lt;br&gt;validates external results&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f3ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="420" width="210" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="memory" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;SHARED PLATFORM SERVICE&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Context &amp;amp; Memory&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;task state · evidence · conversation&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#f5f3ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="640" y="630" width="260" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="controls" value="&lt;b&gt;Security, Privacy, Guardrails &amp;amp; Audit&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#6d28d9&quot; size=&quot;2&quot;&gt;identity · authorization · sensitive-data controls · tool policy · logs · monitoring&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#faf5ff;strokeColor=#c4b5fd;strokeWidth=1.5;dashed=1;dashPattern=5 4;fontSize=13;fontColor=#5b21b6;" vertex="1" parent="1">
+          <mxGeometry x="400" y="750" width="730" height="48" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="web-search" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;EXTERNAL TOOL&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Web Search&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;public, current information&lt;br&gt;source links and snippets&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#ea580c;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1275" y="400" width="240" height="100" as="geometry"/>
+        </mxCell>
+        <mxCell id="external-apis" value="&lt;font color=&quot;#64748b&quot; size=&quot;1&quot;&gt;&lt;b&gt;EXTERNAL TOOL&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;External APIs&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;partner and SaaS services&lt;br&gt;structured requests / responses&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#ea580c;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1275" y="590" width="240" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow-user-gateway" value="query / reply" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.7;strokeColor=#2563eb;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="user" target="gateway">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-gateway-orchestrator" value="request / answer" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.7;strokeColor=#2563eb;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="gateway" target="orchestrator">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-orch-hr" value="tasks / findings" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.7;strokeColor=#2563eb;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="orchestrator" target="hr-agent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-orch-dms" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.7;strokeColor=#2563eb;" edge="1" parent="1" source="orchestrator" target="dms-agent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-orch-research" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.7;strokeColor=#2563eb;" edge="1" parent="1" source="orchestrator" target="research-agent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow-hr-data" value="HR data query" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#059669;dashed=1;dashPattern=8 6;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="digital-hr" target="hr-agent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-dms-data" value="documents / metadata" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#059669;dashed=1;dashPattern=8 6;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="dms" target="dms-agent">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-web" value="search / results" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#ea580c;dashed=1;dashPattern=8 6;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="research-agent" target="web-search">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-api" value="API calls / data" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2.5;strokeColor=#ea580c;dashed=1;dashPattern=8 6;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="research-agent" target="external-apis">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="flow-orch-memory" value="state / evidence" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7c3aed;dashed=1;dashPattern=3 5;fontSize=11;fontColor=#334155;labelBackgroundColor=#ffffff;" edge="1" parent="1" source="orchestrator" target="memory">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-hr-memory" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7c3aed;dashed=1;dashPattern=3 5;" edge="1" parent="1" source="hr-agent" target="memory">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-dms-memory" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7c3aed;dashed=1;dashPattern=3 5;" edge="1" parent="1" source="dms-agent" target="memory">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="flow-research-memory" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;jumpStyle=arc;jumpSize=8;html=1;startArrow=block;startFill=1;endArrow=block;endFill=1;strokeWidth=2;strokeColor=#7c3aed;dashed=1;dashPattern=3 5;" edge="1" parent="1" source="research-agent" target="memory">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="footer" value="Typical flow: user query → gateway → orchestrator → selected agents → governed data/tool access → evidence returned → final answer." style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=12;fontColor=#475569;" vertex="1" parent="1">
+          <mxGeometry x="40" y="866" width="1120" height="26" as="geometry"/>
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

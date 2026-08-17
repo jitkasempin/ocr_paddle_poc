@@ -1,0 +1,732 @@
+{
+  "version": "1.0.0",
+  "project": {
+    "name": "ocr_paddle_poc",
+    "languages": ["Python"],
+    "frameworks": ["Streamlit", "LiteLLM", "OpenAI SDK", "Qdrant", "Transformers", "Ultralytics YOLO", "PyMuPDF", "Surya OCR"],
+    "description": "A document OCR proof-of-concept Streamlit application supporting multiple OCR engines (Typhoon OCR, DOTS OCR, Qwen VL, Donut) with invoice data extraction, document classification, hybrid vector search, and Supabase integration.",
+    "analyzedAt": "2026-03-23T00:00:00Z",
+    "gitCommitHash": "55789dc8e05d14813338b4699d4bab45a2d60185"
+  },
+  "nodes": [
+    {
+      "id": "file:src/demo_ocr/main.py",
+      "type": "file",
+      "name": "main.py",
+      "filePath": "src/demo_ocr/main.py",
+      "summary": "Streamlit application entry point that configures the page, loads CSS, and routes between the OCR Processing and Item Viewer pages via sidebar navigation.",
+      "tags": ["streamlit", "ui", "entry-point", "routing"],
+      "sizeLines": 280
+    },
+    {
+      "id": "func:src/demo_ocr/main.py:load_css",
+      "type": "function",
+      "name": "load_css",
+      "filePath": "src/demo_ocr/main.py",
+      "summary": "Reads a local CSS file and injects it into the Streamlit app using unsafe_allow_html.",
+      "tags": ["ui", "css"]
+    },
+    {
+      "id": "file:src/demo_ocr/core/config.py",
+      "type": "file",
+      "name": "config.py",
+      "filePath": "src/demo_ocr/core/config.py",
+      "summary": "Defines TEMPLATES_FIELDS and TEMPLATES_TABLES dictionaries mapping document type names to lists of field and table column definitions for invoice, passport, and other document templates.",
+      "tags": ["config", "templates", "invoice", "passport"],
+      "sizeLines": 75
+    },
+    {
+      "id": "file:src/demo_ocr/core/client.py",
+      "type": "file",
+      "name": "client.py",
+      "filePath": "src/demo_ocr/core/client.py",
+      "summary": "Provides sync_request(), a unified LiteLLM-based API client that routes completion calls to hosted vLLM, Ollama, OpenRouter, or GPT models with appropriate authentication and response formatting.",
+      "tags": ["api-client", "litellm", "vllm", "ollama"],
+      "sizeLines": 50
+    },
+    {
+      "id": "func:src/demo_ocr/core/client.py:sync_request",
+      "type": "function",
+      "name": "sync_request",
+      "filePath": "src/demo_ocr/core/client.py",
+      "summary": "Sends a synchronous LLM completion request with model-specific authentication and format handling.",
+      "tags": ["api", "llm", "inference"]
+    },
+    {
+      "id": "file:src/demo_ocr/core/extract.py",
+      "type": "file",
+      "name": "extract.py",
+      "filePath": "src/demo_ocr/core/extract.py",
+      "summary": "Orchestrates field and table extraction from documents using a VLM: builds prompts, calls the model, parses responses, and adds binary confidence scores. Runs fields and tables extraction in parallel via ThreadPoolExecutor.",
+      "tags": ["extraction", "fields", "tables", "confidence", "parallelism"],
+      "sizeLines": 163
+    },
+    {
+      "id": "func:src/demo_ocr/core/extract.py:extract_fields_from_documents",
+      "type": "function",
+      "name": "extract_fields_from_documents",
+      "filePath": "src/demo_ocr/core/extract.py",
+      "summary": "Extracts structured field values from documents using a VLM and returns a DataFrame with fields, values, and confidence scores.",
+      "tags": ["extraction", "fields", "vlm"]
+    },
+    {
+      "id": "func:src/demo_ocr/core/extract.py:extract_tables_from_documents",
+      "type": "function",
+      "name": "extract_tables_from_documents",
+      "filePath": "src/demo_ocr/core/extract.py",
+      "summary": "Extracts table data from documents via VLM and parses the markdown table response into a DataFrame.",
+      "tags": ["extraction", "tables", "vlm"]
+    },
+    {
+      "id": "func:src/demo_ocr/core/extract.py:extract_information",
+      "type": "function",
+      "name": "extract_information",
+      "filePath": "src/demo_ocr/core/extract.py",
+      "summary": "Top-level extraction function: validates inputs, converts files to images, and runs fields and tables extraction in parallel.",
+      "tags": ["extraction", "orchestration"]
+    },
+    {
+      "id": "file:src/demo_ocr/core/confidence.py",
+      "type": "file",
+      "name": "confidence.py",
+      "filePath": "src/demo_ocr/core/confidence.py",
+      "summary": "Builds confidence-score prompt messages by appending the previous extraction response and asking the model to rate each field as High or Low confidence.",
+      "tags": ["confidence", "prompts"],
+      "sizeLines": 33
+    },
+    {
+      "id": "file:src/demo_ocr/core/prompts.py",
+      "type": "file",
+      "name": "prompts.py",
+      "filePath": "src/demo_ocr/core/prompts.py",
+      "summary": "Constructs LLM message lists for field extraction and table extraction tasks, encoding document images as base64 and formatting field descriptions into structured prompts.",
+      "tags": ["prompts", "messages", "vlm"],
+      "sizeLines": 89
+    },
+    {
+      "id": "file:src/demo_ocr/core/utils.py",
+      "type": "file",
+      "name": "utils.py",
+      "filePath": "src/demo_ocr/core/utils.py",
+      "summary": "Image and file utility functions: base64 encoding, image resizing, file path validation, supported format checks, and PDF-to-image conversion using PDFConverter.",
+      "tags": ["utils", "image", "pdf", "validation"],
+      "sizeLines": 96
+    },
+    {
+      "id": "func:src/demo_ocr/core/utils.py:encode_image",
+      "type": "function",
+      "name": "encode_image",
+      "filePath": "src/demo_ocr/core/utils.py",
+      "summary": "Base64-encodes an image file for inclusion in VLM API messages.",
+      "tags": ["image", "base64"]
+    },
+    {
+      "id": "func:src/demo_ocr/core/utils.py:convert_files_to_images",
+      "type": "function",
+      "name": "convert_files_to_images",
+      "filePath": "src/demo_ocr/core/utils.py",
+      "summary": "Converts a list of file paths to image files, using PDFConverter for PDF inputs.",
+      "tags": ["pdf", "image", "conversion"]
+    },
+    {
+      "id": "file:src/demo_ocr/core/vllm.py",
+      "type": "file",
+      "name": "vllm.py",
+      "filePath": "src/demo_ocr/core/vllm.py",
+      "summary": "VLLMServer class manages the lifecycle of a local vLLM inference server: starting, waiting for readiness, and stopping via subprocess.",
+      "tags": ["vllm", "server", "inference", "gpu"],
+      "sizeLines": 107
+    },
+    {
+      "id": "class:src/demo_ocr/core/vllm.py:VLLMServer",
+      "type": "class",
+      "name": "VLLMServer",
+      "filePath": "src/demo_ocr/core/vllm.py",
+      "summary": "Manages a local vLLM server process with start, wait, stop, and background-run capabilities.",
+      "tags": ["vllm", "server"]
+    },
+    {
+      "id": "file:src/demo_ocr/core/file_converters/file_converter.py",
+      "type": "file",
+      "name": "file_converter.py",
+      "filePath": "src/demo_ocr/core/file_converters/file_converter.py",
+      "summary": "Abstract base class FileConverter defining the convert_to_images interface for document-to-image converters.",
+      "tags": ["abstract", "converter", "interface"],
+      "sizeLines": 10
+    },
+    {
+      "id": "file:src/demo_ocr/core/file_converters/pdf_converter.py",
+      "type": "file",
+      "name": "pdf_converter.py",
+      "filePath": "src/demo_ocr/core/file_converters/pdf_converter.py",
+      "summary": "PDFConverter implements FileConverter to convert PDF pages to PIL Images using PyMuPDF (fitz).",
+      "tags": ["pdf", "converter", "pymupdf"],
+      "sizeLines": 28
+    },
+    {
+      "id": "file:src/demo_ocr/core/pdf2md/pdf2md.py",
+      "type": "file",
+      "name": "pdf2md.py",
+      "filePath": "src/demo_ocr/core/pdf2md/pdf2md.py",
+      "summary": "Converts PDF pages to Markdown using a streaming VLM API call (LiteLLM), rendering each page as an image and extracting text in Markdown format.",
+      "tags": ["pdf", "markdown", "streaming", "vlm"],
+      "sizeLines": 185
+    },
+    {
+      "id": "func:src/demo_ocr/core/pdf2md/pdf2md.py:convert_to_markdown_stream",
+      "type": "function",
+      "name": "convert_to_markdown_stream",
+      "filePath": "src/demo_ocr/core/pdf2md/pdf2md.py",
+      "summary": "Streams VLM-generated Markdown conversion of a PDF page, yielding text chunks incrementally.",
+      "tags": ["streaming", "markdown", "pdf"]
+    },
+    {
+      "id": "file:src/demo_ocr/processing/ocr.py",
+      "type": "file",
+      "name": "ocr.py",
+      "filePath": "src/demo_ocr/processing/ocr.py",
+      "summary": "Defines the OCR class with multiple model backends (Donut, Typhoon, Qwen, Gemini, olmOCR) for document text extraction, including Pydantic models for structured date parsing.",
+      "tags": ["ocr", "multi-backend", "donut", "typhoon", "qwen", "gemini"],
+      "sizeLines": 428
+    },
+    {
+      "id": "class:src/demo_ocr/processing/ocr.py:OCR",
+      "type": "class",
+      "name": "OCR",
+      "filePath": "src/demo_ocr/processing/ocr.py",
+      "summary": "Multi-backend OCR class supporting Donut, Typhoon OCR, Qwen VL, Gemini, and olmOCR engines for invoice and document text extraction.",
+      "tags": ["ocr", "multi-backend", "inference"]
+    },
+    {
+      "id": "file:src/demo_ocr/processing/ocr_no_flash.py",
+      "type": "file",
+      "name": "ocr_no_flash.py",
+      "filePath": "src/demo_ocr/processing/ocr_no_flash.py",
+      "summary": "Alternative OCR pipeline without flash attention support, providing compatibility for environments where flash attention is unavailable, with similar multi-model functionality.",
+      "tags": ["ocr", "no-flash-attention", "compatibility"],
+      "sizeLines": 1133
+    },
+    {
+      "id": "file:src/demo_ocr/processing/ocr_page.py",
+      "type": "file",
+      "name": "ocr_page.py",
+      "filePath": "src/demo_ocr/processing/ocr_page.py",
+      "summary": "Main Streamlit OCR processing page (2677 lines) implementing the full invoice OCR workflow: file upload, preprocessing, multi-model OCR, field extraction, table detection, Supabase storage, and result display with YOLO-based stamp detection.",
+      "tags": ["streamlit", "ocr-pipeline", "invoice", "supabase", "yolo", "ui"],
+      "sizeLines": 2677
+    },
+    {
+      "id": "func:src/demo_ocr/processing/ocr_page.py:ocr_processing_page",
+      "type": "function",
+      "name": "ocr_processing_page",
+      "filePath": "src/demo_ocr/processing/ocr_page.py",
+      "summary": "Async Streamlit page function implementing the complete OCR processing workflow from file upload to result storage.",
+      "tags": ["streamlit", "async", "workflow"]
+    },
+    {
+      "id": "func:src/demo_ocr/processing/ocr_page.py:preprocess_for_improve_ocr",
+      "type": "function",
+      "name": "preprocess_for_improve_ocr",
+      "filePath": "src/demo_ocr/processing/ocr_page.py",
+      "summary": "Applies OpenCV preprocessing (grayscale, blur, thresholding, deskewing, morphological ops) to improve OCR quality.",
+      "tags": ["opencv", "preprocessing", "image"]
+    },
+    {
+      "id": "file:src/demo_ocr/processing/qwen_client.py",
+      "type": "file",
+      "name": "qwen_client.py",
+      "filePath": "src/demo_ocr/processing/qwen_client.py",
+      "summary": "Qwen3VLLMClient wraps OpenAI SDK to call a local Qwen3 vLLM endpoint for vision-language model inference on invoice images.",
+      "tags": ["qwen", "vllm", "client", "vision"],
+      "sizeLines": 142
+    },
+    {
+      "id": "file:src/demo_ocr/processing/hybrid_search.py",
+      "type": "file",
+      "name": "hybrid_search.py",
+      "filePath": "src/demo_ocr/processing/hybrid_search.py",
+      "summary": "HybridSearch class combines dense vector search (Qdrant) with sparse fuzzy matching (RapidFuzz) for invoice item lookup, using OpenAI embeddings and HNSW indexing.",
+      "tags": ["qdrant", "vector-search", "hybrid-search", "embeddings"],
+      "sizeLines": 367
+    },
+    {
+      "id": "class:src/demo_ocr/processing/hybrid_search.py:HybridSearch",
+      "type": "class",
+      "name": "HybridSearch",
+      "filePath": "src/demo_ocr/processing/hybrid_search.py",
+      "summary": "Combines Qdrant vector search with RapidFuzz fuzzy matching for robust invoice item retrieval.",
+      "tags": ["search", "qdrant", "vector"]
+    },
+    {
+      "id": "file:src/demo_ocr/processing/invoice_integration.py",
+      "type": "file",
+      "name": "invoice_integration.py",
+      "filePath": "src/demo_ocr/processing/invoice_integration.py",
+      "summary": "OCROutputValidator and validate_ocr_output integrate repetition detection to validate OCR markdown output from invoice processing pipelines.",
+      "tags": ["validation", "ocr-output", "integration"],
+      "sizeLines": 379
+    },
+    {
+      "id": "file:src/demo_ocr/processing/repetition_detector.py",
+      "type": "file",
+      "name": "repetition_detector.py",
+      "filePath": "src/demo_ocr/processing/repetition_detector.py",
+      "summary": "Multi-algorithm repetition detection module for OCR output using suffix arrays, N-grams, rolling hash, and regex to identify exact phrase repetition in markdown text.",
+      "tags": ["repetition-detection", "ocr-quality", "algorithms"],
+      "sizeLines": 768
+    },
+    {
+      "id": "file:src/demo_ocr/processing/schema_helper.py",
+      "type": "file",
+      "name": "schema_helper.py",
+      "filePath": "src/demo_ocr/processing/schema_helper.py",
+      "summary": "Helper functions for parsing Thai/English dates, extracting decimal values, and parsing document codes from OCR-extracted text.",
+      "tags": ["parsing", "thai", "date", "decimal"],
+      "sizeLines": 426
+    },
+    {
+      "id": "file:src/demo_ocr/processing/stamp_detection.py",
+      "type": "file",
+      "name": "stamp_detection.py",
+      "filePath": "src/demo_ocr/processing/stamp_detection.py",
+      "summary": "StampDetection class uses a YOLO model to detect stamps/seals on invoice images and returns bounding box annotations.",
+      "tags": ["yolo", "stamp-detection", "object-detection"],
+      "sizeLines": 129
+    },
+    {
+      "id": "file:src/demo_ocr/processing/schematron.py",
+      "type": "file",
+      "name": "schematron.py",
+      "filePath": "src/demo_ocr/processing/schematron.py",
+      "summary": "Simple schematron validation utilities for validating extracted invoice data against business rules.",
+      "tags": ["validation", "schematron", "rules"],
+      "sizeLines": 22
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/model/inference.py",
+      "type": "file",
+      "name": "inference.py",
+      "filePath": "src/demo_ocr/dots_ocr/model/inference.py",
+      "summary": "inference_with_vllm function calls the DOTS OCR vLLM endpoint via HTTP for document OCR inference.",
+      "tags": ["dots-ocr", "inference", "vllm", "http"],
+      "sizeLines": 49
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/parser.py",
+      "type": "file",
+      "name": "parser.py",
+      "filePath": "src/demo_ocr/dots_ocr/parser.py",
+      "summary": "DotsOCRParser orchestrates DOTS OCR processing for image and PDF files using vLLM inference with multi-threaded batch processing and layout-aware output.",
+      "tags": ["dots-ocr", "parser", "batch", "layout"],
+      "sizeLines": 436
+    },
+    {
+      "id": "class:src/demo_ocr/dots_ocr/parser.py:DotsOCRParser",
+      "type": "class",
+      "name": "DotsOCRParser",
+      "filePath": "src/demo_ocr/dots_ocr/parser.py",
+      "summary": "Parses image/PDF files using DOTS OCR via vLLM, supporting batch processing and multiple output formats.",
+      "tags": ["dots-ocr", "parser"]
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/utils/consts.py",
+      "type": "file",
+      "name": "consts.py",
+      "filePath": "src/demo_ocr/dots_ocr/utils/consts.py",
+      "summary": "Constants for DOTS OCR: image file extensions, MIN_PIXELS, and MAX_PIXELS for image size constraints.",
+      "tags": ["constants", "dots-ocr"],
+      "sizeLines": 5
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/utils/doc_utils.py",
+      "type": "file",
+      "name": "doc_utils.py",
+      "filePath": "src/demo_ocr/dots_ocr/utils/doc_utils.py",
+      "summary": "Document utilities: converts fitz (PyMuPDF) document pages to PIL Images and loads all pages from a PDF.",
+      "tags": ["document", "pdf", "pymupdf", "utils"],
+      "sizeLines": 59
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/utils/format_transformer.py",
+      "type": "file",
+      "name": "format_transformer.py",
+      "filePath": "src/demo_ocr/dots_ocr/utils/format_transformer.py",
+      "summary": "Transforms DOTS OCR layout JSON output (bounding boxes, text blocks) into Markdown format for downstream processing.",
+      "tags": ["format", "markdown", "layout", "transformer"],
+      "sizeLines": 206
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/utils/image_utils.py",
+      "type": "file",
+      "name": "image_utils.py",
+      "filePath": "src/demo_ocr/dots_ocr/utils/image_utils.py",
+      "summary": "Image utilities for DOTS OCR: fetch images from paths or URLs, smart-resize images to fit pixel constraints, and extract images from fitz documents.",
+      "tags": ["image", "resize", "utils", "dots-ocr"],
+      "sizeLines": 196
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/utils/layout_utils.py",
+      "type": "file",
+      "name": "layout_utils.py",
+      "filePath": "src/demo_ocr/dots_ocr/utils/layout_utils.py",
+      "summary": "Layout post-processing utilities for DOTS OCR: processes bounding boxes, applies NMS, and draws layout annotations on images.",
+      "tags": ["layout", "bounding-box", "nms", "dots-ocr"],
+      "sizeLines": 228
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/utils/output_cleaner.py",
+      "type": "file",
+      "name": "output_cleaner.py",
+      "filePath": "src/demo_ocr/dots_ocr/utils/output_cleaner.py",
+      "summary": "Cleans and normalizes raw DOTS OCR model output: removes artifacts, fixes encoding issues, and standardizes text formatting.",
+      "tags": ["output-cleaning", "normalization", "dots-ocr"],
+      "sizeLines": 622
+    },
+    {
+      "id": "file:src/demo_ocr/dots_ocr/utils/prompts.py",
+      "type": "file",
+      "name": "prompts.py",
+      "filePath": "src/demo_ocr/dots_ocr/utils/prompts.py",
+      "summary": "Prompt mode dictionary for DOTS OCR, mapping mode names to OCR task prompt templates.",
+      "tags": ["prompts", "dots-ocr"],
+      "sizeLines": 46
+    },
+    {
+      "id": "file:src/demo_ocr/doc_classification/zero_shot.py",
+      "type": "file",
+      "name": "zero_shot.py",
+      "filePath": "src/demo_ocr/doc_classification/zero_shot.py",
+      "summary": "Zero-shot document classification using OpenCLIP embeddings to classify invoice images by type without fine-tuning.",
+      "tags": ["classification", "zero-shot", "openclip", "embeddings"],
+      "sizeLines": 114
+    },
+    {
+      "id": "func:src/demo_ocr/doc_classification/zero_shot.py:get_classifier",
+      "type": "function",
+      "name": "get_classifier",
+      "filePath": "src/demo_ocr/doc_classification/zero_shot.py",
+      "summary": "Returns a cached OpenCLIP-based zero-shot document classifier.",
+      "tags": ["classification", "openclip"]
+    },
+    {
+      "id": "file:src/demo_ocr/doc_classification/ml_caller/openclip_backend.py",
+      "type": "file",
+      "name": "openclip_backend.py",
+      "filePath": "src/demo_ocr/doc_classification/ml_caller/openclip_backend.py",
+      "summary": "OpenCLIP backend wrapper for calling an OpenCLIP classification endpoint, used by the zero-shot document classifier.",
+      "tags": ["openclip", "ml", "backend", "classification"],
+      "sizeLines": 56
+    },
+    {
+      "id": "file:src/demo_ocr/invoice_viewer/invoice_viewer_page.py",
+      "type": "file",
+      "name": "invoice_viewer_page.py",
+      "filePath": "src/demo_ocr/invoice_viewer/invoice_viewer_page.py",
+      "summary": "Streamlit page for viewing and managing extracted invoice data, providing filtering, search, and display of stored invoice records.",
+      "tags": ["streamlit", "invoice-viewer", "ui"],
+      "sizeLines": 229
+    },
+    {
+      "id": "func:src/demo_ocr/invoice_viewer/invoice_viewer_page.py:invoice_viewer_page",
+      "type": "function",
+      "name": "invoice_viewer_page",
+      "filePath": "src/demo_ocr/invoice_viewer/invoice_viewer_page.py",
+      "summary": "Renders the invoice viewer Streamlit page with filtering and display of extracted invoice records.",
+      "tags": ["streamlit", "ui"]
+    },
+    {
+      "id": "file:src/demo_ocr/invoice_viewer/invoice-streamlit-app.py",
+      "type": "file",
+      "name": "invoice-streamlit-app.py",
+      "filePath": "src/demo_ocr/invoice_viewer/invoice-streamlit-app.py",
+      "summary": "Alternative standalone Streamlit application for invoice viewing, providing similar functionality to invoice_viewer_page.py as an independent entry point.",
+      "tags": ["streamlit", "invoice-viewer", "standalone"],
+      "sizeLines": 227
+    },
+    {
+      "id": "file:src/demo_ocr/typhoon_ocr/__init__.py",
+      "type": "file",
+      "name": "__init__.py",
+      "filePath": "src/demo_ocr/typhoon_ocr/__init__.py",
+      "summary": "Typhoon OCR package initializer that exposes prepare_ocr_messages for preparing VLM message payloads optimized for Thai-language OCR.",
+      "tags": ["typhoon-ocr", "thai", "package"],
+      "sizeLines": 47
+    },
+    {
+      "id": "file:src/demo_ocr/typhoon_ocr/ocr_utils.py",
+      "type": "file",
+      "name": "ocr_utils.py",
+      "filePath": "src/demo_ocr/typhoon_ocr/ocr_utils.py",
+      "summary": "Utility functions for Typhoon OCR (adapted from olmOCR): element dataclasses, text/table block building, page rendering, and PDF-to-image conversion optimized for Thai documents.",
+      "tags": ["typhoon-ocr", "thai", "utils", "olmocr", "rendering"],
+      "sizeLines": 716
+    },
+    {
+      "id": "file:src/demo_ocr/typhoon_ocr/pdf_utils.py",
+      "type": "file",
+      "name": "pdf_utils.py",
+      "filePath": "src/demo_ocr/typhoon_ocr/pdf_utils.py",
+      "summary": "PDF utilities for Typhoon OCR: extracts text and metadata from PDF pages using pypdf.",
+      "tags": ["pdf", "typhoon-ocr", "utils"],
+      "sizeLines": 38
+    },
+    {
+      "id": "file:src/demo_ocr/test_imports.py",
+      "type": "file",
+      "name": "test_imports.py",
+      "filePath": "src/demo_ocr/test_imports.py",
+      "summary": "Import verification script that tests all key module imports and reports which packages are successfully loadable.",
+      "tags": ["tests", "imports", "verification"],
+      "sizeLines": 44
+    }
+  ],
+  "edges": [
+    { "source": "file:src/demo_ocr/main.py", "target": "file:src/demo_ocr/processing/ocr_page.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/main.py", "target": "file:src/demo_ocr/invoice_viewer/invoice_viewer_page.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/main.py", "target": "func:src/demo_ocr/main.py:load_css", "type": "contains", "weight": 1.0 },
+    { "source": "file:src/demo_ocr/main.py", "target": "func:src/demo_ocr/processing/ocr_page.py:ocr_processing_page", "type": "calls", "weight": 0.8 },
+    { "source": "file:src/demo_ocr/main.py", "target": "func:src/demo_ocr/invoice_viewer/invoice_viewer_page.py:invoice_viewer_page", "type": "calls", "weight": 0.8 },
+
+    { "source": "file:src/demo_ocr/core/extract.py", "target": "file:src/demo_ocr/core/client.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/core/extract.py", "target": "file:src/demo_ocr/core/confidence.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/core/extract.py", "target": "file:src/demo_ocr/core/prompts.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/core/extract.py", "target": "file:src/demo_ocr/core/utils.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/core/extract.py", "target": "func:src/demo_ocr/core/extract.py:extract_fields_from_documents", "type": "contains", "weight": 1.0 },
+    { "source": "file:src/demo_ocr/core/extract.py", "target": "func:src/demo_ocr/core/extract.py:extract_tables_from_documents", "type": "contains", "weight": 1.0 },
+    { "source": "file:src/demo_ocr/core/extract.py", "target": "func:src/demo_ocr/core/extract.py:extract_information", "type": "contains", "weight": 1.0 },
+    { "source": "func:src/demo_ocr/core/extract.py:extract_information", "target": "func:src/demo_ocr/core/extract.py:extract_fields_from_documents", "type": "calls", "weight": 0.8 },
+    { "source": "func:src/demo_ocr/core/extract.py:extract_information", "target": "func:src/demo_ocr/core/extract.py:extract_tables_from_documents", "type": "calls", "weight": 0.8 },
+    { "source": "func:src/demo_ocr/core/extract.py:extract_fields_from_documents", "target": "func:src/demo_ocr/core/client.py:sync_request", "type": "calls", "weight": 0.8 },
+    { "source": "func:src/demo_ocr/core/extract.py:extract_tables_from_documents", "target": "func:src/demo_ocr/core/client.py:sync_request", "type": "calls", "weight": 0.8 },
+
+    { "source": "file:src/demo_ocr/core/client.py", "target": "func:src/demo_ocr/core/client.py:sync_request", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/core/utils.py", "target": "file:src/demo_ocr/core/file_converters/pdf_converter.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/core/utils.py", "target": "func:src/demo_ocr/core/utils.py:encode_image", "type": "contains", "weight": 1.0 },
+    { "source": "file:src/demo_ocr/core/utils.py", "target": "func:src/demo_ocr/core/utils.py:convert_files_to_images", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/core/file_converters/pdf_converter.py", "target": "file:src/demo_ocr/core/file_converters/file_converter.py", "type": "inherits", "weight": 0.9 },
+
+    { "source": "file:src/demo_ocr/core/vllm.py", "target": "class:src/demo_ocr/core/vllm.py:VLLMServer", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/processing/ocr.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/processing/ocr_no_flash.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/processing/invoice_integration.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/processing/schema_helper.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/processing/hybrid_search.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/processing/stamp_detection.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/doc_classification/zero_shot.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "file:src/demo_ocr/core/pdf2md/pdf2md.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "func:src/demo_ocr/processing/ocr_page.py:ocr_processing_page", "type": "contains", "weight": 1.0 },
+    { "source": "file:src/demo_ocr/processing/ocr_page.py", "target": "func:src/demo_ocr/processing/ocr_page.py:preprocess_for_improve_ocr", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/processing/ocr.py", "target": "file:src/demo_ocr/typhoon_ocr/__init__.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr.py", "target": "file:src/demo_ocr/processing/qwen_client.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/processing/ocr.py", "target": "class:src/demo_ocr/processing/ocr.py:OCR", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/processing/invoice_integration.py", "target": "file:src/demo_ocr/processing/repetition_detector.py", "type": "imports", "weight": 0.7 },
+
+    { "source": "file:src/demo_ocr/processing/hybrid_search.py", "target": "class:src/demo_ocr/processing/hybrid_search.py:HybridSearch", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "file:src/demo_ocr/dots_ocr/model/inference.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "file:src/demo_ocr/dots_ocr/utils/consts.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "file:src/demo_ocr/dots_ocr/utils/image_utils.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "file:src/demo_ocr/dots_ocr/utils/doc_utils.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "file:src/demo_ocr/dots_ocr/utils/prompts.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "file:src/demo_ocr/dots_ocr/utils/layout_utils.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "file:src/demo_ocr/dots_ocr/utils/format_transformer.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/dots_ocr/parser.py", "target": "class:src/demo_ocr/dots_ocr/parser.py:DotsOCRParser", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/doc_classification/zero_shot.py", "target": "file:src/demo_ocr/doc_classification/ml_caller/openclip_backend.py", "type": "depends_on", "weight": 0.6 },
+    { "source": "file:src/demo_ocr/doc_classification/zero_shot.py", "target": "func:src/demo_ocr/doc_classification/zero_shot.py:get_classifier", "type": "contains", "weight": 1.0 },
+
+    { "source": "file:src/demo_ocr/typhoon_ocr/__init__.py", "target": "file:src/demo_ocr/typhoon_ocr/ocr_utils.py", "type": "imports", "weight": 0.7 },
+    { "source": "file:src/demo_ocr/typhoon_ocr/__init__.py", "target": "file:src/demo_ocr/typhoon_ocr/pdf_utils.py", "type": "imports", "weight": 0.7 },
+
+    { "source": "file:src/demo_ocr/invoice_viewer/invoice_viewer_page.py", "target": "func:src/demo_ocr/invoice_viewer/invoice_viewer_page.py:invoice_viewer_page", "type": "contains", "weight": 1.0 }
+  ],
+  "layers": [
+    {
+      "id": "layer:ui",
+      "name": "UI Layer",
+      "description": "Streamlit page components that render the user interface and handle user interactions.",
+      "nodeIds": [
+        "file:src/demo_ocr/main.py",
+        "file:src/demo_ocr/processing/ocr_page.py",
+        "file:src/demo_ocr/invoice_viewer/invoice_viewer_page.py",
+        "file:src/demo_ocr/invoice_viewer/invoice-streamlit-app.py",
+        "func:src/demo_ocr/main.py:load_css",
+        "func:src/demo_ocr/processing/ocr_page.py:ocr_processing_page",
+        "func:src/demo_ocr/invoice_viewer/invoice_viewer_page.py:invoice_viewer_page"
+      ]
+    },
+    {
+      "id": "layer:ocr-engines",
+      "name": "OCR Engines",
+      "description": "Multiple OCR backend implementations supporting different models (Typhoon, DOTS, Donut, Qwen, Gemini, olmOCR).",
+      "nodeIds": [
+        "file:src/demo_ocr/processing/ocr.py",
+        "file:src/demo_ocr/processing/ocr_no_flash.py",
+        "file:src/demo_ocr/processing/qwen_client.py",
+        "file:src/demo_ocr/typhoon_ocr/__init__.py",
+        "file:src/demo_ocr/typhoon_ocr/ocr_utils.py",
+        "file:src/demo_ocr/typhoon_ocr/pdf_utils.py",
+        "file:src/demo_ocr/dots_ocr/model/inference.py",
+        "file:src/demo_ocr/dots_ocr/parser.py",
+        "class:src/demo_ocr/processing/ocr.py:OCR",
+        "class:src/demo_ocr/dots_ocr/parser.py:DotsOCRParser"
+      ]
+    },
+    {
+      "id": "layer:extraction-service",
+      "name": "Extraction Service",
+      "description": "Core field and table extraction logic that orchestrates VLM calls, confidence scoring, and result formatting.",
+      "nodeIds": [
+        "file:src/demo_ocr/core/extract.py",
+        "file:src/demo_ocr/core/prompts.py",
+        "file:src/demo_ocr/core/confidence.py",
+        "file:src/demo_ocr/core/pdf2md/pdf2md.py",
+        "func:src/demo_ocr/core/extract.py:extract_fields_from_documents",
+        "func:src/demo_ocr/core/extract.py:extract_tables_from_documents",
+        "func:src/demo_ocr/core/extract.py:extract_information",
+        "func:src/demo_ocr/core/pdf2md/pdf2md.py:convert_to_markdown_stream"
+      ]
+    },
+    {
+      "id": "layer:document-intelligence",
+      "name": "Document Intelligence",
+      "description": "Document classification, validation, and quality analysis including zero-shot classification, repetition detection, and schematron validation.",
+      "nodeIds": [
+        "file:src/demo_ocr/doc_classification/zero_shot.py",
+        "file:src/demo_ocr/doc_classification/ml_caller/openclip_backend.py",
+        "file:src/demo_ocr/processing/repetition_detector.py",
+        "file:src/demo_ocr/processing/invoice_integration.py",
+        "file:src/demo_ocr/processing/schematron.py",
+        "file:src/demo_ocr/processing/schema_helper.py",
+        "file:src/demo_ocr/processing/stamp_detection.py",
+        "func:src/demo_ocr/doc_classification/zero_shot.py:get_classifier"
+      ]
+    },
+    {
+      "id": "layer:search-data",
+      "name": "Search & Data Layer",
+      "description": "Vector search, configuration templates, and external data services (Qdrant, Supabase).",
+      "nodeIds": [
+        "file:src/demo_ocr/processing/hybrid_search.py",
+        "file:src/demo_ocr/core/config.py",
+        "class:src/demo_ocr/processing/hybrid_search.py:HybridSearch"
+      ]
+    },
+    {
+      "id": "layer:infrastructure",
+      "name": "Infrastructure",
+      "description": "API clients, server management, and low-level utilities for VLM inference, image handling, and file conversion.",
+      "nodeIds": [
+        "file:src/demo_ocr/core/client.py",
+        "file:src/demo_ocr/core/vllm.py",
+        "file:src/demo_ocr/core/utils.py",
+        "file:src/demo_ocr/core/file_converters/file_converter.py",
+        "file:src/demo_ocr/core/file_converters/pdf_converter.py",
+        "func:src/demo_ocr/core/client.py:sync_request",
+        "class:src/demo_ocr/core/vllm.py:VLLMServer",
+        "func:src/demo_ocr/core/utils.py:encode_image",
+        "func:src/demo_ocr/core/utils.py:convert_files_to_images"
+      ]
+    },
+    {
+      "id": "layer:dots-ocr-utils",
+      "name": "DOTS OCR Utilities",
+      "description": "Utility modules specific to the DOTS OCR engine for image processing, layout analysis, and output formatting.",
+      "nodeIds": [
+        "file:src/demo_ocr/dots_ocr/utils/consts.py",
+        "file:src/demo_ocr/dots_ocr/utils/doc_utils.py",
+        "file:src/demo_ocr/dots_ocr/utils/format_transformer.py",
+        "file:src/demo_ocr/dots_ocr/utils/image_utils.py",
+        "file:src/demo_ocr/dots_ocr/utils/layout_utils.py",
+        "file:src/demo_ocr/dots_ocr/utils/output_cleaner.py",
+        "file:src/demo_ocr/dots_ocr/utils/prompts.py"
+      ]
+    }
+  ],
+  "tour": [
+    {
+      "order": 1,
+      "title": "Application Entry Point",
+      "description": "Start at main.py — the Streamlit entry point. It sets up the page config, loads CSS styling, and routes users to either the OCR Processing page or the Item Viewer page via a sidebar selectbox.",
+      "nodeIds": ["file:src/demo_ocr/main.py", "func:src/demo_ocr/main.py:load_css"]
+    },
+    {
+      "order": 2,
+      "title": "OCR Processing Pipeline",
+      "description": "The heart of the app is ocr_page.py — a 2677-line Streamlit page implementing the full invoice OCR workflow. It handles file uploads, image preprocessing with OpenCV, routes to multiple OCR backends, detects stamps with YOLO, classifies documents, and stores results in Supabase.",
+      "nodeIds": [
+        "file:src/demo_ocr/processing/ocr_page.py",
+        "func:src/demo_ocr/processing/ocr_page.py:ocr_processing_page",
+        "func:src/demo_ocr/processing/ocr_page.py:preprocess_for_improve_ocr"
+      ]
+    },
+    {
+      "order": 3,
+      "title": "Multi-Backend OCR Engines",
+      "description": "The OCR class in ocr.py supports multiple backends: Donut (Hugging Face), Typhoon OCR (Thai-language specialist), Qwen VL, Google Gemini, and olmOCR. There's also ocr_no_flash.py for environments without flash attention. The DOTS OCR engine (dots_ocr/parser.py) provides an additional layout-aware OCR option.",
+      "nodeIds": [
+        "file:src/demo_ocr/processing/ocr.py",
+        "class:src/demo_ocr/processing/ocr.py:OCR",
+        "file:src/demo_ocr/processing/ocr_no_flash.py",
+        "file:src/demo_ocr/dots_ocr/parser.py",
+        "class:src/demo_ocr/dots_ocr/parser.py:DotsOCRParser"
+      ]
+    },
+    {
+      "order": 4,
+      "title": "Field & Table Extraction",
+      "description": "After OCR, core/extract.py orchestrates structured extraction. It builds prompts via prompts.py, calls the VLM via client.py, parses responses, and adds binary confidence scores. Fields and tables are extracted in parallel via ThreadPoolExecutor.",
+      "nodeIds": [
+        "file:src/demo_ocr/core/extract.py",
+        "func:src/demo_ocr/core/extract.py:extract_information",
+        "func:src/demo_ocr/core/extract.py:extract_fields_from_documents",
+        "file:src/demo_ocr/core/client.py",
+        "func:src/demo_ocr/core/client.py:sync_request"
+      ]
+    },
+    {
+      "order": 5,
+      "title": "Document Intelligence",
+      "description": "Several specialized modules enhance OCR quality: doc_classification/zero_shot.py classifies document types using OpenCLIP embeddings, repetition_detector.py detects OCR artifacts using suffix arrays and N-grams, stamp_detection.py finds stamps with YOLO, and schema_helper.py parses Thai dates and decimal values.",
+      "nodeIds": [
+        "file:src/demo_ocr/doc_classification/zero_shot.py",
+        "file:src/demo_ocr/processing/repetition_detector.py",
+        "file:src/demo_ocr/processing/stamp_detection.py",
+        "file:src/demo_ocr/processing/schema_helper.py"
+      ]
+    },
+    {
+      "order": 6,
+      "title": "Hybrid Vector Search",
+      "description": "hybrid_search.py implements HybridSearch combining Qdrant dense vector search (via OpenAI embeddings) with RapidFuzz fuzzy string matching for robust invoice item lookup against a reference catalog.",
+      "nodeIds": [
+        "file:src/demo_ocr/processing/hybrid_search.py",
+        "class:src/demo_ocr/processing/hybrid_search.py:HybridSearch"
+      ]
+    },
+    {
+      "order": 7,
+      "title": "Typhoon OCR — Thai Language Specialist",
+      "description": "typhoon_ocr/ is a specialized OCR module adapted from olmOCR for Thai-language documents. ocr_utils.py renders PDF pages to images with proper DPI and builds structured prompts, while the __init__.py exposes prepare_ocr_messages to the OCR class.",
+      "nodeIds": [
+        "file:src/demo_ocr/typhoon_ocr/__init__.py",
+        "file:src/demo_ocr/typhoon_ocr/ocr_utils.py",
+        "file:src/demo_ocr/typhoon_ocr/pdf_utils.py"
+      ]
+    },
+    {
+      "order": 8,
+      "title": "Invoice Viewer",
+      "description": "invoice_viewer/invoice_viewer_page.py is the second app page, allowing users to browse and filter previously extracted invoice records stored in Supabase.",
+      "nodeIds": [
+        "file:src/demo_ocr/invoice_viewer/invoice_viewer_page.py",
+        "func:src/demo_ocr/invoice_viewer/invoice_viewer_page.py:invoice_viewer_page"
+      ]
+    }
+  ]
+}

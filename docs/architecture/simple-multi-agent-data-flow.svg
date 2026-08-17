@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="950" viewBox="0 0 1600 950" role="img" aria-labelledby="title desc">
+  <title id="title">Simple Data Flow Diagram for a Multi-Agent AI System</title>
+  <desc id="desc">A user sends a query through an interaction gateway to a supervisor agent. The supervisor coordinates HR, DMS knowledge, and research agents. The agents exchange authorized data with Digital HR, a Data Source Management System, web search, and external APIs. Shared context, security, privacy, and audit controls support the full system.</desc>
+
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-green" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#059669"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#ea580c"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7c3aed"/>
+    </marker>
+    <filter id="shadow" x="-12%" y="-12%" width="124%" height="135%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .title { font: 700 30px Inter, "Segoe UI", Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 15px Inter, "Segoe UI", Arial, sans-serif; fill: #475569; }
+      .zone { stroke-width: 1.5; rx: 16; ry: 16; }
+      .zone-title { font: 700 16px Inter, "Segoe UI", Arial, sans-serif; fill: #0f172a; }
+      .zone-note { font: 400 12px Inter, "Segoe UI", Arial, sans-serif; fill: #64748b; }
+      .node rect, .node .database { stroke-width: 2; filter: url(#shadow); }
+      .node-title { font: 700 16px Inter, "Segoe UI", Arial, sans-serif; fill: #0f172a; text-anchor: middle; }
+      .node-detail { font: 400 12px Inter, "Segoe UI", Arial, sans-serif; fill: #475569; text-anchor: middle; }
+      .node-tag { font: 700 10px Inter, "Segoe UI", Arial, sans-serif; fill: #64748b; letter-spacing: .7px; }
+      .source rect { fill: #ecfdf5; stroke: #059669; rx: 11; ry: 11; }
+      .actor rect { fill: #f8fafc; stroke: #64748b; rx: 11; ry: 11; }
+      .platform rect { fill: #eff6ff; stroke: #2563eb; rx: 11; ry: 11; }
+      .agent rect { fill: #f5f3ff; stroke: #7c3aed; rx: 11; ry: 11; }
+      .tool rect { fill: #fff7ed; stroke: #ea580c; rx: 11; ry: 11; }
+      .memory-body { fill: #f5f3ff; stroke: #7c3aed; }
+      .edge { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .orchestration { stroke: #2563eb; stroke-width: 2.7; marker-start: url(#arrow-blue); marker-end: url(#arrow-blue); }
+      .enterprise-data { stroke: #059669; stroke-width: 2.5; stroke-dasharray: 8 6; marker-start: url(#arrow-green); marker-end: url(#arrow-green); }
+      .external-data { stroke: #ea580c; stroke-width: 2.5; stroke-dasharray: 8 6; marker-start: url(#arrow-orange); marker-end: url(#arrow-orange); }
+      .context-data { stroke: #7c3aed; stroke-width: 2; stroke-dasharray: 3 5; marker-start: url(#arrow-purple); marker-end: url(#arrow-purple); }
+      .label-bg { fill: #ffffff; stroke: #e2e8f0; rx: 5; ry: 5; }
+      .edge-label { font: 600 11px Inter, "Segoe UI", Arial, sans-serif; fill: #334155; text-anchor: middle; }
+      .legend-label { font: 600 11px Inter, "Segoe UI", Arial, sans-serif; fill: #334155; }
+      .control-title { font: 700 13px Inter, "Segoe UI", Arial, sans-serif; fill: #5b21b6; text-anchor: middle; }
+      .control-detail { font: 400 11px Inter, "Segoe UI", Arial, sans-serif; fill: #6d28d9; text-anchor: middle; }
+    </style>
+  </defs>
+
+  <rect width="1600" height="950" fill="#ffffff"/>
+  <text id="diagram-title" x="40" y="44" class="title">Multi-Agent AI System — Simple Data Flow Diagram</text>
+  <text x="40" y="70" class="subtitle">Enterprise data stays behind governed connectors; specialist agents retrieve only the information needed for each task.</text>
+
+  <g transform="translate(835,25)">
+    <line x1="0" y1="11" x2="42" y2="11" class="edge orchestration"/>
+    <text x="54" y="15" class="legend-label">Orchestration / response</text>
+    <line x1="218" y1="11" x2="260" y2="11" class="edge enterprise-data"/>
+    <text x="272" y="15" class="legend-label">Enterprise data</text>
+    <line x1="404" y1="11" x2="446" y2="11" class="edge external-data"/>
+    <text x="458" y="15" class="legend-label">External tool data</text>
+    <line x1="610" y1="11" x2="652" y2="11" class="edge context-data"/>
+    <text x="664" y="15" class="legend-label">Context / state</text>
+  </g>
+
+  <!-- Trust and responsibility zones -->
+  <rect class="zone" x="40" y="125" width="290" height="700" fill="#f8fffb" stroke="#86efac"/>
+  <text x="62" y="157" class="zone-title">People &amp; Enterprise Sources</text>
+  <text x="62" y="178" class="zone-note">Authoritative systems of record</text>
+
+  <rect class="zone" x="360" y="125" width="840" height="700" fill="#f8fbff" stroke="#93c5fd"/>
+  <text x="382" y="157" class="zone-title">Multi-Agent AI System</text>
+  <text x="382" y="178" class="zone-note">Governed orchestration, specialist agents, shared context</text>
+
+  <rect class="zone" x="1230" y="125" width="330" height="700" fill="#fffaf5" stroke="#fdba74"/>
+  <text x="1252" y="157" class="zone-title">External Tools</text>
+  <text x="1252" y="178" class="zone-note">Internet and partner services</text>
+
+  <!-- Edges behind nodes -->
+  <path class="edge orchestration" d="M295 260 H400"/>
+  <path class="edge orchestration" d="M620 277 H670"/>
+
+  <path class="edge orchestration" d="M735 325 V372 H505 V420"/>
+  <path class="edge orchestration" d="M800 325 V420"/>
+  <path class="edge orchestration" d="M865 325 V372 H1025 V420"/>
+
+  <path class="edge enterprise-data" d="M295 450 H400"/>
+  <path class="edge enterprise-data" d="M295 640 H350 V555 H765 V520"/>
+
+  <path class="edge external-data" d="M1130 455 H1275"/>
+  <path class="edge external-data" d="M1130 490 H1185 V640 H1275"/>
+
+  <path class="edge context-data" d="M505 520 V575 H690 V630"/>
+  <path class="edge context-data" d="M765 520 V630"/>
+  <path class="edge context-data" d="M1025 520 V575 H850 V630"/>
+  <path class="edge context-data" d="M670 300 H640 V675"/>
+
+  <!-- Edge labels -->
+  <g transform="translate(316,232)">
+    <rect class="label-bg" width="64" height="24"/>
+    <text x="32" y="16" class="edge-label">query / reply</text>
+  </g>
+  <g transform="translate(598,193)">
+    <rect class="label-bg" width="108" height="24"/>
+    <text x="54" y="16" class="edge-label">request / answer</text>
+  </g>
+  <g transform="translate(716,360)">
+    <rect class="label-bg" width="94" height="24"/>
+    <text x="47" y="16" class="edge-label">tasks / findings</text>
+  </g>
+  <g transform="translate(305,418)">
+    <rect class="label-bg" width="88" height="24"/>
+    <text x="44" y="16" class="edge-label">HR data query</text>
+  </g>
+  <g transform="translate(316,599)">
+    <rect class="label-bg" width="112" height="24"/>
+    <text x="56" y="16" class="edge-label">documents / metadata</text>
+  </g>
+  <g transform="translate(1140,423)">
+    <rect class="label-bg" width="104" height="24"/>
+    <text x="52" y="16" class="edge-label">search / results</text>
+  </g>
+  <g transform="translate(1164,608)">
+    <rect class="label-bg" width="96" height="24"/>
+    <text x="48" y="16" class="edge-label">API calls / data</text>
+  </g>
+  <g transform="translate(522,649)">
+    <rect class="label-bg" width="104" height="24"/>
+    <text x="52" y="16" class="edge-label">state / evidence</text>
+  </g>
+
+  <!-- Left-side actor and data sources -->
+  <g class="node actor" transform="translate(75,215)">
+    <rect width="220" height="90"/>
+    <text x="16" y="22" class="node-tag">EXTERNAL ACTOR</text>
+    <text x="110" y="50" class="node-title">User / Business App</text>
+    <text x="110" y="70" class="node-detail">question, task, or workflow</text>
+  </g>
+
+  <g class="node source" transform="translate(75,400)">
+    <rect width="220" height="100"/>
+    <text x="16" y="22" class="node-tag">ENTERPRISE SYSTEM</text>
+    <text x="110" y="52" class="node-title">Digital HR System</text>
+    <text x="110" y="73" class="node-detail">employees · organization</text>
+    <text x="110" y="89" class="node-detail">leave · payroll · policy</text>
+  </g>
+
+  <g class="node source" transform="translate(75,590)">
+    <rect width="220" height="100"/>
+    <text x="16" y="22" class="node-tag">ENTERPRISE SYSTEM</text>
+    <text x="110" y="50" class="node-title">DMS</text>
+    <text x="110" y="70" class="node-detail">Data Source Management System</text>
+    <text x="110" y="87" class="node-detail">documents · metadata · records</text>
+  </g>
+
+  <!-- Multi-agent platform -->
+  <g class="node platform" transform="translate(400,230)">
+    <rect width="220" height="95"/>
+    <text x="16" y="22" class="node-tag">ENTRY POINT</text>
+    <text x="110" y="51" class="node-title">Interaction Gateway</text>
+    <text x="110" y="71" class="node-detail">authentication · session</text>
+    <text x="110" y="87" class="node-detail">input / output validation</text>
+  </g>
+
+  <g class="node platform" transform="translate(670,230)">
+    <rect width="260" height="95"/>
+    <text x="16" y="22" class="node-tag">SUPERVISOR</text>
+    <text x="130" y="51" class="node-title">Orchestrator Agent</text>
+    <text x="130" y="71" class="node-detail">plans · delegates · combines results</text>
+    <text x="130" y="87" class="node-detail">selects the right specialist</text>
+  </g>
+
+  <text x="400" y="399" class="zone-title">Specialist Agents</text>
+
+  <g class="node agent" transform="translate(400,420)">
+    <rect width="210" height="100"/>
+    <text x="15" y="22" class="node-tag">SPECIALIST</text>
+    <text x="105" y="51" class="node-title">HR Agent</text>
+    <text x="105" y="72" class="node-detail">employee and HR questions</text>
+    <text x="105" y="89" class="node-detail">uses approved HR permissions</text>
+  </g>
+
+  <g class="node agent" transform="translate(660,420)">
+    <rect width="210" height="100"/>
+    <text x="15" y="22" class="node-tag">SPECIALIST</text>
+    <text x="105" y="51" class="node-title">DMS Knowledge Agent</text>
+    <text x="105" y="72" class="node-detail">retrieval and document context</text>
+    <text x="105" y="89" class="node-detail">citations and metadata</text>
+  </g>
+
+  <g class="node agent" transform="translate(920,420)">
+    <rect width="210" height="100"/>
+    <text x="15" y="22" class="node-tag">SPECIALIST</text>
+    <text x="105" y="51" class="node-title">Research / Tool Agent</text>
+    <text x="105" y="72" class="node-detail">web research and API calls</text>
+    <text x="105" y="89" class="node-detail">validates external results</text>
+  </g>
+
+  <g class="node" transform="translate(640,630)">
+    <path class="memory-body" d="M0 16 C0 7 58 0 130 0 C202 0 260 7 260 16 V74 C260 83 202 90 130 90 C58 90 0 83 0 74 Z"/>
+    <ellipse class="memory-body" cx="130" cy="16" rx="130" ry="16" fill="#ede9fe"/>
+    <text x="16" y="22" class="node-tag">SHARED PLATFORM SERVICE</text>
+    <text x="130" y="52" class="node-title">Context &amp; Memory</text>
+    <text x="130" y="72" class="node-detail">task state · evidence · conversation</text>
+  </g>
+
+  <g transform="translate(400,750)">
+    <rect width="730" height="48" rx="10" fill="#faf5ff" stroke="#c4b5fd" stroke-width="1.5" stroke-dasharray="5 4"/>
+    <text x="365" y="20" class="control-title">Security, Privacy, Guardrails &amp; Audit</text>
+    <text x="365" y="37" class="control-detail">identity · authorization · sensitive-data controls · tool policy · logs · monitoring</text>
+  </g>
+
+  <!-- External tools -->
+  <g class="node tool" transform="translate(1275,400)">
+    <rect width="240" height="100"/>
+    <text x="16" y="22" class="node-tag">EXTERNAL TOOL</text>
+    <text x="120" y="52" class="node-title">Web Search</text>
+    <text x="120" y="73" class="node-detail">public, current information</text>
+    <text x="120" y="89" class="node-detail">source links and snippets</text>
+  </g>
+
+  <g class="node tool" transform="translate(1275,590)">
+    <rect width="240" height="100"/>
+    <text x="16" y="22" class="node-tag">EXTERNAL TOOL</text>
+    <text x="120" y="52" class="node-title">External APIs</text>
+    <text x="120" y="73" class="node-detail">partner and SaaS services</text>
+    <text x="120" y="89" class="node-detail">structured requests / responses</text>
+  </g>
+
+  <text x="40" y="875" class="subtitle">Typical flow: user query → gateway → orchestrator → selected agents → governed data/tool access → evidence returned → final answer.</text>
+  <text x="40" y="901" class="subtitle">Dashed data flows are bidirectional because each request returns records, documents, search results, or API responses.</text>
+</svg>
