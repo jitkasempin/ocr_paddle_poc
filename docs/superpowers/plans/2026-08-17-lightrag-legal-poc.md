@@ -33,21 +33,21 @@
 - Produces: `LightRAGClient`, `LightRAGError`, `IndexingTimeout`, `QueryResult`, `Reference`, `load_client_from_env()`, and `format_query_result()`.
 - Consumes: `requests.Session`, `LIGHTRAG_URL`, and `LIGHTRAG_API_KEY`.
 
-- [ ] **Step 1: Write failing client tests**
+- [x] **Step 1: Write failing client tests**
 
 Cover URL normalization, API-key headers, upload payloads, HTTP error details, pending-to-processed polling, failed indexing, query flags, structured reference preservation, and citation formatting using `unittest.mock`.
 
-- [ ] **Step 2: Run the tests and verify the expected import failure**
+- [x] **Step 2: Run the tests and verify the expected import failure**
 
 Run: `python -m unittest discover -s legal_lightrag_poc/tests -v`
 
 Expected: FAIL because `legal_rag_client` does not exist.
 
-- [ ] **Step 3: Implement the minimal reusable client**
+- [x] **Step 3: Implement the minimal reusable client**
 
 Implement the endpoint calls behind one `_request()` helper, dataclasses for normalized query output, polling with an injected sleep function, and deterministic console formatting with bounded excerpts.
 
-- [ ] **Step 4: Run the client tests**
+- [x] **Step 4: Run the client tests**
 
 Run: `python -m unittest discover -s legal_lightrag_poc/tests -v`
 
@@ -64,25 +64,25 @@ Expected: PASS.
 - Consumes: the Task 1 client interfaces.
 - Produces: `discover_documents(path, recursive)` and executable `main()` functions.
 
-- [ ] **Step 1: Write failing command-helper tests**
+- [x] **Step 1: Write failing command-helper tests**
 
 Test deterministic extension filtering, non-recursive versus recursive discovery, empty input handling, legal prompt contents, and structured JSON serialization.
 
-- [ ] **Step 2: Run the tests and verify the expected import failure**
+- [x] **Step 2: Run the tests and verify the expected import failure**
 
 Run: `python -m unittest discover -s legal_lightrag_poc/tests -v`
 
 Expected: FAIL because the command modules do not exist.
 
-- [ ] **Step 3: Implement ingestion**
+- [x] **Step 3: Implement ingestion**
 
 Discover `.pdf`, `.docx`, `.txt`, `.md`, `.html`, and `.rtf` files, perform a health check, upload each file, wait for all tracks, print a compact summary, and return exit status 1 on any failure.
 
-- [ ] **Step 4: Implement retrieval**
+- [x] **Step 4: Implement retrieval**
 
 Accept a positional question plus `--mode`, `--context-only`, and `--json`; call `query()` with the legal grounding prompt; render the answer and authoritative structured sources.
 
-- [ ] **Step 5: Run all tests**
+- [x] **Step 5: Run all tests**
 
 Run: `python -m unittest discover -s legal_lightrag_poc/tests -v`
 
@@ -101,19 +101,19 @@ Expected: PASS.
 - Consumes: LightRAG v1.5.6 environment variables and the Task 1 client settings.
 - Produces: a locally reachable LightRAG server at `http://127.0.0.1:9621`.
 
-- [ ] **Step 1: Add the pinned Compose service and safe environment template**
+- [x] **Step 1: Add the pinned Compose service and safe environment template**
 
 Use loopback host publishing, persistent POC-local data mounts, `X-API-Key` authentication, OpenAI-compatible LLM/embedding placeholders, JSON/NetworkX/NanoVectorDB POC storage, and no reranker dependency.
 
-- [ ] **Step 2: Add dependency and secret hygiene**
+- [x] **Step 2: Add dependency and secret hygiene**
 
 List only `requests` and `python-dotenv`; ignore `legal_lightrag_poc/.env` and `legal_lightrag_poc/data/` explicitly.
 
-- [ ] **Step 3: Write the quick-start guide**
+- [x] **Step 3: Write the quick-start guide**
 
 Document environment creation, server startup, health verification, ingestion, querying, context-only retrieval, JSON integration, reset/re-index behavior, and production/legal caveats.
 
-- [ ] **Step 4: Validate configuration and syntax**
+- [x] **Step 4: Validate configuration and syntax**
 
 Run: `python -m compileall -q legal_lightrag_poc`
 
@@ -132,21 +132,20 @@ Expected: all available checks pass.
 - Consumes: every earlier task deliverable.
 - Produces: requirement-by-requirement completion evidence.
 
-- [ ] **Step 1: Verify no secrets or placeholders are accidentally executable defaults**
+- [x] **Step 1: Verify no secrets or placeholders are accidentally executable defaults**
 
 Search for real-looking API keys and confirm `.env` and persisted data are ignored.
 
-- [ ] **Step 2: Verify the documented commands match the implemented CLI help**
+- [x] **Step 2: Verify the documented commands match the implemented CLI help**
 
 Run: `python legal_lightrag_poc/ingest_legal_docs.py --help`
 
 Run: `python legal_lightrag_poc/query_legal_rag.py --help`
 
-- [ ] **Step 3: Re-run the full test and syntax suite**
+- [x] **Step 3: Re-run the full test and syntax suite**
 
 Run the Task 3 verification commands and inspect their exit status.
 
-- [ ] **Step 4: Report the live-test boundary honestly**
+- [x] **Step 4: Report the live-test boundary honestly**
 
 State that a real ingestion/query depends on a provider key and Docker daemon, and provide the exact one-command next steps.
-
