@@ -21,7 +21,7 @@ This is a local POC, not a production legal-advice service. It does not include 
 
 The official LightRAG API server runs in one Docker container. Its default JSON, NetworkX, and NanoVectorDB stores persist in bind-mounted local directories. The Python scripts communicate with the server over its documented REST endpoints instead of embedding the LightRAG SDK in the existing application.
 
-The server binds to `127.0.0.1` on the host and requires `X-API-Key` for document and query endpoints. The container may contact an OpenAI-compatible provider for entity extraction, query generation, and embeddings. The image is pinned rather than using `latest` so API behavior remains reproducible.
+The server binds to `127.0.0.1` on the host, and the sample Python clients authenticate with `X-API-Key`. LightRAG's bundled WebUI retains Guest access unless `AUTH_ACCOUNTS` and `TOKEN_SECRET` are also configured, so API-key-only operation is explicitly limited to the loopback POC and must not be exposed or tunneled. The container may contact an OpenAI-compatible provider for entity extraction, query generation, and embeddings. The image is pinned rather than using `latest` so API behavior remains reproducible.
 
 ## Components
 
@@ -76,7 +76,8 @@ HTTP failures include the LightRAG error detail when available. Uploads have bou
 ## Security and legal limitations
 
 - Host exposure is loopback-only by default.
-- The LightRAG API requires a user-selected API key.
+- The Python clients require a user-selected LightRAG API key.
+- API-key-only mode does not secure LightRAG's Guest WebUI; network exposure also requires account authentication and TLS.
 - Source documents and generated indexes remain in local bind mounts, but document content is sent to the configured model provider.
 - The generated answer is informational POC output, not legal advice.
 - File-level citations demonstrate retrieval provenance; they do not prove that the model's interpretation is legally correct.
@@ -85,4 +86,3 @@ HTTP failures include the LightRAG error detail when available. Uploads have bou
 ## Verification
 
 Unit tests mock the HTTP layer and prove request payloads, citation preservation, polling transitions, and error behavior. Python compilation verifies every script. Docker Compose configuration is validated when Docker is available. A live end-to-end query requires the user's provider key and is documented as an explicit manual verification step rather than simulated.
-

@@ -37,7 +37,17 @@ class FakeQueryClient:
                     content=("Claims must be filed within two years.",),
                 ),
             ),
-            raw={},
+            raw={
+                "response": "The limitation period is two years [2].",
+                "references": [
+                    {
+                        "reference_id": "2",
+                        "file_path": "/documents/limitations-act.pdf",
+                        "content": ["Claims must be filed within two years."],
+                    }
+                ],
+                "response_time": 1.25,
+            },
         )
 
 
@@ -100,6 +110,7 @@ class CliHelperTests(unittest.TestCase):
             ["Claims must be filed within two years."],
             output["references"][0]["content"],
         )
+        self.assertEqual(1.25, output["response_time"])
 
     def test_query_main_forwards_mode_and_context_only(self):
         client = FakeQueryClient()

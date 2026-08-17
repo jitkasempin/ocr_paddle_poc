@@ -63,7 +63,7 @@ def main(
             context_only=args.context_only,
         )
         if args.json:
-            print(json.dumps(result.as_dict(), ensure_ascii=False, indent=2))
+            print(json.dumps(result.raw, ensure_ascii=False, indent=2))
         else:
             print(format_query_result(result, excerpt_chars=args.excerpt_chars))
     except (LightRAGError, ValueError) as exc:

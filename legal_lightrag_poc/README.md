@@ -12,6 +12,8 @@ LightRAG's REST server is the integration boundary. Your eventual chat UI can ca
 
 > This is a technical proof of concept, not a legal-advice system. A citation proves which indexed file LightRAG retrieved; it does not prove that the generated interpretation is legally correct.
 
+> Security boundary: this Compose file publishes LightRAG only on `127.0.0.1`. `LIGHTRAG_API_KEY` authenticates the sample scripts, but LightRAG's bundled WebUI can still use Guest access when `AUTH_ACCOUNTS` is absent. Do not expose or tunnel this POC to a network in that configuration.
+
 ## 1. Prerequisites
 
 - Docker Desktop with Docker Compose
@@ -30,6 +32,14 @@ Copy-Item .env.example .env
 python -c "import secrets; print(secrets.token_urlsafe(32))"
 ```
 
+On Linux or macOS:
+
+```bash
+cd legal_lightrag_poc
+cp .env.example .env
+python3 -c 'import secrets; print(secrets.token_urlsafe(32))'
+```
+
 Edit `.env` and replace:
 
 1. `LIGHTRAG_API_KEY` with the random value printed above.
@@ -46,6 +56,15 @@ python -m pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
+Linux/macOS equivalent:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
 ## 3. Start LightRAG
 
 ```powershell
@@ -57,6 +76,15 @@ Wait until the service is healthy. Then open:
 
 - Web UI: [http://127.0.0.1:9621/webui](http://127.0.0.1:9621/webui)
 - API documentation: [http://127.0.0.1:9621/docs](http://127.0.0.1:9621/docs)
+
+The WebUI is suitable only for this loopback-only POC. An API key by itself does not disable LightRAG Guest access. Before any network exposure, generate a password entry and configure both authentication methods:
+
+```powershell
+docker run --rm -it --entrypoint lightrag-hash-password ghcr.io/hkuds/lightrag:v1.5.6 --username admin
+python -c "import secrets; print(secrets.token_urlsafe(48))"
+```
+
+Paste the password tool's output into `AUTH_ACCOUNTS` in `.env`, paste the second random value into `TOKEN_SECRET`, keep `LIGHTRAG_API_KEY`, and restart the container. For a real deployment, also add TLS and an authenticated reverse proxy.
 
 If startup fails, inspect the service log:
 
@@ -78,6 +106,12 @@ Upload every supported document below a directory:
 python ingest_legal_docs.py C:\legal-corpus --recursive
 ```
 
+Linux/macOS equivalent:
+
+```bash
+python ingest_legal_docs.py /path/to/legal-corpus --recursive
+```
+
 Supported sample formats are PDF, DOCX, TXT, Markdown, HTML, and RTF. The script:
 
 1. verifies that LightRAG is reachable;
@@ -93,6 +127,8 @@ Indexing is the expensive step because LightRAG extracts entities and relationsh
 ```powershell
 python query_legal_rag.py "What notice period applies before termination?"
 ```
+
+The same command works in an activated Linux/macOS virtual environment.
 
 The script uses `hybrid` retrieval and asks LightRAG to include:
 

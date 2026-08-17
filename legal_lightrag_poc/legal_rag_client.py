@@ -199,12 +199,14 @@ class LightRAGClient:
         payload = self._request(
             "GET", f"/documents/track_status/{normalized_track_id}"
         )
-        documents_value = payload.get("documents", [])
-        documents = (
-            tuple(dict(document) for document in documents_value)
-            if isinstance(documents_value, list)
-            else ()
-        )
+        documents_value = payload.get("documents")
+        if not isinstance(documents_value, list) or any(
+            not isinstance(document, Mapping) for document in documents_value
+        ):
+            raise LightRAGError(
+                "Invalid track-status response: 'documents' must be a list of objects"
+            )
+        documents = tuple(dict(document) for document in documents_value)
         summary_value = payload.get("status_summary", {})
         status_summary = (
             {str(key): int(value) for key, value in summary_value.items()}

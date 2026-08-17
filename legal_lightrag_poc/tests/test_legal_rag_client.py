@@ -193,6 +193,27 @@ class LightRAGClientTests(unittest.TestCase):
         with self.assertRaisesRegex(IndexingTimeout, "track-3"):
             client.wait_for_track("track-3", poll_interval=0, timeout=0)
 
+    def test_track_status_rejects_a_malformed_documents_field(self):
+        session = FakeSession(
+            [
+                FakeResponse(
+                    200,
+                    {
+                        "track_id": "track-malformed",
+                        "documents": {"status": "PROCESSED"},
+                        "total_count": 1,
+                        "status_summary": {"PROCESSED": 1},
+                    },
+                )
+            ]
+        )
+        client = LightRAGClient("http://lightrag", "key", session=session)
+
+        with self.assertRaisesRegex(
+            LightRAGError, "track-status response.*documents.*list"
+        ):
+            client.track_status("track-malformed")
+
     def test_query_requests_references_and_preserves_chunk_boundaries(self):
         session = FakeSession(
             [
