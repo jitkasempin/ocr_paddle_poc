@@ -13,9 +13,9 @@ Standalone LangGraph + Mem0 memory chatbot demo under `memory_chatbot/`.
 
 Create an isolated environment and install the standalone demo dependencies:
 
-```bash
-python -m venv .venv
-.venv\Scripts\activate
+```powershell
+python -m venv memory_chatbot/.venv
+memory_chatbot\.venv\Scripts\Activate.ps1
 python -m pip install -r memory_chatbot/requirements.txt
 ```
 
