@@ -128,13 +128,14 @@ class Mem0MemoryStore:
         return memories
 
     def add(self, messages: Sequence[Mapping[str, str]], user_id: str) -> None:
-        user_messages = [
-            {"role": "user", "content": content}
+        remembered_messages = [
+            {"role": role, "content": content}
             for message in messages
-            if message.get("role") == "user"
+            for role in [message.get("role")]
+            if role in {"user", "assistant"}
             for content in [message.get("content", "").strip()]
             if content
         ]
-        if not user_messages:
+        if not remembered_messages:
             return
-        self.client.add(user_messages, user_id=user_id)
+        self.client.add(remembered_messages, user_id=user_id)

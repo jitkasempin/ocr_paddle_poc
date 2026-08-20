@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from collections.abc import Sequence
 
 from langchain_core.language_models.chat_models import SimpleChatModel
@@ -62,19 +63,24 @@ def _extract_memories(messages: Sequence[BaseMessage]) -> list[str]:
         if not isinstance(message, SystemMessage):
             continue
         text = str(message.text)
-        start_token = "<memories>"
-        end_token = "</memories>"
+        start_token = "<memories-json>"
+        end_token = "</memories-json>"
         start = text.find(start_token)
         end = text.find(end_token)
         if start == -1 or end == -1 or end <= start:
             continue
-        memory_block = text[start + len(start_token) : end]
-        memories = [
-            line[2:].strip()
-            for line in memory_block.splitlines()
-            if line.strip().startswith("- ")
+        memory_block = text[start + len(start_token) : end].strip()
+        try:
+            decoded = json.loads(memory_block)
+        except json.JSONDecodeError:
+            return []
+        if not isinstance(decoded, list):
+            return []
+        return [
+            memory.strip()
+            for memory in decoded
+            if isinstance(memory, str) and memory.strip()
         ]
-        return [memory for memory in memories if memory and memory != "(none)"]
     return []
 
 

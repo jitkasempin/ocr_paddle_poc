@@ -20,13 +20,24 @@ class ChatbotSettings:
     @classmethod
     def from_env(cls) -> ChatbotSettings:
         package_dir = Path(__file__).resolve().parent
+        repo_root = package_dir.parent
+        default_data_dir = (package_dir / ".data").resolve()
         raw_data_dir = os.getenv("MEM0_DATA_DIR")
-        data_dir = Path(raw_data_dir) if raw_data_dir else package_dir / ".data"
+        data_dir = Path(raw_data_dir) if raw_data_dir else default_data_dir
         resolved_data_dir = data_dir.resolve()
+        if resolved_data_dir.is_relative_to(repo_root) and not resolved_data_dir.is_relative_to(
+            default_data_dir
+        ):
+            raise ValueError(
+                "MEM0_DATA_DIR must be outside the repository unless it stays under "
+                "memory_chatbot/.data."
+            )
         resolved_data_dir.mkdir(parents=True, exist_ok=True)
 
         raw_openai_api_key = os.getenv("OPENAI_API_KEY")
-        openai_api_key = raw_openai_api_key if raw_openai_api_key else None
+        openai_api_key = raw_openai_api_key.strip() if raw_openai_api_key is not None else None
+        if not openai_api_key:
+            openai_api_key = None
 
         return cls(
             openai_api_key=openai_api_key,

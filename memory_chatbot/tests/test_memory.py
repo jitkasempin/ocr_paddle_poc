@@ -74,7 +74,7 @@ def test_mem0_memory_store_normalizes_search_results_and_forwards_user_filter() 
     ]
 
 
-def test_mem0_memory_store_add_forwards_exact_user_id_and_only_user_messages() -> None:
+def test_mem0_memory_store_add_forwards_exact_user_id_and_non_empty_user_and_assistant_messages() -> None:
     client = RecordingMem0Client()
     store = Mem0MemoryStore(client)
 
@@ -84,13 +84,17 @@ def test_mem0_memory_store_add_forwards_exact_user_id_and_only_user_messages() -
             {"role": "user", "content": "Remember I like tea."},
             {"role": "assistant", "content": "I will remember that."},
             {"role": "user", "content": "  "},
+            {"role": "assistant", "content": ""},
         ],
         user_id="alice",
     )
 
     assert client.add_calls == [
         {
-            "messages": [{"role": "user", "content": "Remember I like tea."}],
+            "messages": [
+                {"role": "user", "content": "Remember I like tea."},
+                {"role": "assistant", "content": "I will remember that."},
+            ],
             "user_id": "alice",
         }
     ]
