@@ -165,15 +165,23 @@ def test_main_mock_backend_persists_preferences_per_user_across_runs(
     second_run = capsys.readouterr()
 
     monkeypatch.setattr("builtins.input", _input_iter(["What are my preferences?", "exit"]))
-    assert main(["--user-id", "bob", "--thread-id", "thread-3"]) == 0
+    assert main(["--user-id", "alice", "--thread-id", "thread-3"]) == 0
     third_run = capsys.readouterr()
+
+    monkeypatch.setattr("builtins.input", _input_iter(["What are my preferences?", "exit"]))
+    assert main(["--user-id", "bob", "--thread-id", "thread-4"]) == 0
+    fourth_run = capsys.readouterr()
 
     assert "Noted. I'll remember: Remember that I like jasmine tea." in first_run.out
     assert (
         "You told me these preferences: Remember that I like jasmine tea."
         in second_run.out
     )
-    assert "You haven't shared any preferences yet." in third_run.out
+    assert (
+        "You told me these preferences: Remember that I like jasmine tea."
+        in third_run.out
+    )
+    assert "You haven't shared any preferences yet." in fourth_run.out
     assert (data_dir / "mock-memories.json").exists()
 
 

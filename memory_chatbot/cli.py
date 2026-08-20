@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Literal
 from uuid import uuid4
@@ -21,13 +22,21 @@ class DurableMockMemoryStore:
         self._store = store
 
     def search(self, query: str, user_id: str) -> list[str]:
-        memories = self._store.search(query, user_id)
+        memories = _filter_mock_preferences(self._store.search(query, user_id))
         if memories or not looks_like_preference_question(query):
             return memories
-        return self._store.search("", user_id)
+        return _filter_mock_preferences(self._store.search("", user_id))
 
-    def add(self, messages, user_id: str) -> None:
-        self._store.add(messages, user_id)
+    def add(self, messages: Sequence[Mapping[str, str]], user_id: str) -> None:
+        filtered_messages = [
+            message
+            for message in messages
+            if message.get("role") != "user"
+            or _is_mock_preference(message.get("content", ""))
+        ]
+        if not filtered_messages:
+            return
+        self._store.add(filtered_messages, user_id)
 
 
 def build_chatbot(settings: ChatbotSettings, backend: Backend) -> PreferenceChatbot:
@@ -102,3 +111,16 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Chat backend to use. Default: mock.",
     )
     return parser
+
+
+def _filter_mock_preferences(memories: Sequence[str]) -> list[str]:
+    return [memory for memory in memories if _is_mock_preference(memory)]
+
+
+def _is_mock_preference(message: str) -> bool:
+    normalized = message.strip()
+    if not normalized:
+        return False
+    if normalized.endswith("?"):
+        return False
+    return not looks_like_preference_question(normalized)
