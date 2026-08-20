@@ -11,10 +11,15 @@ from dotenv import load_dotenv
 
 from memory_chatbot.chatbot import PreferenceChatbot
 from memory_chatbot.memory import JsonMemoryStore, Mem0MemoryStore
-from memory_chatbot.models import MockChatModel, create_openai_chat_model, looks_like_preference_question
+from memory_chatbot.models import (
+    MockChatModel,
+    create_openai_chat_model,
+    looks_like_preference_question,
+)
 from memory_chatbot.settings import ChatbotSettings
 
 Backend = Literal["mock", "openai"]
+CLI_RUNTIME_ERRORS = (OSError, RuntimeError, TypeError, ValueError)
 
 
 class DurableMockMemoryStore:
@@ -62,7 +67,7 @@ def main(argv: list[str] | None = None) -> int:
 
     try:
         chatbot = build_chatbot(settings, backend=args.backend)
-    except Exception as exc:
+    except CLI_RUNTIME_ERRORS as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
 
@@ -87,7 +92,7 @@ def main(argv: list[str] | None = None) -> int:
                 thread_id=thread_id,
                 message=normalized_message,
             )
-        except Exception as exc:
+        except CLI_RUNTIME_ERRORS as exc:
             print(f"Error: {exc}", file=sys.stderr)
             continue
 

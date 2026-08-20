@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Mapping, Sequence
 from pathlib import Path
-from typing import Any, Mapping, Protocol, Sequence
+from typing import Any, Protocol
 
 from memory_chatbot.settings import ChatbotSettings
 
@@ -86,7 +87,7 @@ class Mem0MemoryStore:
         self.client = client
 
     @classmethod
-    def from_settings(cls, settings: ChatbotSettings) -> "Mem0MemoryStore":
+    def from_settings(cls, settings: ChatbotSettings) -> Mem0MemoryStore:
         memory_factory = _load_mem0_memory_factory()
         client = memory_factory.from_config(
             {

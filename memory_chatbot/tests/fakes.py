@@ -27,14 +27,14 @@ class RecordingChatModel(SimpleChatModel):
             [
                 {
                     "role": message.type,
-                    "content": message.text(),
+                    "content": str(message.text),
                 }
                 for message in messages
             ]
         )
 
         latest_human = next(
-            message.text()
+            str(message.text)
             for message in reversed(messages)
             if isinstance(message, HumanMessage)
         )

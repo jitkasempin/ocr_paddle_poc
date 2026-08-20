@@ -21,7 +21,7 @@ class MockChatModel(SimpleChatModel):
         **kwargs,
     ) -> str:
         latest_human_message = next(
-            message.text()
+            str(message.text)
             for message in reversed(messages)
             if isinstance(message, HumanMessage)
         )
@@ -61,7 +61,7 @@ def _extract_memories(messages: Sequence[BaseMessage]) -> list[str]:
     for message in messages:
         if not isinstance(message, SystemMessage):
             continue
-        text = message.text()
+        text = str(message.text)
         start_token = "<memories>"
         end_token = "</memories>"
         start = text.find(start_token)

@@ -109,7 +109,7 @@ def _configurable_identifier(config: RunnableConfig, key: str) -> str:
     configurable = config.get("configurable", {})
     value = configurable.get(key)
     if not isinstance(value, str):
-        raise ValueError(f"Missing configurable identifier: {key}")
+        raise TypeError(f"Missing configurable identifier: {key}")
     return value
 
 
@@ -138,7 +138,7 @@ def _build_system_prompt(memories: Sequence[str]) -> str:
 
 
 def _message_text(message: BaseMessage) -> str:
-    return message.text()
+    return str(message.text)
 
 
 def _checkpoint_thread_id(*, user_id: str, thread_id: str) -> str:

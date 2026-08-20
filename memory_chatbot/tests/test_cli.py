@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -21,7 +20,7 @@ def test_mock_chat_model_acknowledges_statements() -> None:
         ]
     )
 
-    assert reply.text() == "Noted. I'll remember: Remember that I like jasmine tea."
+    assert reply.text == "Noted. I'll remember: Remember that I like jasmine tea."
 
 
 def test_mock_chat_model_summarizes_memory_block_for_preference_questions() -> None:
@@ -42,7 +41,7 @@ def test_mock_chat_model_summarizes_memory_block_for_preference_questions() -> N
         ]
     )
 
-    assert reply.text() == (
+    assert reply.text == (
         "You told me these preferences: I like jasmine tea.; "
         "I prefer concise replies."
     )

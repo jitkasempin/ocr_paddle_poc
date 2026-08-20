@@ -18,7 +18,7 @@ class ChatbotSettings:
     mem0_collection_name: str
 
     @classmethod
-    def from_env(cls) -> "ChatbotSettings":
+    def from_env(cls) -> ChatbotSettings:
         package_dir = Path(__file__).resolve().parent
         raw_data_dir = os.getenv("MEM0_DATA_DIR")
         data_dir = Path(raw_data_dir) if raw_data_dir else package_dir / ".data"
