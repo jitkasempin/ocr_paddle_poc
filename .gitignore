@@ -10,3 +10,6 @@ legal_lightrag_poc/.env
 legal_lightrag_poc/.venv/
 legal_lightrag_poc/data/
 legal_lightrag_poc/**/__pycache__/
+memory_chatbot/.env
+memory_chatbot/.data/
+memory_chatbot/**/__pycache__/
