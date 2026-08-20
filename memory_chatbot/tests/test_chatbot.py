@@ -92,6 +92,29 @@ def test_respond_starts_fresh_thread_history_but_keeps_user_memories() -> None:
     assert "Remember that I like tea." in model.calls[1][0]["content"]
 
 
+def test_respond_isolates_short_term_history_by_user_even_with_same_public_thread_id() -> None:
+    model = RecordingChatModel()
+    memory_store = RecordingMemoryStore()
+    chatbot = PreferenceChatbot(model=model, memory_store=memory_store)
+
+    chatbot.respond(
+        user_id="alice",
+        thread_id="shared-thread",
+        message="Alice said this first.",
+    )
+    chatbot.respond(
+        user_id="bob",
+        thread_id="shared-thread",
+        message="Bob is starting fresh.",
+    )
+
+    assert [message["role"] for message in model.calls[1]] == ["system", "human"]
+    assert model.calls[1][1:] == [
+        {"role": "human", "content": "Bob is starting fresh."}
+    ]
+    assert "Alice said this first." not in model.calls[1][0]["content"]
+
+
 def test_respond_uses_exact_user_memories_without_cross_user_leakage() -> None:
     model = RecordingChatModel()
     memory_store = RecordingMemoryStore(

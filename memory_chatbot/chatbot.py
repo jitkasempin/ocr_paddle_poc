@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import Sequence
 
@@ -36,7 +37,10 @@ class PreferenceChatbot:
             config={
                 "configurable": {
                     "user_id": validated_user_id,
-                    "thread_id": validated_thread_id,
+                    "thread_id": _checkpoint_thread_id(
+                        user_id=validated_user_id,
+                        thread_id=validated_thread_id,
+                    ),
                 }
             },
         )
@@ -135,6 +139,14 @@ def _build_system_prompt(memories: Sequence[str]) -> str:
 
 def _message_text(message: BaseMessage) -> str:
     return message.text()
+
+
+def _checkpoint_thread_id(*, user_id: str, thread_id: str) -> str:
+    return json.dumps(
+        {"thread_id": thread_id, "user_id": user_id},
+        separators=(",", ":"),
+        sort_keys=True,
+    )
 
 
 def _validate_identifier(value: str, *, name: str) -> str:
