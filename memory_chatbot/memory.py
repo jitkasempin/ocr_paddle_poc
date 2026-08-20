@@ -94,11 +94,17 @@ class Mem0MemoryStore:
                 "history_db_path": str(settings.mem0_history_db_path),
                 "llm": {
                     "provider": "openai",
-                    "config": {"model": settings.mem0_llm_model},
+                    "config": {
+                        "model": settings.mem0_llm_model,
+                        "api_key": settings.openai_api_key,
+                    },
                 },
                 "embedder": {
                     "provider": "openai",
-                    "config": {"model": settings.mem0_embedding_model},
+                    "config": {
+                        "model": settings.mem0_embedding_model,
+                        "api_key": settings.openai_api_key,
+                    },
                 },
                 "vector_store": {
                     "provider": "qdrant",

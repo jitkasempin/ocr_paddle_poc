@@ -105,7 +105,7 @@ def test_mem0_memory_store_from_settings_builds_local_qdrant_config(
 ) -> None:
     factory = RecordingMemoryFactory()
     settings = ChatbotSettings(
-        openai_api_key=None,
+        openai_api_key="test-key",
         chat_model="gpt-4.1-mini",
         mem0_llm_model="gpt-4.1-mini",
         mem0_embedding_model="text-embedding-3-small",
@@ -126,11 +126,11 @@ def test_mem0_memory_store_from_settings_builds_local_qdrant_config(
             "history_db_path": str(settings.mem0_history_db_path),
             "llm": {
                 "provider": "openai",
-                "config": {"model": "gpt-4.1-mini"},
+                "config": {"model": "gpt-4.1-mini", "api_key": "test-key"},
             },
             "embedder": {
                 "provider": "openai",
-                "config": {"model": "text-embedding-3-small"},
+                "config": {"model": "text-embedding-3-small", "api_key": "test-key"},
             },
             "vector_store": {
                 "provider": "qdrant",
