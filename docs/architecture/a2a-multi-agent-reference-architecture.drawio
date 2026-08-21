@@ -1,0 +1,109 @@
+<mxfile host="app.diagrams.net" modified="2026-07-15T00:00:00.000Z" agent="Codex" version="24.7.17" type="device">
+  <diagram id="a2a-reference" name="A2A Reference Architecture">
+    <mxGraphModel dx="1800" dy="1120" grid="1" gridSize="8" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1120" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <mxCell id="title" value="&lt;b&gt;A2A 1.0 Multi-Agent Reference Architecture&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;A2A defines the inter-agent contract; orchestration, execution, storage, tools, and platform controls remain implementation choices.&lt;/font&gt;" style="text;html=1;align=left;verticalAlign=middle;resizable=0;points=[];autosize=1;fontSize=24;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="24" width="900" height="56" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="zone-client" value="&lt;b&gt;Client trust zone&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Goal intake, orchestration, client role, callback ingress&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#f8fbff;strokeColor=#93c5fd;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="40" y="110" width="360" height="760" as="geometry"/>
+        </mxCell>
+        <mxCell id="zone-control" value="&lt;b&gt;Enterprise control plane&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Discovery, identity, policy, signing, secrets&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#fbf9ff;strokeColor=#c4b5fd;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="430" y="110" width="260" height="760" as="geometry"/>
+        </mxCell>
+        <mxCell id="zone-provider" value="&lt;b&gt;Remote agent provider zone&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Repeat for every independently deployed peer agent&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#f8fff9;strokeColor=#86efac;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="720" y="110" width="720" height="760" as="geometry"/>
+        </mxCell>
+        <mxCell id="zone-resource" value="&lt;b&gt;External resource zone&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Private tools and data&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#fffbf5;strokeColor=#fdba74;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="1470" y="110" width="290" height="760" as="geometry"/>
+        </mxCell>
+        <mxCell id="zone-ops" value="&lt;b&gt;Operations and quality plane&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#64748b&quot; size=&quot;2&quot;&gt;Cross-cutting evidence; outside the A2A application protocol&lt;/font&gt;" style="rounded=1;arcSize=12;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#cbd5e1;strokeWidth=1.5;verticalAlign=top;align=left;spacingTop=12;spacingLeft=14;fontSize=14;fontColor=#0f172a;" vertex="1" parent="1">
+          <mxGeometry x="720" y="900" width="1040" height="160" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c01" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C01 · IMPLEMENTATION&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Caller / UI / Upstream Agent&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;goal · constraints · result&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f8fafc;strokeColor=#64748b;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="200" width="280" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c02" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C02 · IMPLEMENTATION&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Client Agent / Orchestrator&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;plan · select · correlate · compensate&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#ecfdf3;strokeColor=#16a34a;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="335" width="280" height="85" as="geometry"/>
+        </mxCell>
+        <mxCell id="c03" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C03 · A2A CLIENT ROLE&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;A2A Client Adapter / SDK&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;cards · version · messages&lt;br&gt;poll · stream · cancel · subscribe&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#2563eb;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="475" width="280" height="110" as="geometry"/>
+        </mxCell>
+        <mxCell id="c06" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C06 · OPTIONAL A2A RECEIVER&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Client Push Webhook&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;authenticate · deduplicate · acknowledge&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#2563eb;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="720" width="280" height="90" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c04" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C04 · RECOMMENDED&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Discovery Resolver&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;registry / config / card cache&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="240" width="180" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c05" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C05 · RECOMMENDED&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Identity &amp;amp; Policy&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;OAuth / OIDC / mTLS&lt;br&gt;PDP · KMS · secrets&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="470" y="485" width="180" height="100" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c08" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C08 · A2A DISCOVERY&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Agent Card Publisher&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;well-known · extended card · JWS&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#2563eb;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="220" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c07" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C07 · RECOMMENDED&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;API Gateway / Service Mesh&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;TLS · routing · limits · stream pass-through&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="470" width="220" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c09" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C09 · A2A SERVER ROLE&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;A2A Protocol Endpoint&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;JSON-RPC · HTTP+JSON · gRPC&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#2563eb;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="470" width="220" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c10" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C10 · A2A SEMANTICS&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Task Manager&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;state + ordered events&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#eaf2ff;strokeColor=#2563eb;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="470" width="150" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c11" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C11 · IMPLEMENTATION&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Agent Executor&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;LLM / planner / workflow&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#ecfdf3;strokeColor=#16a34a;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="620" width="160" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c14" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C14 · RECOMMENDED&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Task &amp;amp; Event Store&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;durability · history · dedup&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="730" width="210" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c15" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C15 · RECOMMENDED&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Artifact / Object Store&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;large outputs · signed URLs&lt;/font&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1030" y="730" width="210" height="80" as="geometry"/>
+        </mxCell>
+        <mxCell id="c16" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C16 · OPTIONAL&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Push Dispatcher&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;retry · backoff · SSRF guard&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1270" y="770" width="150" height="80" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="c12" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C12 · OPTIONAL&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;MCP / Tool Adapter&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;agent-to-tool boundary&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#ea580c;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1510" y="540" width="190" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c13" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C13 · PRIVATE RESOURCES&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Tools / APIs / Data&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;least-privilege credentials&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#fff7ed;strokeColor=#ea580c;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1510" y="700" width="190" height="90" as="geometry"/>
+        </mxCell>
+        <mxCell id="c17" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C17 · RECOMMENDED&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;Observability / Audit&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;traces · metrics · redacted logs&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="800" y="955" width="170" height="75" as="geometry"/>
+        </mxCell>
+        <mxCell id="c18" value="&lt;font color=&quot;#475569&quot; size=&quot;1&quot;&gt;&lt;b&gt;C18 · DELIVERY GATE&lt;/b&gt;&lt;/font&gt;&lt;br&gt;&lt;b&gt;A2A TCK / Inspector / CI&lt;/b&gt;&lt;br&gt;&lt;font color=&quot;#475569&quot; size=&quot;2&quot;&gt;card + binding + conformance tests&lt;/font&gt;" style="rounded=1;arcSize=14;whiteSpace=wrap;html=1;fillColor=#f5f0ff;strokeColor=#7c3aed;strokeWidth=2;fontSize=14;fontColor=#0f172a;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1230" y="955" width="210" height="75" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="e01" value="goal / result" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c01" target="c02"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e02" value="delegate" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c02" target="c03"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e03" value="select by skill" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c02" target="c04"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e04" value="Agent Cards (registry API is non-standard)" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c04" target="c08"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e05" value="GET /.well-known/agent-card.json" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c07" target="c08"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e06" value="A2A 1.0 + TLS + credentials" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2563eb;strokeWidth=3;endArrow=block;endFill=1;fontSize=11;fontColor=#1d4ed8;" edge="1" parent="1" source="c03" target="c07"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="420" y="620"/><mxPoint x="760" y="620"/><mxPoint x="760" y="510"/></Array></mxGeometry></mxCell>
+        <mxCell id="e07" value="token / policy" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#7c3aed;strokeWidth=2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#6d28d9;" edge="1" parent="1" source="c03" target="c05"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e08" value="route" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2563eb;strokeWidth=3;endArrow=block;endFill=1;fontSize=11;fontColor=#1d4ed8;" edge="1" parent="1" source="c07" target="c09"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e09" value="authorize" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#7c3aed;strokeWidth=2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#6d28d9;" edge="1" parent="1" source="c05" target="c09"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e10" value="validated command" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c09" target="c10"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e11" value="execute / update / cancel" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c10" target="c11"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e12" value="state / history / dedup" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;startArrow=block;startFill=1;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c10" target="c14"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e13" value="artifacts / signed URLs" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;startArrow=block;startFill=1;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c11" target="c15"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e14" value="tool call" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c11" target="c12"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e15" value="MCP or native API" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#334155;strokeWidth=2;endArrow=block;endFill=1;fontSize=11;fontColor=#475569;" edge="1" parent="1" source="c12" target="c13"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e16" value="notification job" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#7c3aed;strokeWidth=2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#6d28d9;" edge="1" parent="1" source="c10" target="c16"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e17" value="authenticated HTTPS POST StreamResponse" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#7c3aed;strokeWidth=2;dashed=1;dashPattern=8 6;endArrow=block;endFill=1;fontSize=11;fontColor=#6d28d9;" edge="1" parent="1" source="c16" target="c06"><mxGeometry relative="1" as="geometry"><Array as="points"><mxPoint x="1210" y="850"/><mxPoint x="390" y="850"/><mxPoint x="390" y="765"/></Array></mxGeometry></mxCell>
+        <mxCell id="e18" value="GetTask reconcile" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#2563eb;strokeWidth=3;endArrow=block;endFill=1;fontSize=11;fontColor=#1d4ed8;" edge="1" parent="1" source="c06" target="c03"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e19" value="telemetry / audit" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748b;strokeWidth=1.5;dashed=1;dashPattern=4 5;endArrow=open;endFill=0;fontSize=11;fontColor=#64748b;" edge="1" parent="1" source="c10" target="c17"><mxGeometry relative="1" as="geometry"/></mxCell>
+        <mxCell id="e20" value="conformance tests" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#64748b;strokeWidth=1.5;dashed=1;dashPattern=4 5;endArrow=open;endFill=0;fontSize=11;fontColor=#64748b;" edge="1" parent="1" source="c18" target="c07"><mxGeometry relative="1" as="geometry"/></mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

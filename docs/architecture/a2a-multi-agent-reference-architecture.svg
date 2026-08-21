@@ -1,0 +1,235 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1800" height="1120" viewBox="0 0 1800 1120" role="img" aria-labelledby="title desc">
+  <title id="title">A2A 1.0 Multi-Agent Reference Architecture</title>
+  <desc id="desc">Reference architecture showing a client orchestrator, discovery and identity control plane, a repeatable remote A2A agent provider, MCP tools, durable stores, push notifications, observability, and conformance testing.</desc>
+  <defs>
+    <marker id="arrow-blue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-slate" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#334155"/>
+    </marker>
+    <marker id="arrow-purple" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#7c3aed"/>
+    </marker>
+    <marker id="arrow-gray" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <style>
+      .title { font: 700 29px Inter, Segoe UI, Arial, sans-serif; fill: #0f172a; }
+      .subtitle { font: 400 15px Inter, Segoe UI, Arial, sans-serif; fill: #475569; }
+      .zone { stroke-width: 1.5; rx: 16; ry: 16; }
+      .zone-title { font: 700 15px Inter, Segoe UI, Arial, sans-serif; fill: #0f172a; }
+      .zone-note { font: 400 12px Inter, Segoe UI, Arial, sans-serif; fill: #64748b; }
+      .node rect { stroke-width: 2; rx: 11; ry: 11; filter: url(#shadow); }
+      .node .id { font: 700 11px Inter, Segoe UI, Arial, sans-serif; fill: #475569; }
+      .node .name { font: 700 15px Inter, Segoe UI, Arial, sans-serif; fill: #0f172a; }
+      .node .detail { font: 400 11.5px Inter, Segoe UI, Arial, sans-serif; fill: #475569; }
+      .std rect { fill: #eaf2ff; stroke: #2563eb; }
+      .impl rect { fill: #ecfdf3; stroke: #16a34a; }
+      .platform rect { fill: #f5f0ff; stroke: #7c3aed; }
+      .tool rect { fill: #fff7ed; stroke: #ea580c; }
+      .neutral rect { fill: #f8fafc; stroke: #64748b; }
+      .edge { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+      .edge-a2a { stroke: #2563eb; stroke-width: 3.2; marker-end: url(#arrow-blue); }
+      .edge-flow { stroke: #334155; stroke-width: 2.2; marker-end: url(#arrow-slate); }
+      .edge-async { stroke: #7c3aed; stroke-width: 2.4; stroke-dasharray: 8 6; marker-end: url(#arrow-purple); }
+      .edge-ops { stroke: #64748b; stroke-width: 1.8; stroke-dasharray: 4 5; marker-end: url(#arrow-gray); }
+      .edge-label rect { fill: #ffffff; stroke: #e2e8f0; rx: 5; ry: 5; }
+      .edge-label text { font: 600 11px Inter, Segoe UI, Arial, sans-serif; fill: #334155; }
+      .legend text { font: 600 11.5px Inter, Segoe UI, Arial, sans-serif; fill: #334155; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1800" height="1120" fill="#ffffff"/>
+  <text x="40" y="46" class="title">A2A 1.0 Multi-Agent Reference Architecture</text>
+  <text x="40" y="72" class="subtitle">A2A defines the inter-agent contract; orchestration, execution, storage, tools, and platform controls remain implementation choices.</text>
+
+  <g class="legend" transform="translate(1020,30)">
+    <rect x="0" y="0" width="150" height="28" rx="7" fill="#eaf2ff" stroke="#2563eb"/>
+    <text x="12" y="18">A2A contract surface</text>
+    <rect x="162" y="0" width="146" height="28" rx="7" fill="#ecfdf3" stroke="#16a34a"/>
+    <text x="174" y="18">Agent internals</text>
+    <rect x="320" y="0" width="174" height="28" rx="7" fill="#f5f0ff" stroke="#7c3aed"/>
+    <text x="332" y="18">Platform / controls</text>
+    <rect x="506" y="0" width="124" height="28" rx="7" fill="#fff7ed" stroke="#ea580c"/>
+    <text x="518" y="18">MCP / tools</text>
+  </g>
+
+  <!-- Trust-zone containers -->
+  <rect class="zone" x="40" y="110" width="360" height="760" fill="#f8fbff" stroke="#93c5fd"/>
+  <text x="62" y="140" class="zone-title">Client trust zone</text>
+  <text x="62" y="160" class="zone-note">Goal intake, orchestration, A2A client role, callback ingress</text>
+
+  <rect class="zone" x="430" y="110" width="260" height="760" fill="#fbf9ff" stroke="#c4b5fd"/>
+  <text x="452" y="140" class="zone-title">Enterprise control plane</text>
+  <text x="452" y="160" class="zone-note">Discovery, identity, policy, signing, secrets</text>
+
+  <rect class="zone" x="720" y="110" width="720" height="760" fill="#f8fff9" stroke="#86efac"/>
+  <text x="742" y="140" class="zone-title">Remote agent provider zone</text>
+  <text x="742" y="160" class="zone-note">Repeat this boundary for every independently deployed peer agent</text>
+
+  <rect class="zone" x="1470" y="110" width="290" height="760" fill="#fffbf5" stroke="#fdba74"/>
+  <text x="1492" y="140" class="zone-title">External resource zone</text>
+  <text x="1492" y="160" class="zone-note">Tools and data remain private to the remote agent</text>
+
+  <rect class="zone" x="720" y="900" width="1040" height="160" fill="#f8fafc" stroke="#cbd5e1"/>
+  <text x="742" y="930" class="zone-title">Operations and quality plane</text>
+  <text x="742" y="950" class="zone-note">Cross-cutting runtime evidence; not part of the A2A application protocol</text>
+
+  <!-- Edges behind nodes -->
+  <path class="edge edge-flow" d="M220 280 V335"/>
+  <path class="edge edge-flow" d="M220 420 V475"/>
+  <path class="edge edge-flow" d="M360 375 H405 V285 H470"/>
+  <path class="edge edge-flow" d="M650 285 H800"/>
+  <path class="edge edge-flow" d="M910 310 V470"/>
+  <path class="edge edge-a2a" d="M360 520 H420 V620 H760 V510 H800"/>
+  <path class="edge edge-async" d="M360 545 H410 V530 H470"/>
+  <path class="edge edge-a2a" d="M1020 510 H1040"/>
+  <path class="edge edge-flow" d="M1260 510 H1270"/>
+  <path class="edge edge-async" d="M650 530 H700 V555 H1040"/>
+  <path class="edge edge-flow" d="M1340 550 V620"/>
+  <path class="edge edge-flow" d="M1270 530 H1180 V755 H1010"/>
+  <path class="edge edge-flow" d="M1340 700 V730 H1135 V755"/>
+  <path class="edge edge-flow" d="M1420 665 H1510"/>
+  <path class="edge edge-flow" d="M1605 630 V700"/>
+  <path class="edge edge-async" d="M1360 550 V770"/>
+  <path class="edge edge-async" d="M1270 810 H1210 V850 H390 V760 H360"/>
+  <path class="edge edge-a2a" d="M260 720 V585"/>
+  <path class="edge edge-ops" d="M1340 550 V920 H970"/>
+  <path class="edge edge-ops" d="M1230 980 H1080 V510 H1020"/>
+
+  <!-- Edge labels -->
+  <g class="edge-label" transform="translate(362,318)"><rect width="100" height="24"/><text x="10" y="16">select by skill</text></g>
+  <g class="edge-label" transform="translate(665,268)"><rect width="124" height="24"/><text x="10" y="16">publish / query cards</text></g>
+  <g class="edge-label" transform="translate(500,593)"><rect width="176" height="26"/><text x="10" y="17">A2A 1.0 + TLS + credentials</text></g>
+  <g class="edge-label" transform="translate(372,532)"><rect width="92" height="24"/><text x="10" y="16">token / policy</text></g>
+  <g class="edge-label" transform="translate(1040,480)"><rect width="116" height="24"/><text x="10" y="16">validated command</text></g>
+  <g class="edge-label" transform="translate(1442,638)"><rect width="64" height="24"/><text x="10" y="16">tool call</text></g>
+  <g class="edge-label" transform="translate(770,828)"><rect width="206" height="24"/><text x="10" y="16">authenticated HTTPS push (optional)</text></g>
+  <g class="edge-label" transform="translate(266,625)"><rect width="94" height="24"/><text x="10" y="16">GetTask reconcile</text></g>
+
+  <!-- Client nodes -->
+  <g class="node neutral" transform="translate(80,200)">
+    <rect width="280" height="80"/>
+    <text x="18" y="24" class="id">C01 · IMPLEMENTATION</text>
+    <text x="140" y="49" text-anchor="middle" class="name">Caller / UI / Upstream Agent</text>
+    <text x="140" y="67" text-anchor="middle" class="detail">goal, constraints, final result</text>
+  </g>
+  <g class="node impl" transform="translate(80,335)">
+    <rect width="280" height="85"/>
+    <text x="18" y="24" class="id">C02 · IMPLEMENTATION</text>
+    <text x="140" y="50" text-anchor="middle" class="name">Client Agent / Orchestrator</text>
+    <text x="140" y="70" text-anchor="middle" class="detail">plan, select, correlate, compensate</text>
+  </g>
+  <g class="node std" transform="translate(80,475)">
+    <rect width="280" height="110"/>
+    <text x="18" y="24" class="id">C03 · A2A CLIENT ROLE</text>
+    <text x="140" y="49" text-anchor="middle" class="name">A2A Client Adapter / SDK</text>
+    <text x="140" y="70" text-anchor="middle" class="detail">cards · binding/version · messages</text>
+    <text x="140" y="89" text-anchor="middle" class="detail">poll / stream / cancel / subscribe</text>
+  </g>
+  <g class="node std" transform="translate(80,720)">
+    <rect width="280" height="90"/>
+    <text x="18" y="24" class="id">C06 · OPTIONAL A2A RECEIVER</text>
+    <text x="140" y="50" text-anchor="middle" class="name">Client Push Webhook</text>
+    <text x="140" y="70" text-anchor="middle" class="detail">authenticate · deduplicate · acknowledge</text>
+  </g>
+
+  <!-- Control-plane nodes -->
+  <g class="node platform" transform="translate(470,240)">
+    <rect width="180" height="90"/>
+    <text x="16" y="24" class="id">C04 · RECOMMENDED</text>
+    <text x="90" y="50" text-anchor="middle" class="name">Discovery Resolver</text>
+    <text x="90" y="70" text-anchor="middle" class="detail">registry / config / card cache</text>
+  </g>
+  <g class="node platform" transform="translate(470,485)">
+    <rect width="180" height="100"/>
+    <text x="16" y="24" class="id">C05 · RECOMMENDED</text>
+    <text x="90" y="49" text-anchor="middle" class="name">Identity &amp; Policy</text>
+    <text x="90" y="69" text-anchor="middle" class="detail">OAuth / OIDC / mTLS</text>
+    <text x="90" y="87" text-anchor="middle" class="detail">PDP · KMS · secrets</text>
+  </g>
+
+  <!-- Remote provider nodes -->
+  <g class="node std" transform="translate(800,220)">
+    <rect width="220" height="90"/>
+    <text x="16" y="24" class="id">C08 · A2A DISCOVERY</text>
+    <text x="110" y="50" text-anchor="middle" class="name">Agent Card Publisher</text>
+    <text x="110" y="70" text-anchor="middle" class="detail">well-known + extended card + JWS</text>
+  </g>
+  <g class="node platform" transform="translate(800,470)">
+    <rect width="220" height="80"/>
+    <text x="16" y="24" class="id">C07 · RECOMMENDED</text>
+    <text x="110" y="50" text-anchor="middle" class="name">API Gateway / Service Mesh</text>
+    <text x="110" y="68" text-anchor="middle" class="detail">TLS · routing · limits · stream pass-through</text>
+  </g>
+  <g class="node std" transform="translate(1040,470)">
+    <rect width="220" height="90"/>
+    <text x="16" y="24" class="id">C09 · A2A SERVER ROLE</text>
+    <text x="110" y="49" text-anchor="middle" class="name">A2A Protocol Endpoint</text>
+    <text x="110" y="69" text-anchor="middle" class="detail">JSON-RPC · HTTP+JSON · gRPC</text>
+  </g>
+  <g class="node std" transform="translate(1270,470)">
+    <rect width="150" height="90"/>
+    <text x="14" y="24" class="id">C10 · A2A SEMANTICS</text>
+    <text x="75" y="49" text-anchor="middle" class="name">Task Manager</text>
+    <text x="75" y="69" text-anchor="middle" class="detail">state + ordered events</text>
+  </g>
+  <g class="node impl" transform="translate(1260,620)">
+    <rect width="160" height="90"/>
+    <text x="14" y="24" class="id">C11 · IMPLEMENTATION</text>
+    <text x="80" y="49" text-anchor="middle" class="name">Agent Executor</text>
+    <text x="80" y="69" text-anchor="middle" class="detail">LLM / planner / workflow</text>
+  </g>
+  <g class="node platform" transform="translate(800,730)">
+    <rect width="210" height="80"/>
+    <text x="16" y="24" class="id">C14 · RECOMMENDED</text>
+    <text x="105" y="50" text-anchor="middle" class="name">Task &amp; Event Store</text>
+    <text x="105" y="68" text-anchor="middle" class="detail">durability · history · dedup</text>
+  </g>
+  <g class="node platform" transform="translate(1030,730)">
+    <rect width="210" height="80"/>
+    <text x="16" y="24" class="id">C15 · RECOMMENDED</text>
+    <text x="105" y="50" text-anchor="middle" class="name">Artifact / Object Store</text>
+    <text x="105" y="68" text-anchor="middle" class="detail">large outputs · signed URLs</text>
+  </g>
+  <g class="node platform" transform="translate(1270,770)">
+    <rect width="150" height="80"/>
+    <text x="14" y="24" class="id">C16 · OPTIONAL</text>
+    <text x="75" y="49" text-anchor="middle" class="name">Push Dispatcher</text>
+    <text x="75" y="67" text-anchor="middle" class="detail">retry · backoff · SSRF guard</text>
+  </g>
+
+  <!-- External resource nodes -->
+  <g class="node tool" transform="translate(1510,540)">
+    <rect width="190" height="90"/>
+    <text x="16" y="24" class="id">C12 · OPTIONAL</text>
+    <text x="95" y="50" text-anchor="middle" class="name">MCP / Tool Adapter</text>
+    <text x="95" y="70" text-anchor="middle" class="detail">agent-to-tool boundary</text>
+  </g>
+  <g class="node tool" transform="translate(1510,700)">
+    <rect width="190" height="90"/>
+    <text x="16" y="24" class="id">C13 · PRIVATE RESOURCES</text>
+    <text x="95" y="49" text-anchor="middle" class="name">Tools / APIs / Data</text>
+    <text x="95" y="69" text-anchor="middle" class="detail">least-privilege credentials</text>
+  </g>
+
+  <!-- Operations nodes -->
+  <g class="node platform" transform="translate(800,955)">
+    <rect width="170" height="75"/>
+    <text x="14" y="22" class="id">C17 · RECOMMENDED</text>
+    <text x="85" y="47" text-anchor="middle" class="name">Observability / Audit</text>
+    <text x="85" y="65" text-anchor="middle" class="detail">traces · metrics · redacted logs</text>
+  </g>
+  <g class="node platform" transform="translate(1230,955)">
+    <rect width="210" height="75"/>
+    <text x="14" y="22" class="id">C18 · DELIVERY GATE</text>
+    <text x="105" y="47" text-anchor="middle" class="name">A2A TCK / Inspector / CI</text>
+    <text x="105" y="65" text-anchor="middle" class="detail">card + binding + conformance tests</text>
+  </g>
+
+  <text x="40" y="1092" class="subtitle">Primary runtime path: discover → authenticate → SendMessage / SendStreamingMessage → Task or Message → status/artifact updates → poll, stream, or push.</text>
+</svg>

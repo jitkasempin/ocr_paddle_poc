@@ -1,0 +1,30 @@
+name: legal-lightrag-poc
+
+services:
+  lightrag:
+    image: ghcr.io/hkuds/lightrag:v1.5.6
+    restart: unless-stopped
+    env_file:
+      - ${LIGHTRAG_ENV_FILE:-.env}
+    ports:
+      - "127.0.0.1:${PORT:-9621}:9621"
+    volumes:
+      - ./data/rag_storage:/app/data/rag_storage
+      - ./data/inputs:/app/data/inputs
+    environment:
+      HOST: "0.0.0.0"
+      PORT: "9621"
+      WORKING_DIR: /app/data/rag_storage
+      INPUT_DIR: /app/data/inputs
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:9621/health', timeout=5)
+      interval: 15s
+      timeout: 6s
+      retries: 10
+      start_period: 30s

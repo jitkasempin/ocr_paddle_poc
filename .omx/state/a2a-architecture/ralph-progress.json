@@ -1,0 +1,17 @@
+{
+  "score": 94,
+  "verdict": "pass",
+  "category_match": true,
+  "differences": [
+    "A few long operational connectors remain visually secondary by design, but their destinations are still unambiguous."
+  ],
+  "suggestions": [
+    "No required revision; retain the editable Draw.io source for audience-specific simplification if needed."
+  ],
+  "reasoning": "The primary A2A path is now unobstructed, the protocol-versus-implementation distinction is immediately visible, and trust zones, labels, and optional paths remain readable at full resolution.",
+  "threshold": 90,
+  "threshold_passed": true,
+  "next_actions": [
+    "Validate XML, links, and final artifact inventory."
+  ]
+}
