@@ -1,17 +1,17 @@
 {
   "version": 1,
-  "active": false,
+  "active": true,
   "skill": "deep-interview",
   "keyword": "interview",
-  "phase": "completing",
-  "activated_at": "2026-08-17T13:07:46.713Z",
-  "updated_at": "2026-08-17T13:37:04.054Z",
+  "phase": "reviewing",
+  "activated_at": "2026-08-21T00:34:22.585Z",
+  "updated_at": "2026-08-21T00:34:23.248Z",
   "source": "keyword-detector",
   "input_lock": {
-    "active": false,
+    "active": true,
     "scope": "deep-interview-auto-approval",
-    "acquired_at": "2026-08-17T13:07:46.713Z",
-    "released_at": "2026-08-17T13:12:57.135Z",
+    "acquired_at": "2026-08-21T00:34:22.585Z",
+    "released_at": "",
     "blocked_inputs": [
       "yes",
       "y",
@@ -23,6 +23,6 @@
       "next i should"
     ],
     "message": "Deep interview is active; auto-approval shortcuts are blocked until the interview finishes.",
-    "exit_reason": "success"
+    "exit_reason": ""
   }
 }

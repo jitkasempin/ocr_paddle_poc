@@ -1,0 +1,432 @@
+{
+  "created_at": "2026-08-19T15:06:15.618Z",
+  "entries": [],
+  "schema_version": 2,
+  "updated_at": "2026-08-19T15:23:19.798Z",
+  "visual_feedback": [
+    {
+      "category_match": true,
+      "differences": [
+        "The overall category matches a polished technical architecture explainer, but the generated page is much denser and longer than the reference, which weakens immediate hierarchy.",
+        "The main diagram is significantly smaller relative to its container than in the reference, so diagram readability suffers at normal desktop viewing distance.",
+        "Typography is strong for headings, but several supporting text blocks and code-like content are too small/light compared with the reference's clearer body copy.",
+        "Spacing and card rhythm are generally coherent, though the page packs many sections into one view sequence and loses the reference's simpler focal structure.",
+        "Color coherence is good, but the accent system is more varied and slightly busier than the reference's restrained teal-led palette.",
+        "No obvious clipping is visible, but there is practical overflow of information density: too much content competes on a single page, especially below the first diagram section."
+      ],
+      "next_actions": [
+        "Enlarge the primary architecture diagram by at least 30-50% within its panel and reduce unused white space around it.",
+        "Trim or defer some secondary sections so the first screen emphasizes one title, one recommendation block, and one readable diagram.",
+        "Increase body text size/contrast slightly for right-column notes, bullets, and code-panel text.",
+        "Simplify the accent palette to one dominant hue with one secondary warning color to better match the reference's calmer visual discipline.",
+        "Tighten the vertical content strategy: fewer cards per section, more breathing room between major blocks, and clearer section-to-section pacing."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Enlarge the primary architecture diagram by at least 30-50% within its panel and reduce unused white space around it.",
+          "Trim or defer some secondary sections so the first screen emphasizes one title, one recommendation block, and one readable diagram.",
+          "Increase body text size/contrast slightly for right-column notes, bullets, and code-panel text.",
+          "Simplify the accent palette to one dominant hue with one secondary warning color to better match the reference's calmer visual discipline.",
+          "Tighten the vertical content strategy: fewer cards per section, more breathing room between major blocks, and clearer section-to-section pacing."
+        ],
+        "summary": "The page clearly belongs to the same polished technical explainer family and has strong layout craft, but it misses the reference's immediate readability because the core diagram is too small and the page carries too much visual information at once."
+      },
+      "reasoning": "The page clearly belongs to the same polished technical explainer family and has strong layout craft, but it misses the reference's immediate readability because the core diagram is too small and the page carries too much visual information at once.",
+      "recorded_at": "2026-08-19T15:06:15.635Z",
+      "score": 84,
+      "suggestions": [
+        "Enlarge the primary architecture diagram by at least 30-50% within its panel and reduce unused white space around it.",
+        "Trim or defer some secondary sections so the first screen emphasizes one title, one recommendation block, and one readable diagram.",
+        "Increase body text size/contrast slightly for right-column notes, bullets, and code-panel text.",
+        "Simplify the accent palette to one dominant hue with one secondary warning color to better match the reference's calmer visual discipline.",
+        "Tighten the vertical content strategy: fewer cards per section, more breathing room between major blocks, and clearer section-to-section pacing."
+      ],
+      "threshold": 90,
+      "verdict": "revise"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "The overall visual category matches a polished technical architecture explainer, but the generated page is much denser and more text-heavy than the lighter, more presentation-like reference.",
+        "Hierarchy is weaker because the hero and section blocks compete for attention; the reference has a single dominant title, one clear diagram stage, and fewer simultaneous focal points.",
+        "The central diagram is too small relative to its container, leaving a large field of unused white space and reducing readability at desktop scale.",
+        "Typography is coherent but several body and annotation blocks feel undersized versus the large canvas, especially around the diagram caption, footer links, and lower-card copy.",
+        "Spacing is inconsistent across sections: the top hero is tight against the right-side callout cards, while the large diagram panel and later content blocks feel oversized and vertically stretched.",
+        "Color coherence is close, but the generated piece introduces more competing accents and border treatments than the reference, which is calmer and more restrained.",
+        "There is no major hard overflow, but some lower cards show awkward line wrapping and cramped copy density that reads like near-overflow at this scale."
+      ],
+      "next_actions": [
+        "Scale the main architecture diagram up substantially so it occupies more of the diagram panel height and width, closer to the reference’s readable focal size.",
+        "Reduce content density on the page by shortening copy blocks or collapsing secondary details so the layout feels more editorial and less documentation-heavy.",
+        "Strengthen hierarchy by simplifying the hero area: either reduce the prominence of the side callout cards or give the main title block more isolation and breathing room.",
+        "Increase minimum body text size and line height for diagram-adjacent notes, bottom cards, and footer references so the page reads cleanly at full-page view.",
+        "Normalize vertical rhythm across sections by tightening oversized empty regions in the diagram panel and later modules while slightly increasing separation between competing top-level blocks."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Scale the main architecture diagram up substantially so it occupies more of the diagram panel height and width, closer to the reference’s readable focal size.",
+          "Reduce content density on the page by shortening copy blocks or collapsing secondary details so the layout feels more editorial and less documentation-heavy.",
+          "Strengthen hierarchy by simplifying the hero area: either reduce the prominence of the side callout cards or give the main title block more isolation and breathing room.",
+          "Increase minimum body text size and line height for diagram-adjacent notes, bottom cards, and footer references so the page reads cleanly at full-page view.",
+          "Normalize vertical rhythm across sections by tightening oversized empty regions in the diagram panel and later modules while slightly increasing separation between competing top-level blocks."
+        ],
+        "summary": "The generated screen clearly fits the intended technical architecture explainer category and has a strong design system, but it falls short of the reference’s cleaner hierarchy and readable diagram emphasis. The main gap is proportional balance: too much text and too small a diagram inside oversized containers."
+      },
+      "reasoning": "The generated screen clearly fits the intended technical architecture explainer category and has a strong design system, but it falls short of the reference’s cleaner hierarchy and readable diagram emphasis. The main gap is proportional balance: too much text and too small a diagram inside oversized containers.",
+      "recorded_at": "2026-08-19T15:10:36.639Z",
+      "score": 84,
+      "suggestions": [
+        "Scale the main architecture diagram up substantially so it occupies more of the diagram panel height and width, closer to the reference’s readable focal size.",
+        "Reduce content density on the page by shortening copy blocks or collapsing secondary details so the layout feels more editorial and less documentation-heavy.",
+        "Strengthen hierarchy by simplifying the hero area: either reduce the prominence of the side callout cards or give the main title block more isolation and breathing room.",
+        "Increase minimum body text size and line height for diagram-adjacent notes, bottom cards, and footer references so the page reads cleanly at full-page view.",
+        "Normalize vertical rhythm across sections by tightening oversized empty regions in the diagram panel and later modules while slightly increasing separation between competing top-level blocks.",
+        "Limit accent usage to one primary highlight system with fewer border color changes, keeping the palette closer to the reference’s restrained teal-led treatment.",
+        "Rebalance card copy to avoid awkward wraps in the lower grid; fewer words per card or wider cards would improve polish and reduce cramped presentation."
+      ],
+      "threshold": 90,
+      "verdict": "revise"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "The generated page matches the polished technical explainer category, but the visual hierarchy is less disciplined than the reference because the hero block, side callouts, diagram, and lower cards compete for attention on one tall canvas.",
+        "Typography is strong in the hero and section headers, but body copy and diagram labels become too small relative to the canvas, reducing readability compared with the reference's tighter scale control.",
+        "Diagram readability is the main weakness: the central architecture diagram occupies a large panel but renders at a very small internal scale, leaving excessive empty space and making node text and connectors hard to parse.",
+        "Spacing is generally clean, but there is too much unused space inside the main diagram container and between some section elements, which makes the page feel under-filled rather than intentionally airy.",
+        "Color coherence is mostly good, with consistent blue/teal accents and restrained neutrals, though the red warning card introduces a stronger accent than anything else on the page and slightly breaks the palette balance.",
+        "No major clipping is visible, but the page is very tall and dense; the bottom sections feel like they continue beyond the optimal first-screen narrative, which weakens scanability even without literal overflow."
+      ],
+      "next_actions": [
+        "Scale the architecture diagram up substantially inside its panel so the node labels and flow lines are readable at a glance; reduce the empty internal margins instead of enlarging the panel further.",
+        "Tighten the composition by shortening the hero height or reducing side-card prominence so the main content reaches a clearer focal point sooner.",
+        "Increase diagram label size and connector contrast slightly to preserve legibility while keeping the technical aesthetic.",
+        "Normalize body text sizes across cards and sections so secondary copy does not fall below comfortable reading size on desktop.",
+        "Reduce vertical page length by compressing lower-card padding or merging some supporting points, keeping the strongest narrative blocks above the fold."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Scale the architecture diagram up substantially inside its panel so the node labels and flow lines are readable at a glance; reduce the empty internal margins instead of enlarging the panel further.",
+          "Tighten the composition by shortening the hero height or reducing side-card prominence so the main content reaches a clearer focal point sooner.",
+          "Increase diagram label size and connector contrast slightly to preserve legibility while keeping the technical aesthetic.",
+          "Normalize body text sizes across cards and sections so secondary copy does not fall below comfortable reading size on desktop.",
+          "Reduce vertical page length by compressing lower-card padding or merging some supporting points, keeping the strongest narrative blocks above the fold."
+        ],
+        "summary": "The generated image is visually polished and clearly fits the intended technical architecture explainer style, with strong headline typography, a coherent grid background, and consistent card treatment. It falls short of the 90 threshold because the centerpiece diagram is materially under-scaled inside a large container, creating a readability gap and weakening hierarchy. The overall layout is attractive and orderly, but the composition is too vertically extended and the information density is not balanced as well as the reference."
+      },
+      "reasoning": "The generated image is visually polished and clearly fits the intended technical architecture explainer style, with strong headline typography, a coherent grid background, and consistent card treatment. It falls short of the 90 threshold because the centerpiece diagram is materially under-scaled inside a large container, creating a readability gap and weakening hierarchy. The overall layout is attractive and orderly, but the composition is too vertically extended and the information density is not balanced as well as the reference.",
+      "recorded_at": "2026-08-19T15:12:06.475Z",
+      "score": 88,
+      "suggestions": [
+        "Scale the architecture diagram up substantially inside its panel so the node labels and flow lines are readable at a glance; reduce the empty internal margins instead of enlarging the panel further.",
+        "Tighten the composition by shortening the hero height or reducing side-card prominence so the main content reaches a clearer focal point sooner.",
+        "Increase diagram label size and connector contrast slightly to preserve legibility while keeping the technical aesthetic.",
+        "Normalize body text sizes across cards and sections so secondary copy does not fall below comfortable reading size on desktop.",
+        "Reduce vertical page length by compressing lower-card padding or merging some supporting points, keeping the strongest narrative blocks above the fold.",
+        "Soften the warning card’s visual weight or harmonize it with the blue/teal system so it reads as an annotation, not a competing focal object."
+      ],
+      "threshold": 90,
+      "verdict": "revise"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "The overall page matches the polished technical explainer category, but the embedded architecture diagram is rendered too small relative to its canvas, leaving a large field of unused whitespace and reducing readability.",
+        "Typography hierarchy is strong in the hero and section headers, but the diagram labels are materially smaller and lighter than the reference’s already-small chart text, making the central artifact harder to scan.",
+        "Spacing is less balanced than the reference: the main diagram card is very tall while the actual diagram occupies only the upper-middle portion, which weakens visual focus.",
+        "Color coherence is mostly good, but the diagram area feels washed out because the stroke/text contrast is too faint against the pale background.",
+        "There is no obvious hard overflow, but the footer/source line is extremely close to the lower edge and reads visually cramped.",
+        "Compared with the reference, controls and card chrome are consistent, but the generated page introduces more competing sections below the fold, so the architecture diagram loses prominence."
+      ],
+      "next_actions": [
+        "Scale the diagram up substantially within its card so it fills more of the available width and height, targeting a denser, more readable center similar to the reference’s chart-to-canvas ratio.",
+        "Increase diagram label size and stroke contrast, especially for node text and connector lines, so the architecture remains legible without zooming.",
+        "Reduce the height of the diagram container if the diagram cannot be enlarged further, or crop excess empty space to tighten focus.",
+        "Darken diagram strokes/text slightly or give the diagram surface a bit more contrast so the central system flow anchors the page visually.",
+        "Add more bottom padding around the footer/source row to avoid the near-edge cramped feel."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Scale the diagram up substantially within its card so it fills more of the available width and height, targeting a denser, more readable center similar to the reference’s chart-to-canvas ratio.",
+          "Increase diagram label size and stroke contrast, especially for node text and connector lines, so the architecture remains legible without zooming.",
+          "Reduce the height of the diagram container if the diagram cannot be enlarged further, or crop excess empty space to tighten focus.",
+          "Darken diagram strokes/text slightly or give the diagram surface a bit more contrast so the central system flow anchors the page visually.",
+          "Add more bottom padding around the footer/source row to avoid the near-edge cramped feel."
+        ],
+        "summary": "The generated page clearly fits the intended polished technical architecture explainer style and has stronger editorial structure than the reference. It misses the pass threshold because the core diagram, which should be the primary visual proof, is under-scaled and too faint for comfortable reading."
+      },
+      "reasoning": "The generated page clearly fits the intended polished technical architecture explainer style and has stronger editorial structure than the reference. It misses the pass threshold because the core diagram, which should be the primary visual proof, is under-scaled and too faint for comfortable reading.",
+      "recorded_at": "2026-08-19T15:13:39.226Z",
+      "score": 82,
+      "suggestions": [
+        "Scale the diagram up substantially within its card so it fills more of the available width and height, targeting a denser, more readable center similar to the reference’s chart-to-canvas ratio.",
+        "Increase diagram label size and stroke contrast, especially for node text and connector lines, so the architecture remains legible without zooming.",
+        "Reduce the height of the diagram container if the diagram cannot be enlarged further, or crop excess empty space to tighten focus.",
+        "Darken diagram strokes/text slightly or give the diagram surface a bit more contrast so the central system flow anchors the page visually.",
+        "Add more bottom padding around the footer/source row to avoid the near-edge cramped feel.",
+        "Either reduce the visual weight of lower supporting sections or increase the prominence of the main diagram card so the page reads first as an architecture explainer, second as supporting notes."
+      ],
+      "threshold": 90,
+      "verdict": "revise"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "The generated diagram matches the technical-architecture category, but its visual hierarchy is weaker than the reference because the primary flow is less centralized and several secondary branches pull attention sideways.",
+        "Label readability is materially worse: most node text is significantly smaller than the reference and becomes hard to read at rendered size, especially in the lower storage/services row and the multiline auth/query/ingestion boxes.",
+        "Canvas use is inefficient: the diagram occupies a relatively small portion of a large frame, with excessive empty space on the right and top compared with the tighter reference composition.",
+        "Connector clarity is mixed: lines generally connect correctly, but several long horizontal and bent connectors overlap visually in the lower half, making tracing harder than in the reference.",
+        "Color coherence is acceptable but less polished: the palette stays restrained, yet the mixture of blue, teal, and dashed red treatment feels less unified than the reference’s more consistent single-family accenting.",
+        "There is no severe clipping, but the far-right observability box sits close to the composition edge and the long outbound connectors create an almost overflow-like feel.",
+        "Shape balance is inconsistent: the oversized top circle dominates the page relative to the rest of the nodes, which reduces proportional harmony."
+      ],
+      "next_actions": [
+        "Increase overall text size and node padding so every label is readable without zooming; prioritize the auth layer, API, query/ingestion, and bottom service labels.",
+        "Scale the whole diagram up to use more of the canvas, or reduce canvas width, so the architecture fills the frame more like the reference.",
+        "Re-center the composition and tighten horizontal spacing between the main processing nodes and the bottom data/service nodes.",
+        "Shorten and simplify connector routes, especially the long rightward observability lines; prefer straighter vertical flow with fewer parallel overlaps.",
+        "Normalize visual proportions by reducing the top client circle or enlarging the downstream boxes so the hierarchy feels balanced."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Increase overall text size and node padding so every label is readable without zooming; prioritize the auth layer, API, query/ingestion, and bottom service labels.",
+          "Scale the whole diagram up to use more of the canvas, or reduce canvas width, so the architecture fills the frame more like the reference.",
+          "Re-center the composition and tighten horizontal spacing between the main processing nodes and the bottom data/service nodes.",
+          "Shorten and simplify connector routes, especially the long rightward observability lines; prefer straighter vertical flow with fewer parallel overlaps.",
+          "Normalize visual proportions by reducing the top client circle or enlarging the downstream boxes so the hierarchy feels balanced."
+        ],
+        "summary": "The generated image is recognizably a polished technical architecture diagram, so category match is true. It falls below the 90 target because readability and composition are notably weaker than the reference at actual rendered size. The largest issues are undersized labels, excessive unused canvas, overextended connector paths, and disproportionate shape sizing. Nothing is badly clipped, but the layout still reads as under-scaled and less resolved than the reference."
+      },
+      "reasoning": "The generated image is recognizably a polished technical architecture diagram, so category match is true. It falls below the 90 target because readability and composition are notably weaker than the reference at actual rendered size. The largest issues are undersized labels, excessive unused canvas, overextended connector paths, and disproportionate shape sizing. Nothing is badly clipped, but the layout still reads as under-scaled and less resolved than the reference.",
+      "recorded_at": "2026-08-19T15:15:05.005Z",
+      "score": 72,
+      "suggestions": [
+        "Increase overall text size and node padding so every label is readable without zooming; prioritize the auth layer, API, query/ingestion, and bottom service labels.",
+        "Scale the whole diagram up to use more of the canvas, or reduce canvas width, so the architecture fills the frame more like the reference.",
+        "Re-center the composition and tighten horizontal spacing between the main processing nodes and the bottom data/service nodes.",
+        "Shorten and simplify connector routes, especially the long rightward observability lines; prefer straighter vertical flow with fewer parallel overlaps.",
+        "Normalize visual proportions by reducing the top client circle or enlarging the downstream boxes so the hierarchy feels balanced.",
+        "Unify the palette around one main accent family with one secondary accent at most; reserve dashed or contrasting treatment only for genuinely exceptional nodes.",
+        "Move the observability box inward and align the bottom row more deliberately to avoid edge tension and improve scanability."
+      ],
+      "threshold": 90,
+      "verdict": "revise"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "The generated diagram uses only a small central strip of the canvas, while the reference fills the page vertically with balanced whitespace.",
+        "Text is substantially smaller than the reference, making several labels hard to read at normal viewing size.",
+        "Hierarchy is flatter and less visually staged than the reference; the reference has a strong top-to-bottom progression with clear decision depth.",
+        "Connector routing is tighter and more compressed, which reduces scan clarity compared with the reference's longer, cleaner link spacing.",
+        "Color coherence is acceptable but the contrast feels lighter and less crisp than the reference, especially for labels and borders.",
+        "No obvious clipping or overflow is visible, but the composition appears under-scaled relative to the available frame."
+      ],
+      "next_actions": [
+        "Increase overall diagram scale by roughly 2x to 3x and let it occupy more of the canvas height and width.",
+        "Raise font size and stroke contrast so all labels remain readable without zooming.",
+        "Introduce stronger vertical layering and spacing between stages to make the architecture hierarchy easier to follow.",
+        "Spread nodes farther apart horizontally so connectors do not feel cramped in the center.",
+        "Keep the current palette but darken text and line work slightly for sharper technical-diagram legibility."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Increase overall diagram scale by roughly 2x to 3x and let it occupy more of the canvas height and width.",
+          "Raise font size and stroke contrast so all labels remain readable without zooming.",
+          "Introduce stronger vertical layering and spacing between stages to make the architecture hierarchy easier to follow.",
+          "Spread nodes farther apart horizontally so connectors do not feel cramped in the center.",
+          "Keep the current palette but darken text and line work slightly for sharper technical-diagram legibility."
+        ],
+        "summary": "The image matches the polished technical architecture diagram category, but it does not meet the reference standard for presentation quality. The main failure is scale: the diagram is heavily under-utilizing the canvas, which in turn hurts readability and hierarchy perception. Connectors and colors are serviceable, and there is no visible clipping, but the overall composition is too small and visually weak for a pass threshold of 90."
+      },
+      "reasoning": "The image matches the polished technical architecture diagram category, but it does not meet the reference standard for presentation quality. The main failure is scale: the diagram is heavily under-utilizing the canvas, which in turn hurts readability and hierarchy perception. Connectors and colors are serviceable, and there is no visible clipping, but the overall composition is too small and visually weak for a pass threshold of 90.",
+      "recorded_at": "2026-08-19T15:17:08.263Z",
+      "score": 62,
+      "suggestions": [
+        "Increase overall diagram scale by roughly 2x to 3x and let it occupy more of the canvas height and width.",
+        "Raise font size and stroke contrast so all labels remain readable without zooming.",
+        "Introduce stronger vertical layering and spacing between stages to make the architecture hierarchy easier to follow.",
+        "Spread nodes farther apart horizontally so connectors do not feel cramped in the center.",
+        "Keep the current palette but darken text and line work slightly for sharper technical-diagram legibility.",
+        "Preserve safe margins, but avoid leaving most of the canvas empty."
+      ],
+      "threshold": 90,
+      "verdict": "fail"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "Canvas use is weak: the diagram occupies a narrow horizontal strip with large empty margins, unlike the reference which fills the page more deliberately.",
+        "Label readability is poor: most node text is too small relative to the canvas and becomes hard to read at normal viewing size.",
+        "Visual hierarchy is shallow: all boxes use nearly identical weight and scale, so primary flow, control points, and storage components do not stand out clearly.",
+        "Connector clarity is only moderate: several lines are thin and low-emphasis, making branch relationships easy to miss.",
+        "Color coherence is acceptable but flat: the blue palette is consistent, yet the contrast and emphasis are not strong enough for a polished architecture diagram.",
+        "The cylinder shapes help identify storage, but their labels are also undersized and visually secondary.",
+        "Overall composition feels compressed vertically and under-scaled compared with the balanced, centered reference layout."
+      ],
+      "next_actions": [
+        "Scale the entire diagram up substantially so it uses most of the available canvas height and width.",
+        "Increase font sizes across all nodes, especially service labels and storage labels, to improve first-glance readability.",
+        "Strengthen hierarchy by enlarging key stages such as gateway, policy layer, query plane, and Qdrant, while keeping secondary components slightly smaller.",
+        "Use thicker connector strokes and clearer routing so branches between query, ingestion, model, and stores read cleanly.",
+        "Tighten spacing between related components and reduce excessive outer whitespace."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Scale the entire diagram up substantially so it uses most of the available canvas height and width.",
+          "Increase font sizes across all nodes, especially service labels and storage labels, to improve first-glance readability.",
+          "Strengthen hierarchy by enlarging key stages such as gateway, policy layer, query plane, and Qdrant, while keeping secondary components slightly smaller.",
+          "Use thicker connector strokes and clearer routing so branches between query, ingestion, model, and stores read cleanly.",
+          "Tighten spacing between related components and reduce excessive outer whitespace."
+        ],
+        "summary": "The image does read as a technical architecture diagram, so the category matches. However, it does not meet polished-reference quality because the text is too small, the diagram is under-scaled relative to the canvas, and the visual hierarchy is weak. The reference succeeds through centered composition, consistent spacing, and readable labels; this version remains legible only on close inspection and lacks the presentation finish needed to pass a 90 threshold."
+      },
+      "reasoning": "The image does read as a technical architecture diagram, so the category matches. However, it does not meet polished-reference quality because the text is too small, the diagram is under-scaled relative to the canvas, and the visual hierarchy is weak. The reference succeeds through centered composition, consistent spacing, and readable labels; this version remains legible only on close inspection and lacks the presentation finish needed to pass a 90 threshold.",
+      "recorded_at": "2026-08-19T15:18:34.492Z",
+      "score": 54,
+      "suggestions": [
+        "Scale the entire diagram up substantially so it uses most of the available canvas height and width.",
+        "Increase font sizes across all nodes, especially service labels and storage labels, to improve first-glance readability.",
+        "Strengthen hierarchy by enlarging key stages such as gateway, policy layer, query plane, and Qdrant, while keeping secondary components slightly smaller.",
+        "Use thicker connector strokes and clearer routing so branches between query, ingestion, model, and stores read cleanly.",
+        "Tighten spacing between related components and reduce excessive outer whitespace.",
+        "Add stronger visual emphasis for storage and model components through slightly different fill treatment or stroke weight while staying within one coherent palette.",
+        "Rebalance the layout into a more centered, structured composition so the diagram feels intentional rather than stretched across a blank canvas."
+      ],
+      "threshold": 90,
+      "verdict": "fail"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "Visual hierarchy is weaker than the reference: all major boxes use nearly the same weight and fill, so the top-down flow does not separate primary path from supporting components clearly.",
+        "Label readability is mixed: several labels are small relative to box size, and multi-line text like the gateway/auth and ingestion blocks feels cramped.",
+        "Canvas utilization is acceptable but less balanced than the reference; the lower half is dense while large side margins remain underused.",
+        "Connector clarity is the main weakness: several orthogonal lines converge around the middle and lower tier, making source-to-destination mapping harder to follow than in the reference.",
+        "Color coherence is consistent overall, but the teal-highlighted auth box introduces a second emphasis style that is not echoed elsewhere, making emphasis feel arbitrary.",
+        "No obvious clipping or overflow is visible, but some connectors run very close to neighboring shapes, which creates near-overlap tension."
+      ],
+      "next_actions": [
+        "Strengthen hierarchy by giving the primary vertical request path a clearer emphasis through darker stroke weight, slightly stronger fill contrast, or larger node sizing.",
+        "Increase font size and internal padding for multi-line labels, especially in the gateway/auth, query plane, and ingestion plane boxes.",
+        "Re-space the mid and lower sections so connectors do not stack in the same horizontal corridor; dedicate cleaner lanes from API to query/ingestion and from those to storage/serving nodes.",
+        "Use more of the horizontal canvas by separating bottom destinations further and aligning them to clearer columns under their parent blocks.",
+        "Make emphasis rules consistent: either reserve the accent color for all control-plane/security elements or reduce the auth box highlight so it does not feel visually isolated."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Strengthen hierarchy by giving the primary vertical request path a clearer emphasis through darker stroke weight, slightly stronger fill contrast, or larger node sizing.",
+          "Increase font size and internal padding for multi-line labels, especially in the gateway/auth, query plane, and ingestion plane boxes.",
+          "Re-space the mid and lower sections so connectors do not stack in the same horizontal corridor; dedicate cleaner lanes from API to query/ingestion and from those to storage/serving nodes.",
+          "Use more of the horizontal canvas by separating bottom destinations further and aligning them to clearer columns under their parent blocks.",
+          "Make emphasis rules consistent: either reserve the accent color for all control-plane/security elements or reduce the auth box highlight so it does not feel visually isolated."
+        ],
+        "summary": "The generated diagram matches the intended polished technical architecture category and is visually clean, with coherent shapes and no clipping. It falls below the 90 threshold because the reference has much clearer flow legibility and visual hierarchy. In the generated version, connector congestion in the center-bottom region and relatively small text reduce scanability, and the emphasis system is less disciplined."
+      },
+      "reasoning": "The generated diagram matches the intended polished technical architecture category and is visually clean, with coherent shapes and no clipping. It falls below the 90 threshold because the reference has much clearer flow legibility and visual hierarchy. In the generated version, connector congestion in the center-bottom region and relatively small text reduce scanability, and the emphasis system is less disciplined.",
+      "recorded_at": "2026-08-19T15:20:07.756Z",
+      "score": 84,
+      "suggestions": [
+        "Strengthen hierarchy by giving the primary vertical request path a clearer emphasis through darker stroke weight, slightly stronger fill contrast, or larger node sizing.",
+        "Increase font size and internal padding for multi-line labels, especially in the gateway/auth, query plane, and ingestion plane boxes.",
+        "Re-space the mid and lower sections so connectors do not stack in the same horizontal corridor; dedicate cleaner lanes from API to query/ingestion and from those to storage/serving nodes.",
+        "Use more of the horizontal canvas by separating bottom destinations further and aligning them to clearer columns under their parent blocks.",
+        "Make emphasis rules consistent: either reserve the accent color for all control-plane/security elements or reduce the auth box highlight so it does not feel visually isolated.",
+        "Shorten or re-break long labels so each box reads faster at a glance without crowding the text area."
+      ],
+      "threshold": 90,
+      "verdict": "revise"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "Hierarchy is clear top-to-bottom, but the visual emphasis is uneven: the gateway/auth block dominates while the RAG API block looks comparatively underweighted.",
+        "Label readability is acceptable at full size for major nodes, but several secondary labels are small and low-contrast against the pale fills.",
+        "Canvas use is only moderately efficient; the composition leaves substantial unused whitespace and the lower cylinders feel horizontally detached from the flow above.",
+        "Connector clarity is mixed: the main vertical flow is readable, but the curved cross-connector from `RAG API` toward `Ingestion` and the short connector into `Qdrant` introduce slight ambiguity.",
+        "Color coherence is generally good with muted blue/teal, but the cylinder stroke color and rectangle stroke color feel like two separate systems rather than one unified palette.",
+        "No obvious clipping or overflow is visible, but the wide text block inside `Gateway and auth` sits close to the box edges and could become fragile if exported smaller."
+      ],
+      "next_actions": [
+        "Increase text size and contrast for secondary labels, especially inside `Gateway and auth`, `Query`, and `Ingestion`.",
+        "Rebalance hierarchy by either enlarging `RAG API` slightly or reducing the visual dominance of the gateway block.",
+        "Tighten the layout vertically and horizontally so the storage tier sits more directly under its producing services with less empty canvas.",
+        "Simplify connectors to more orthogonal, explicit routes; avoid decorative curves where a direct elbow connector would read faster.",
+        "Unify the palette by using one stroke family for process boxes and a closely related variant for storage shapes instead of noticeably different blue/teal accents."
+      ],
+      "passes_threshold": false,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Increase text size and contrast for secondary labels, especially inside `Gateway and auth`, `Query`, and `Ingestion`.",
+          "Rebalance hierarchy by either enlarging `RAG API` slightly or reducing the visual dominance of the gateway block.",
+          "Tighten the layout vertically and horizontally so the storage tier sits more directly under its producing services with less empty canvas.",
+          "Simplify connectors to more orthogonal, explicit routes; avoid decorative curves where a direct elbow connector would read faster.",
+          "Unify the palette by using one stroke family for process boxes and a closely related variant for storage shapes instead of noticeably different blue/teal accents."
+        ],
+        "summary": "The image fits the polished technical architecture category and has a coherent top-down structure, but it does not clear a 90 threshold because readability, connector precision, and spatial efficiency are not yet at polished-diagram level. It is clean and presentable, but still feels like a competent draft rather than a fully refined architecture graphic."
+      },
+      "reasoning": "The image fits the polished technical architecture category and has a coherent top-down structure, but it does not clear a 90 threshold because readability, connector precision, and spatial efficiency are not yet at polished-diagram level. It is clean and presentable, but still feels like a competent draft rather than a fully refined architecture graphic.",
+      "recorded_at": "2026-08-19T15:21:47.693Z",
+      "score": 84,
+      "suggestions": [
+        "Increase text size and contrast for secondary labels, especially inside `Gateway and auth`, `Query`, and `Ingestion`.",
+        "Rebalance hierarchy by either enlarging `RAG API` slightly or reducing the visual dominance of the gateway block.",
+        "Tighten the layout vertically and horizontally so the storage tier sits more directly under its producing services with less empty canvas.",
+        "Simplify connectors to more orthogonal, explicit routes; avoid decorative curves where a direct elbow connector would read faster.",
+        "Unify the palette by using one stroke family for process boxes and a closely related variant for storage shapes instead of noticeably different blue/teal accents.",
+        "Add a bit more internal padding or line spacing in the longest labels to preserve readability at smaller render sizes."
+      ],
+      "threshold": 90,
+      "verdict": "revise"
+    },
+    {
+      "category_match": true,
+      "differences": [
+        "Hierarchy is clear and top-down, but the middle tier uses large equal-weight rectangles so the API, query, and ingestion layers feel slightly flatter than the reference's stronger staged progression.",
+        "Label readability is generally good, though the smaller secondary lines inside nodes are a bit dense compared with the airy spacing in the reference.",
+        "Canvas use is strong and balanced; however, there is more unused space around the outer edges than in the reference, which is tighter vertically.",
+        "Connector clarity is good overall, but the curved branch from the API layer toward Ingestion is slightly less immediate to parse than the straighter connector patterns in the reference.",
+        "Color coherence is consistent and professional, though the pale fills and thin blue strokes produce lower contrast than the reference's crisper mint outlines.",
+        "No visible clipping or overflow; all labels and shapes stay within bounds."
+      ],
+      "next_actions": [
+        "Increase contrast slightly by darkening strokes or deepening fill separation so labels and boundaries read faster at a glance.",
+        "Tighten vertical spacing between layers to reduce excess whitespace and strengthen the staged pipeline feel.",
+        "Differentiate the central API/orchestration block more strongly from the peer query and ingestion blocks using size, weight, or fill emphasis.",
+        "Simplify or straighten the lateral connector into Ingestion so branch direction is more immediately legible.",
+        "Add a bit more internal padding or line spacing for two-line labels to improve readability in the larger rectangles."
+      ],
+      "passes_threshold": true,
+      "qualitative_feedback": {
+        "next_actions": [
+          "Increase contrast slightly by darkening strokes or deepening fill separation so labels and boundaries read faster at a glance.",
+          "Tighten vertical spacing between layers to reduce excess whitespace and strengthen the staged pipeline feel.",
+          "Differentiate the central API/orchestration block more strongly from the peer query and ingestion blocks using size, weight, or fill emphasis.",
+          "Simplify or straighten the lateral connector into Ingestion so branch direction is more immediately legible.",
+          "Add a bit more internal padding or line spacing for two-line labels to improve readability in the larger rectangles."
+        ],
+        "summary": "The diagram matches the polished technical architecture category and is visually solid: clean alignment, balanced layout, readable labels, coherent color palette, and no clipping issues. It is not as crisp or rhythmically hierarchical as the reference, mainly due to flatter block weighting, slightly lower contrast, and a few connectors that read less decisively, but the overall presentation clears the 90 threshold."
+      },
+      "reasoning": "The diagram matches the polished technical architecture category and is visually solid: clean alignment, balanced layout, readable labels, coherent color palette, and no clipping issues. It is not as crisp or rhythmically hierarchical as the reference, mainly due to flatter block weighting, slightly lower contrast, and a few connectors that read less decisively, but the overall presentation clears the 90 threshold.",
+      "recorded_at": "2026-08-19T15:23:19.798Z",
+      "score": 92,
+      "suggestions": [
+        "Increase contrast slightly by darkening strokes or deepening fill separation so labels and boundaries read faster at a glance.",
+        "Tighten vertical spacing between layers to reduce excess whitespace and strengthen the staged pipeline feel.",
+        "Differentiate the central API/orchestration block more strongly from the peer query and ingestion blocks using size, weight, or fill emphasis.",
+        "Simplify or straighten the lateral connector into Ingestion so branch direction is more immediately legible.",
+        "Add a bit more internal padding or line spacing for two-line labels to improve readability in the larger rectangles."
+      ],
+      "threshold": 90,
+      "verdict": "pass"
+    }
+  ]
+}
